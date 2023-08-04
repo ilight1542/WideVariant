@@ -59,10 +59,19 @@ Mandatory changes:
 
 #### `snakemake_pipeline/input/experiment_info.yaml`
 Mandatory changes:
-* change sample_table to path to samples.csv
-* change myscripts_directory to path to "/scripts" folder in this directory
-
-* change experiment_name, ref_genome_directory if needed
+* change `sample_table` to path to samples.csv
+* change `myscripts_directory` to path to `"/scripts"` folder in this directory
+* change `pipeline_specifications` from `["mapping","case"]` default, if necessary 
+  * This determines which parts of the pipeline snakemake will run
+  * `pipeline_specifications` options are: 'mapping', 'case', 'assembly', 'bracken'
+	*  mapping: process reads and align them to a reference genome
+    *  case: identify candidate SNVs and generate candidate mutation table
+    *  assembly: generate annotated assemblies for each sample
+    *  bracken: estimate abundances of taxa in sample
+* change `experiment_name`
+* change `ref_genome_directory` to the path which holds your reference genome folders
+  * NOTE: Each unique reference genome defined in samples.csv should correspond to a folder name within the `ref_genome_directory` path.
+  * For  instance reference genome is `Ypestis_CO92` in samples.csv, and the path defined in `ref_genome_directory` is `/my/path`, the overall structure should be: `/my/path/Ypestis_CO92/` with file `genome.fasta` or `genome.fasta.gz`.
 
 #### `snakemake_pipeline/config.yaml`
 NOTE: this file may not be renamed
@@ -77,18 +86,6 @@ Optional changes:
 * Change dry-run or unlock parameters if desired 
 * Change rule resource requirements
 
-#### `snakemake_pipeline/Snakefile.py` 
-
-Mandatory changes:
-* Check to make sure the variable `flag` is set to `"all"`. 
-
-Optional changes:
-* If you would like to generate raw coverage matrices (in addition to a candidate mutation table), then:
-	* uncomment the line `input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.pickle.gz",cladeID=UNIQ_GROUP_ls))` 
-	* modify the rule `candidate_mutation_table` (see comments in `Snakefile.py`)
-* If you would like to generage both raw and normalized coverage matrices, then: 
-	* uncomment the line `input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.pickle.gz",cladeID=UNIQ_GROUP_ls))`
-	* modify the rule `candidate_mutation_table` (see comments in `Snakefile.py`)
 
 #### `snakemake_pipeline/run_snakemake.slurm` 
 
@@ -119,7 +116,7 @@ Before moving on, be sure to activate your Snakemake environment (`conda activat
 
 ### Run a dry run
 
-A dryrun will catch any issues with incorrect file paths, missing input files, or improper syntax in your Snakefile. A successful dryrun will print out a list of which Snakemake rules will be executed and how many times each one will need to be executed (e.g. the rule `cutadapt` will be executed N times where N is the number of samples you put in `samples.csv`)
+A dryrun will catch any issues with incorrect file paths, missing input files, or improper syntax in your Snakefile.py. A successful dryrun will print out a list of which Snakemake rules will be executed and how many times each one will need to be executed (e.g. the rule `cutadapt` will be executed N times where N is the number of samples you put in `samples.csv`)
 
 You can perform a dryrun by typing `snakemake -s Snakefile.py -n -p -c1` into the terminal. Be sure that you are in your Snakemake working directory (the same directory that contains `Snakefile.py`) when you do this. The output should include a tally of how many times each Snakemake rule will be executed. Here is an example job tally where there are 8 samples, 4 of which are aligned to one reference genome and the other 4 of which are aligned to another reference genome:
 
@@ -224,14 +221,14 @@ If you modified `Snakefile.py` to generate coverage matrices, you will get addit
 
 ## Alternative Snakemake workflows
 
-The Snakefile provided here can execute alternative workflows, outlined briefly below.
+The Snakefile.py provided here can execute alternative workflows, outlined briefly below.
 
 ### Assembly workflow
 
 The assembly workflow generates annotated assemblies for each sample.
 
 How to run:
-* Change the `flag` variable in `Snakefile.py` to `"assembly"`
+* Change the `pipeline_specifications` variable in `experiment_info.yaml` to include `"bracken"`
 * Necessary  fields in `samples.csv`: Path,Sample,FileName,Reference (Reference will not actually be used)
 
 ### Taxonomic abundance workflow
@@ -239,7 +236,7 @@ How to run:
 The taxonomic abundance workflow generates estimates abundances by taxa in each sample.
 
 How to run:
-* Change the `flag` variable in `Snakefile.py` to `"bracken"`
+* Change the `pipeline_specifications` variable in `experiment_info.yaml` to include `"bracken"`
 * Necessary  fields in `samples.csv`: Path,Sample,FileName,Reference (Reference will not actually be used)
 
 

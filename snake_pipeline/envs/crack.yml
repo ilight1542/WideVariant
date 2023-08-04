@@ -113,4 +113,3 @@ dependencies:
   - wheel=0.35.1=pyh9f0ad1d_0
   - xz=5.2.5=h516909a_1
   - zlib=1.2.11=h516909a_1009
-prefix: /scratch/users/jsbaker/miniconda3/envs/crack

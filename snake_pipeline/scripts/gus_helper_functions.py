@@ -13,7 +13,7 @@ import glob
 import subprocess
 import gzip
 
-def read_samples_CSV(spls):
+def read_samples_CSV(spls,quiet=False):
     hdr_check = ['Path','Sample','FileName','Reference','Group','Outgroup']
     switch = "on"
     file = open(spls, 'r')
@@ -25,7 +25,8 @@ def read_samples_CSV(spls):
         # Test Header. Note: Even when header wrong code continues (w/ warning), but first line not read.
         if switch == "on":
             if (line == hdr_check):
-                print("Passed CSV header check")
+                if quiet:
+                    print("Passed CSV header check")
             else:
                 Warning("CSV did NOT pass header check! Code continues, but first line ignored")
             switch = "off"
@@ -141,12 +142,15 @@ def findfastqfile(dr,ID,filename):
                             fwd=potentialhits_forward[0]+'.gz'
                             rev=potentialhits_reverse[0]+'.gz'
     if not(fwd) or not(rev):
-        raise ValueError('Either no file or more than 1 file found in ' + dr + 'for ' + ID)
+        raise ValueError(f'Either no fastq file or more than 1 file found in directory {dr} for {ID}.')
+    #TODO: add search pattern used to find fastqs for more useful error report
+    #TODO: add error differentiation for no file or more than one file
     ##zip fastq files if they aren't already zipped
     subprocess.run("gzip " + fwd, shell=True)   
     subprocess.run("gzip " + rev, shell=True)   
     return [fwd, rev]
-    
+
+#TODO: remove if not necessary
 #Jonathan new code
 # def findfastqfile(dr,ID,filename):
 #     fwd=[]
@@ -298,6 +302,7 @@ def p2chrpos(p, ChrStarts):
         chrpos = np.column_stack((chromo,p))
     return chrpos
 
+#TODO: remove if not necessary
 
 # def get_clade_wildcards(cladeID):
 #     is_clade = [int(i == cladeID) for i in GROUP_ls]

@@ -27,4 +27,3 @@ dependencies:
   - samtools=1.16.1=h6899075_1
   - xz=5.2.6=h166bdaf_0
   - zlib=1.2.13=h166bdaf_4
-prefix: /scratch/users/mancusoc/tools/miniconda3/envs/samtools116

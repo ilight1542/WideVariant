@@ -1,4 +1,18 @@
-experiment_name: "test"
+##########################################
+# modify the following parameters, below #
+##########################################
+# Basic pipeline options
+experiment_name: test
+run_in_screen: False
 sample_table: ./samples.csv
+ref_genome_directory: /Users/ad_loris/Nextcloud/keylab/reference_genomes
+
+# Specific pipeline execution options
+pipeline_specifications: ["mapping","case"]
+generate_normalized_coverage_matrix: False
+generate_raw_coverage_matrix: False
+
+##########################################
+# do not modify the following parameters #
+##########################################
 myscripts_directory: ./scripts
-ref_genome_directory: /nfs/tamilab001/c3ddb-scratch-mit_lieberman/reference_genomes

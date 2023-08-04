@@ -1,0 +1,115 @@
+#!/bin/bash
+
+source scripts/pre_snakemake_checks.sh
+
+# launch snakemake to run jobs via SLURM
+# ntasks
+SM_PARAMS="job-name ntasks time mem mail-user mail-type error output"
+
+#SM_ARGS=" --parsable --cpus-per-task {cluster.cpus-per-task} --mem-per-cpu {cluster.mem-per-cpu-mb}"
+SM_ARGS=" --parsable --cpus-per-task {cluster.cpus-per-task}" #new
+
+for P in ${SM_PARAMS}; do SM_ARGS="${SM_ARGS} --$P {cluster.$P}"; done
+echo "SM_ARGS: ${SM_ARGS}"
+
+###############################################
+## CHECKS TO AUTOMATICALLY FIX FOR EXECUTION ##
+###############################################
+## Check if slurm_status.py is executable and change if not
+if [[ ! -x "scripts/slurm_status_script.py" ]]
+then
+    chmod +x scripts/slurm_status_script.py;
+fi
+
+if [[ ! -x "scripts/pre_snakemake_checks.py" ]]
+then
+    chmod +x scripts/pre_snakemake_checks.py;
+fi
+###############################################
+## CHECKS FOR PROMPT FIX PRIOR TO EXECUTION ##
+###############################################
+
+# Checks of config.yaml
+## Check if email has been updated
+email_update=$(grep "UPDATE_EMAIL_ADDRESS" config.yaml)
+if [[ ! ${#email_update} -eq 0 ]]; then
+    echo "Please type your email address for error reporting from slurm, and click 'enter'"
+    read email
+    echo "Slurm will automatically send emails to ${email} if errors occur."
+    sed -i "s/UPDATE_EMAIL_ADDRESS/$email/g" config.yaml
+fi
+
+
+## Conda checks
+activate_conda_path=$(echo $CONDA_EXE | sed 's#bin/conda#bin/activate#g')
+conda_envs_path=$(echo $CONDA_EXE | sed 's#bin/conda#envs#g' )
+update_conda_envs_path=$(grep "/PATH/TO/PRELOADED/CONDA/ENVS" config.yaml)
+if [[ ! ${#update_conda_envs_path} -eq 0 ]]
+then
+    echo "No conda environment location set, updating to default identified with your conda installation."
+    echo "${conda_envs_path} will be used as the location to search for preloaded conda environments and cache pipeline-specific conda environments."
+    echo "If you wish to designate an alternate location, please do so by modifying the 'conda-prefix' entry in config.yaml"
+    sed -i "s#/PATH/TO/PRELOADED/CONDA/ENVS#$conda_envs_path#g" config.yaml
+fi
+
+if [[ -d "${conda_envs_path}/snakemake" ]];then
+    source ${activate_conda_path} snakemake
+else
+    conda env create -n snakemake --file envs/snakemake.yaml
+fi
+
+conda config --set ssl_verify no
+
+
+## Generate paths necessary for snakemake to run
+mkdir -p logs
+
+# execute checking of pipeline consistency, file path checks
+
+if python pre_snakemake_checks.py -e experiment_info.yaml ; then
+    echo "Errors encountered. Exiting prior to start of snakemake"
+    echo "Please correct errors and rerun!"
+    exit 1
+fi
+
+# gather remaining variable names for execution and logging purposes.
+experiment_name=$(grep "experiment_name" experiment_info.yaml | cut -d ':' -f2 )
+date=$(date)
+if grep "run_in_screen: True" -q experiment_info.yaml; then
+    run_in_screen=true
+fi
+
+# echo to stdout update, also write to main log file.
+echo "The WideVariant Snakemake is all set to run! \n \n \
+      Run for experiment${experiment_name} will commence at $date"
+date
+
+### run snakemake
+# -j defines total number of jobs executed in parallel on cluster
+# -n dryrun
+# -p print command lines
+# --use-conda allows to activate conda env necessary for rule
+# --conda-prefix envs: builds environment in envs folder where it will be 
+if $run_in_screen; then
+    screen -S "${experiment_name}" "\
+        snakemake -p \
+        $* \
+        --latency-wait 60 \
+        -j 100 \
+        --cluster-config config.yaml \
+        --cluster "sbatch ${SM_ARGS}" \
+        --cluster-status scripts/slurm_status_script.py \
+        --rerun-incomplete \
+        --restart-times 1 \
+        --keep-going \
+        --use-conda \
+        --conda-prefix ${conda_envs_path}
+
+        #--dry-run \
+        #--group-components \
+        # --dag \
+        # | dot -Tsvg > dag.svg
+    "
+else 
+    sbash run_snakemake.slurm
+fi

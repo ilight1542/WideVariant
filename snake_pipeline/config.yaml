@@ -13,8 +13,10 @@ jobs: 400
 latency-wait: 30
 keep-going: True
 configfile: ./experiment_info.yaml
-conda-prefix: /nfs/tamilab001/c3ddb-scratch-mit_lieberman/tools/conda_snakemake
-cluster-status: /nfs/tamilab001/c3ddb-scratch-mit_lieberman/scripts/slurm_status.py
+
+# modify if necessary
+conda-prefix: /PATH/TO/PRELOADED/CONDA/ENVS
+cluster-status: ./scripts/slurm_status.py
 reason: True
 # dryrun: True
 # unlock: True
@@ -22,7 +24,6 @@ reason: True
 cluster:
   mkdir -p ./logs/ &&
   sbatch
-    --partition={resources.partition}
     --ntasks={resources.ntasks}
     --cpus-per-task={resources.cpus_per_task}
     --mem={resources.mem}
@@ -30,22 +31,24 @@ cluster:
     --job-name="SM.{rule}"
     --output="./logs/%j_{rule}.err.txt"
     --error="./logs/%j_{rule}.err.txt"
-    --exclude="node035,node390"
-    --mail-user="YOUR_EMAIL_HERE"
+    --mail-user="UPDATE_EMAIL_ADDRESS"
     --mail-type="FAIL"
+#    --partition={resources.partition}
+#    --exclude="node035,node390"
 
 #note that resource names should use underscore _ instead of dash -
 
 default-resources:
-   - partition="sched_mit_tami"
    - time="1:00:00"
    - ntasks=1
    - cpus_per_task=1
    - mem=8000
+#   - partition=""
+#   - tmpdir='/other/tmp/dir'
 
 set-resources:
    # make_data_links
-   - make_data_links:partition="sched_mit_hill"
+   #- make_data_links:partition="sched_mit_hill"
    # cutadapt
    - cutadapt:ntasks=1
    - cutadapt:cpus_per_task=1

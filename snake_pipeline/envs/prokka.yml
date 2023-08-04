@@ -312,4 +312,3 @@ dependencies:
   - xz=5.2.5=h516909a_1
   - zlib=1.2.11=h36c2ea0_1013
   - zstd=1.4.9=ha95c52a_0
-prefix: /scratch/users/jsbaker/miniconda3/envs/prokka

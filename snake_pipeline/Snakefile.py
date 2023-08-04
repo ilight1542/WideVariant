@@ -1,4 +1,4 @@
-# GRAND UNIFIED SNAKEMAKE LIEBERMAN LAB
+# SNAKEMAKE WIDEVARIANT
 
 
 
@@ -9,26 +9,15 @@ import sys
 CURRENT_DIRECTORY = os.getcwd()
 REF_GENOME_DIRECTORY = config["ref_genome_directory"]
 SCRIPTS_DIRECTORY = config["myscripts_directory"]
+PIPELINE_SPECIFICATIONS = config["pipeline_specifications"]
+GENERATE_NORMALIZED_COVERAGE_MATRIX = config["generate_normalized_coverage_matrix"]
+GENERATE_RAW_COVERAGE_MATRIX = config["generate_raw_coverage_matrix"]
+
 sys.path.insert(0, SCRIPTS_DIRECTORY)
 spls = config["sample_table"]
 
 from gus_helper_functions import *
 from itertools import compress
-spls = config["sample_table"]
-
-
-
-''' VARIABLES '''
-
-# User defined variables: Make sure these are right before run!
-
-# The flag determines which parts of the pipeline snakemake will run
-flag="all" #options are 'all' (mapping+case), 'mapping', 'case', 'assembly', 'bracken'
-    # mapping: process reads and align them to a reference genome
-    # case: identify candidate SNVs and generate candidate mutation table
-    # all: mapping step followed by case step
-    # assembly: generate annotated assemblies for each sample
-    # bracken: estimate abundances of taxa in sample
 
 
 ''' PRE-SNAKEMAKE '''
@@ -92,26 +81,37 @@ def get_bt2qc_input(wildcards):
     bt2_logs = expand("1-Mapping/bowtie2/bowtie2_{sampleID}_ref_{reference}.txt",zip,sampleID=sampleID_clade, reference=reference_clade )
     return bt2_logs
 
+def get_candidate_mutation_table_output(wildcards):
+    output_file_targets = dict()
+    output_file_targets["cmt"] = expand("2-Case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz")
+    if GENERATE_NORMALIZED_COVERAGE_MATRIX:
+        output_file_targets["cov_norm"] = expand(cov_norm = "2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.npz")
+    if GENERATE_RAW_COVERAGE_MATRIX:
+        output_file_targets["cov_raw"] = expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.npz")
+    return output_file_targets
+
 
 # Define a list of output files: snakemake will deterimine which pipeline steps need to be executed in order to generate the output files requested
 input_all=[]
-if flag=="mapping":
+if PIPELINE_SPECIFICATIONS=="mapping":
     input_all.append(expand("1-Mapping/bowtie2/{sampleID}_ref_{references}_aligned.sorted.bam",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls))
     input_all.append(expand("1-Mapping/vcf/{sampleID}_ref_{references}_aligned.sorted.strain.variant.vcf.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls))
     input_all.append(expand("1-Mapping/quals/{sampleID}_ref_{references}_outgroup{outgroup}.quals.pickle.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
     input_all.append(expand("1-Mapping/diversity/{sampleID}_ref_{references}_outgroup{outgroup}.diversity.pickle.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
     input_all.append(expand("1-Mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(REF_Genome_ls)))
-if flag=="case" or flag=="all":
+if PIPELINE_SPECIFICATIONS=="case" or PIPELINE_SPECIFICATIONS=="all":
     input_all.append(expand("1-Mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(REF_Genome_ls)))
     input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz",cladeID=UNIQ_GROUP_ls))
     # Include the following two lines ONLY if you also want coverage matrices. 
     # Be sure include -c and -n options when py script is called candidate_mutation_table rule and to uncomment the two extra outputs in the candidate_mutation_table rule.
-    # input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.pickle.gz",cladeID=UNIQ_GROUP_ls))
-    # input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.pickle.gz",cladeID=UNIQ_GROUP_ls))
-if flag=="bracken":
+    if GENERATE_NORMALIZED_COVERAGE_MATRIX: 
+        input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.pickle.gz",cladeID=UNIQ_GROUP_ls))
+    if GENERATE_RAW_COVERAGE_MATRIX: 
+        input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.pickle.gz",cladeID=UNIQ_GROUP_ls))
+if PIPELINE_SPECIFICATIONS=="bracken":
     input_all.append(expand("Kraken/kraken2/{sampleID}_krakenRep.txt",sampleID=SAMPLE_ls))
     input_all.append(expand("Kraken/bracken/{sampleID}.bracken",sampleID=SAMPLE_ls))
-if flag=="assembly":
+if PIPELINE_SPECIFICATIONS=="assembly":
     input_all.append(expand("Assembly/spades/{sampleID}/contigs.fasta",sampleID=SAMPLE_ls))
     input_all.append(expand("Assembly/prokka/{sampleID}/prokka_out.faa",sampleID=SAMPLE_ls))
     input_all.append("Assembly/orthologinfo_filtered/annotation_orthologs.tsv")
@@ -234,7 +234,7 @@ rule sickle:
       "rm {input.fq2i} ;"
 
 # Makes symbolic links to data files
-if flag=="case":
+if PIPELINE_SPECIFICATIONS=="case":
     rule make_data_links_case:
         # input:
         #     sample_info_csv="data/{sampleID}/sample_info.csv",
@@ -298,7 +298,7 @@ else:
 # Aligns processed reads onto a reference genome
 
 
-if flag=="mapping" or flag=="all":
+if PIPELINE_SPECIFICATIONS=="mapping" or PIPELINE_SPECIFICATIONS=="all":
 
 
     # Indexes reference genome for bowtie2
@@ -467,9 +467,7 @@ if flag=="mapping" or flag=="all":
 # candidate SNV positions into a candidate mutation table
 # Option to collect information about read coverage over the whole genome and generate a coverage matrix
 
-
-if flag=="case" or flag=="all":
-
+if PIPELINE_SPECIFICATIONS=="case" or PIPELINE_SPECIFICATIONS=="all":
 
     # Generates a list of candidate SNV positions for a given sample
     rule variants2positions:
@@ -550,25 +548,25 @@ if flag=="case" or flag=="all":
             string_sampleID_names = rules.candidate_mutation_table_prep.output.string_sampleID_names, # "2-Case/temp/string_sampleID_names.txt",
             string_outgroup_bool = rules.candidate_mutation_table_prep.output.string_outgroup_bool, # "2-Case/temp/string_outgroup_bool.txt",
         output:
-            cmt = "2-Case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz",
-            #Only include the following two lines if you want to generate coverage matrices
-            cov_raw = "2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.npz",
-            cov_norm = "2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.npz",            
+            unpack(get_candidate_mutation_table_output)
         conda:
             "envs/py_for_snakemake.yaml",
-        shell:
-            # Use this version if you do not want coverage matrices
-            # "python3 {SCRIPTS_DIRECTORY}/build_candidate_mutation_table.py -p {input.positions} -s {input.string_sampleID_names} -g {input.string_outgroup_bool} -q {input.string_quals} -d {input.string_diversity} -o {output.cmt} ;"
-            # Use this version if you do want coverage matrices (-c for raw coverage matrix; -n for normalized coverage matrix)
-             "python3 {SCRIPTS_DIRECTORY}/build_candidate_mutation_table.py -p {input.positions} -s {input.string_sampleID_names} -g {input.string_outgroup_bool} -q {input.string_quals} -d {input.string_diversity} -o {output.cmt} -c {output.cov_raw} -n {output.cov_norm} ;"
-
+        run:
+            if GENERATE_NORMALIZED_COVERAGE_MATRIX and GENERATE_RAW_COVERAGE_MATRIX:
+                shell("python3 {SCRIPTS_DIRECTORY}/build_candidate_mutation_table.py -p {input.positions} -s {input.string_sampleID_names} -g {input.string_outgroup_bool} -q {input.string_quals} -d {input.string_diversity} -o {output.cmt} -c {output.cov_raw} -n {output.cov_norm} ;")
+            elif GENERATE_NORMALIZED_COVERAGE_MATRIX:
+                shell("python3 {SCRIPTS_DIRECTORY}/build_candidate_mutation_table.py -p {input.positions} -s {input.string_sampleID_names} -g {input.string_outgroup_bool} -q {input.string_quals} -d {input.string_diversity} -o {output.cmt} -n {output.cov_norm} ;")
+            elif GENERATE_NORMALIZED_COVERAGE_MATRIX:
+                shell("python3 {SCRIPTS_DIRECTORY}/build_candidate_mutation_table.py -p {input.positions} -s {input.string_sampleID_names} -g {input.string_outgroup_bool} -q {input.string_quals} -d {input.string_diversity} -o {output.cmt} -c {output.cov_raw} ;")
+            else:
+                shell("python3 {SCRIPTS_DIRECTORY}/build_candidate_mutation_table.py -p {input.positions} -s {input.string_sampleID_names} -g {input.string_outgroup_bool} -q {input.string_quals} -d {input.string_diversity} -o {output.cmt} ;")
+            
 
 
 # ASSEMBLY STEP ####################################################################################################
 # Generates an annotated genome assembly reads from each sample
 
-
-if flag=="assembly":
+if PIPELINE_SPECIFICATIONS=="assembly":
 
 
     # Assemble a genome from reads from a given sample using SPAdes
@@ -636,7 +634,7 @@ if flag=="assembly":
 # Estimates abundance of taxa in each sample using kraken/breacken
 
 
-if flag=="bracken":
+if PIPELINE_SPECIFICATIONS=="bracken":
 
 
     # Turn fastq files into fasta files
