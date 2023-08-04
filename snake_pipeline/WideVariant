@@ -67,7 +67,7 @@ mkdir -p logs
 
 # execute checking of pipeline consistency, file path checks
 
-if python scripts/pre_snakemake_checks.py -e experiment_info.yaml ; then
+if ! python scripts/pre_snakemake_checks.py -e experiment_info.yaml ; then
     echo "Errors encountered. Exiting prior to start of snakemake"
     echo "Please correct errors and rerun!"
     exit 1
@@ -81,8 +81,8 @@ if grep "run_in_screen: True" -q experiment_info.yaml; then
 fi
 
 # echo to stdout update, also write to main log file.
-echo "The WideVariant Snakemake is all set to run! \n \n \
-      Experiment:${experiment_name} will commence at $date"
+echo "The WideVariant Snakemake is all set to run!"
+echo "Experiment:${experiment_name} snakemake will commence at $date"
 
 ### run snakemake
 # -j defines total number of jobs executed in parallel on cluster

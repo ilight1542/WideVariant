@@ -97,55 +97,71 @@ def read_sample_info_CSV(path_to_sample_info_csv):
     
     return paths, sample, reference, filename
 
-
 def findfastqfile(dr,ID,filename):
     fwd=[]
     rev=[]
-    #search for filename as directory first
     potentialhits_forward=glob.glob(dr + '/' + filename +'/*1.fastq.gz')
     potentialhits_reverse=glob.glob(dr + '/' + filename +'/*2.fastq.gz')
     if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
         fwd=potentialhits_forward[0]
         rev=potentialhits_reverse[0]
-    #then search for filename as file.gz
-    elif len(potentialhits_forward)==0 and len(potentialhits_reverse)==0:
-        potentialhits_forward=glob.glob(dr + '/' + filename +'*1.fastq.gz')
-        potentialhits_reverse=glob.glob(dr + '/' + filename +'*2.fastq.gz')
+    elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0: ## need or statement to further screen path if just one file was found i.e. for *R1_001.fastq.gz *R2_001.fastq.gz
+        potentialhits_forward=glob.glob(dr + '/' + filename +'/*1_001.fastq.gz')
+        potentialhits_reverse=glob.glob(dr + '/' + filename +'/*2_001.fastq.gz')
         if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
             fwd=potentialhits_forward[0]
             rev=potentialhits_reverse[0]
-        #then search as unzipped file
-        elif len(potentialhits_forward)==0 and len(potentialhits_reverse)==0:
-            potentialhits_forward=glob.glob(dr + '/' + filename +'*1.fastq')
-            potentialhits_reverse=glob.glob(dr + '/' + filename +'*2.fastq')
+        elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
+            potentialhits_forward=glob.glob(dr + '/' + filename +'*1.fastq.gz')
+            potentialhits_reverse=glob.glob(dr + '/' + filename +'*2.fastq.gz')
             if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-                subprocess.run("gzip " + potentialhits_forward[0], shell=True)  
-                subprocess.run("gzip " + potentialhits_reverse[0], shell=True)
-                fwd=potentialhits_forward[0]+'.gz'
-                rev=potentialhits_reverse[0]+'.gz'
-            else:
-                foldername=glob.glob(dr + '/' + filename + '*')
-                if foldername and os.path.isdir(foldername[0]):
-                    foldername=foldername[0]
-                    potentialhits_forward=glob.glob(foldername + '/*' + filename + '*1*.fastq.gz')
-                    potentialhits_reverse=glob.glob(foldername + '/*' + filename + '*2*.fastq.gz')
+                fwd=potentialhits_forward[0]
+                rev=potentialhits_reverse[0]
+            elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
+                potentialhits_forward=glob.glob(dr + '/' + filename +'*1_001.fastq.gz')
+                potentialhits_reverse=glob.glob(dr + '/' + filename +'*2_001.fastq.gz')
+                if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
+                    fwd=potentialhits_forward[0]
+                    rev=potentialhits_reverse[0]
+                elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
+                    potentialhits_forward=glob.glob(dr + '/' + filename +'*1.fastq')
+                    potentialhits_reverse=glob.glob(dr + '/' + filename +'*2.fastq')
                     if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-                        fwd=potentialhits_forward[0]
-                        rev=potentialhits_reverse[0]
-                    elif len(potentialhits_forward)==0 and len(potentialhits_reverse)==0:
-                        print(foldername + '/*' + filename + '*2*.fastq.gz')
-                        potentialhits_forward=glob.glob(foldername +  '/*' + filename + '*1*.fastq')
-                        potentialhits_reverse=glob.glob(foldername + '/*' + filename + '*2*.fastq')
+                        subprocess.run("gzip " + potentialhits_forward[0], shell=True)
+                        subprocess.run("gzip " + potentialhits_reverse[0], shell=True)
+                        fwd=potentialhits_forward[0]+'.gz'
+                        rev=potentialhits_reverse[0]+'.gz'
+                    elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
+                        potentialhits_forward=glob.glob(dr + '/' + filename +'*1_001.fastq')
+                        potentialhits_reverse=glob.glob(dr + '/' + filename +'*2_001.fastq')
                         if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-                            subprocess.run("gzip " + potentialhits_forward[0], shell=True)  
+                            subprocess.run("gzip " + potentialhits_forward[0], shell=True)
                             subprocess.run("gzip " + potentialhits_reverse[0], shell=True)
                             fwd=potentialhits_forward[0]+'.gz'
                             rev=potentialhits_reverse[0]+'.gz'
+                    else:
+                        foldername=glob.glob(dr + '/' + filename + '*')
+                        if foldername and os.path.isdir(foldername[0]):
+                            foldername=foldername[0]
+                            potentialhits_forward=glob.glob(foldername + '/*' + filename + '*1*.fastq.gz')
+                            potentialhits_reverse=glob.glob(foldername + '/*' + filename + '*2*.fastq.gz')
+                            if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
+                                fwd=potentialhits_forward[0]
+                                rev=potentialhits_reverse[0]
+                            elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
+                                print(foldername + '/*' + filename + '*2*.fastq.gz')
+                                potentialhits_forward=glob.glob(foldername +  '/*' + filename + '*1*.fastq')
+                                potentialhits_reverse=glob.glob(foldername + '/*' + filename + '*2*.fastq')
+                                if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
+                                    subprocess.run("gzip " + potentialhits_forward[0], shell=True)
+                                    subprocess.run("gzip " + potentialhits_reverse[0], shell=True)
+                                    fwd=potentialhits_forward[0]+'.gz'
+                                    rev=potentialhits_reverse[0]+'.gz'
     if not(fwd) or not(rev):
-        raise ValueError(f'Either no fastq file or more than 1 file found in directory {dr} for {ID}.')
-    #TODO: add search pattern used to find fastqs for more useful error report
-    #TODO: add error differentiation for no file or more than one file
+        raise ValueError('Either no file or more than 1 file found in ' + dr + ' for ' + ID)
     ##zip fastq files if they aren't already zipped
+    #TODO: add search pattern used to find fastqs for more useful error report
+    #TODO: add error differentiation for no file or more than one file  
     subprocess.run("gzip " + fwd, shell=True)   
     subprocess.run("gzip " + rev, shell=True)   
     return [fwd, rev]
