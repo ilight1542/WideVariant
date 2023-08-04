@@ -1,7 +1,5 @@
 #!/bin/bash
 
-source scripts/pre_snakemake_checks.sh
-
 # launch snakemake to run jobs via SLURM
 # ntasks
 SM_PARAMS="job-name ntasks time mem mail-user mail-type error output"
@@ -16,9 +14,9 @@ echo "SM_ARGS: ${SM_ARGS}"
 ## CHECKS TO AUTOMATICALLY FIX FOR EXECUTION ##
 ###############################################
 ## Check if slurm_status.py is executable and change if not
-if [[ ! -x "scripts/slurm_status_script.py" ]]
+if [[ ! -x "scripts/slurm_status.py" ]]
 then
-    chmod +x scripts/slurm_status_script.py;
+    chmod +x scripts/slurm_status.py;
 fi
 
 if [[ ! -x "scripts/pre_snakemake_checks.py" ]]
@@ -98,7 +96,7 @@ if $run_in_screen; then
         -j 100 \
         --cluster-config config.yaml \
         --cluster "sbatch ${SM_ARGS}" \
-        --cluster-status scripts/slurm_status_script.py \
+        --cluster-status scripts/slurm_status.py \
         --rerun-incomplete \
         --restart-times 1 \
         --keep-going \
