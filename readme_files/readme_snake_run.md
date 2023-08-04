@@ -24,7 +24,7 @@ If you have not used Snakemake before, please [watch this brief intro video](htt
 All necessary files are available in `snakemake_pipeline/` and are described below:
 * `snakemake_pipeline/samples.csv` - csv file with one row per sample
 * `snakemake_pipeline/experiment_info.yaml` - definded filepaths and variables relevant to this experiment
-* `snakemake_pipeline/Snakefile.py` - Snakemake workflow
+* `snakemake_pipeline/Snakefile` - Snakemake workflow
 * `snakemake_pipeline/run_snakemake.slurm` - script for batching the Snakemake workflow to a Slurm cluster
 * `snakemake_pipeline/config.yaml` - information on cluster parameters and what computing resources are required by different workflow steps
 * `snakemake_pipeline/scripts/` - scripts called by snakemake
@@ -78,7 +78,7 @@ NOTE: this file may not be renamed
 
 Mandatory changes:
 * Put your own email in line `"mail-user":"YOUR_EMAIL_HERE",`
-* change configfile to point to experiment_config.yaml for this experiment
+* change configfile to point to experiment_info.yaml for this experiment
 * change mkdir, --output and --error to point to log folder for this experiment
 
 Optional changes:
@@ -116,9 +116,9 @@ Before moving on, be sure to activate your Snakemake environment (`conda activat
 
 ### Run a dry run
 
-A dryrun will catch any issues with incorrect file paths, missing input files, or improper syntax in your Snakefile.py. A successful dryrun will print out a list of which Snakemake rules will be executed and how many times each one will need to be executed (e.g. the rule `cutadapt` will be executed N times where N is the number of samples you put in `samples.csv`)
+A dryrun will catch any issues with incorrect file paths, missing input files, or improper syntax in your Snakefile. A successful dryrun will print out a list of which Snakemake rules will be executed and how many times each one will need to be executed (e.g. the rule `cutadapt` will be executed N times where N is the number of samples you put in `samples.csv`)
 
-You can perform a dryrun by typing `snakemake -s Snakefile.py -n -p -c1` into the terminal. Be sure that you are in your Snakemake working directory (the same directory that contains `Snakefile.py`) when you do this. The output should include a tally of how many times each Snakemake rule will be executed. Here is an example job tally where there are 8 samples, 4 of which are aligned to one reference genome and the other 4 of which are aligned to another reference genome:
+You can perform a dryrun by typing `snakemake -s Snakefile -n -p -c1` into the terminal. Be sure that you are in your Snakemake working directory (the same directory that contains `Snakefile`) when you do this. The output should include a tally of how many times each Snakemake rule will be executed. Here is an example job tally where there are 8 samples, 4 of which are aligned to one reference genome and the other 4 of which are aligned to another reference genome:
 
 ```
 Job stats:
@@ -147,7 +147,7 @@ total                               95              1              1
 This was a dry-run (flag -n). The order of jobs does not reflect the order of execution.
 ```
 
-You can also generate a DAG to visualize the Snakemake workflow (`snakemake -s Snakefile.py --dag | dot -Tpdf > dag.pdf`). It should look something like this:
+You can also generate a DAG to visualize the Snakemake workflow (`snakemake -s Snakefile --dag | dot -Tpdf > dag.pdf`). It should look something like this:
 
 <img
   src="fig_dag_all.png"
@@ -208,7 +208,7 @@ Here is a summary of each output file created by this Snakemake workflow:
 
 IMPORTANT NOTE: The above summary represents what these data objects will look like once the output of the Snakemake step is harmonized with the expected inputs of the local analysis step. This has not been updated yet--see [Wishlist for snakemake pipeline upgrades](readme_snake_wishlist.md). The names of the objects are the same, but some of the types and dimensions are different. You can convert them into the right types/dimensions with a quick function at the beginning of the local analysis script. 
 
-If you modified `Snakefile.py` to generate coverage matrices, you will get additional output files:
+If you modified `Snakefile` to generate coverage matrices, you will get additional output files:
 * `2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.pickle.gz`
 	* A coverage matrix with raw read coverage 
 	* Dimensions: (number of samples) x (number of positions on genome)
@@ -221,7 +221,7 @@ If you modified `Snakefile.py` to generate coverage matrices, you will get addit
 
 ## Alternative Snakemake workflows
 
-The Snakefile.py provided here can execute alternative workflows, outlined briefly below.
+The Snakefile provided here can execute alternative workflows, outlined briefly below.
 
 ### Assembly workflow
 

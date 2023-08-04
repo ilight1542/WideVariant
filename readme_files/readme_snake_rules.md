@@ -2,7 +2,7 @@
 
 A Snakemake rule is a step of the pipeline that can be executed, depending on what the desired outputs of the pipeline are. 
 
-This page includes some additional context about the Snakemake rules defined in `Snakefile.py`, beyond what is already available in the comments. If applicable, links to external documentation for bioinformatics tools are included in the rule descriptions.
+This page includes some additional context about the Snakemake rules defined in `Snakefile`, beyond what is already available in the comments. If applicable, links to external documentation for bioinformatics tools are included in the rule descriptions.
 
 
 ## Rule graph

@@ -89,25 +89,7 @@ echo "Experiment:${experiment_name} snakemake will commence at $date"
 # --use-conda allows to activate conda env necessary for rule
 # --conda-prefix envs: builds environment in envs folder where it will be 
 if $run_in_screen; then
-    screen -S "${experiment_name}" "\
-        snakemake -p \
-        $* \
-        --latency-wait 60 \
-        -j 100 \
-        --cluster-config config.yaml \
-        --cluster "sbatch ${SM_ARGS}" \
-        --cluster-status scripts/slurm_status.py \
-        --rerun-incomplete \
-        --restart-times 1 \
-        --keep-going \
-        --use-conda \
-        --conda-prefix ${conda_envs_path}
-
-        #--dry-run \
-        #--group-components \
-        # --dag \
-        # | dot -Tsvg > dag.svg
-    "
+    screen -d -m -S"${experiment_name}" snakemake --profile .
 else 
     sbash run_snakemake.slurm
 fi

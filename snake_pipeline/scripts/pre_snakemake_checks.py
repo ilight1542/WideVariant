@@ -64,7 +64,7 @@ parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpForm
                             #errorfast
                             '''
 )
-parser.add_argument("-e", dest="experiment_config_yaml", help="experiment_config.yaml file", required=True, action='store')
+parser.add_argument("-e", dest="experiment_config_yaml", help="experiment_info.yaml file", required=True, action='store')
 
 args = parser.parse_args()
 

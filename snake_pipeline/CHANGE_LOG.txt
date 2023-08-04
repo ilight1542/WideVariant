@@ -48,7 +48,7 @@ I changed rule_all for the mapping step to have bam files instead of sam files. 
 
 Approximately in order of importance:
 
-Restored ability to generate coverage matrices (raw and normalized) as part of the candidate_mutation_table rule. Please see notes in Snakefile.py rule_all regarding how to turn this on. Also note that the flags -c (for a raw coverage matrix) and -n (for a normalized coverage matrix) in build_candidate_mutation_table.py have been updated to require output file paths not booleans.
+Restored ability to generate coverage matrices (raw and normalized) as part of the candidate_mutation_table rule. Please see notes in Snakefile rule_all regarding how to turn this on. Also note that the flags -c (for a raw coverage matrix) and -n (for a normalized coverage matrix) in build_candidate_mutation_table.py have been updated to require output file paths not booleans.
 
 Made sam2bam_cleanup rule higher priority than other rules (using snakemake's priority option). This cleans up sam files as quickly as possible to avoid a drain on space quotas from large sam files lurking around for longer than they need to.
 
