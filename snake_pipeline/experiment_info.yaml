@@ -5,7 +5,7 @@
 experiment_name: test
 run_in_screen: False
 sample_table: ./samples.csv
-ref_genome_directory: /Users/ad_loris/Nextcloud/keylab/reference_genomes
+ref_genome_directory: ./tests/tutorial_reference_genome
 
 # Specific pipeline execution options
 pipeline_specifications: ["mapping","case"]
