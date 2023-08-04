@@ -46,6 +46,7 @@ conda_envs_path=$(echo $CONDA_EXE | sed 's#bin/conda#envs#g' )
 update_conda_envs_path=$(grep "/PATH/TO/PRELOADED/CONDA/ENVS" config.yaml)
 if [[ ! ${#update_conda_envs_path} -eq 0 ]]
 then
+    echo
     echo "No conda environment location set, updating to default identified with your conda installation."
     echo "${conda_envs_path} will be used as the location to search for preloaded conda environments and cache pipeline-specific conda environments."
     echo "If you wish to designate an alternate location, please do so by modifying the 'conda-prefix' entry in config.yaml"
@@ -66,7 +67,7 @@ mkdir -p logs
 
 # execute checking of pipeline consistency, file path checks
 
-if python pre_snakemake_checks.py -e experiment_info.yaml ; then
+if python scripts/pre_snakemake_checks.py -e experiment_info.yaml ; then
     echo "Errors encountered. Exiting prior to start of snakemake"
     echo "Please correct errors and rerun!"
     exit 1
@@ -81,8 +82,7 @@ fi
 
 # echo to stdout update, also write to main log file.
 echo "The WideVariant Snakemake is all set to run! \n \n \
-      Run for experiment${experiment_name} will commence at $date"
-date
+      Experiment:${experiment_name} will commence at $date"
 
 ### run snakemake
 # -j defines total number of jobs executed in parallel on cluster
