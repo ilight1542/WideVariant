@@ -116,6 +116,7 @@ if PIPELINE_SPECIFICATIONS=="assembly":
     input_all.append(expand("Assembly/prokka/{sampleID}/prokka_out.faa",sampleID=SAMPLE_ls))
     input_all.append("Assembly/orthologinfo_filtered/annotation_orthologs.tsv")
 
+print(input_all)
 # def read_sample_info_CSV(path_to_sample_info_csv):
 #     with open(path_to_sample_info_csv,'r') as f:
 #         this_sample_info = f.readline() # only one line to read
