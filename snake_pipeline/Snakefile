@@ -229,8 +229,8 @@ if "mapping" in PIPELINE_SPECIFICATIONS:
 
     rule cutadapt:
         input: 
-            ft1in = rules.make_data_links.out.fq1,
-            fq2in = rules.make_data_links.out.fq2,
+            ft1in = rules.make_data_links.output.fq1,
+            fq2in = rules.make_data_links.output.fq2,
         output:
             fq1o = "preprocessing/{sampleID}/R1_trim.fq.gz",
             fq2o = "preprocessing/{sampleID}/R2_trim.fq.gz",
