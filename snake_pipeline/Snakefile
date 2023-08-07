@@ -543,7 +543,7 @@ if "case" in PIPELINE_SPECIFICATIONS:
                 string_sampleID_names = rules.candidate_mutation_table_prep.output.string_sampleID_names, # "2-Case/temp/string_sampleID_names.txt",
                 string_outgroup_bool = rules.candidate_mutation_table_prep.output.string_outgroup_bool, # "2-Case/temp/string_outgroup_bool.txt",
             output:
-                cmt = "2-Case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz")
+                cmt = "2-Case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz",
                 cov_norm = "2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.npz",
             conda:
                 "envs/py_for_snakemake.yaml",
