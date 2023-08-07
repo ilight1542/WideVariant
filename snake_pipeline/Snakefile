@@ -233,8 +233,6 @@ else:
             # Recommend using symbolic links to your likely many different input files
             fq1 = "data/{sampleID}/R1.fq.gz",
             fq2 = "data/{sampleID}/R2.fq.gz",
-        params:
-            links_dir = 'data',
         run:
         # create links
             paths, sample, reference, filename = read_sample_info_CSV(f'{sample_info_csv}')
@@ -251,13 +249,13 @@ if PIPELINE_SPECIFICATIONS=="mapping" or PIPELINE_SPECIFICATIONS=="all":
 
     rule cutadapt:
         input: 
-            ft1in = make_data_links.out.fq1
-            fq2in = make_data_links.out.fq2
+            ft1in = make_data_links.out.fq1,
+            fq2in = make_data_links.out.fq2,
         output:
             fq1o = "preprocessing/{sampleID}/R1_trim.fq.gz",
             fq2o = "preprocessing/{sampleID}/R2_trim.fq.gz",
         params:
-            preprocessing_dir = 'preprocessing'
+            preprocessing_dir = 'preprocessing',
         log: "logs/preprocessing.txt", # necessary for bowtie2qc
         conda:
             "envs/cutadapt.yaml",
