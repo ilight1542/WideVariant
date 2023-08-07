@@ -189,7 +189,7 @@ rule all:
 
 
 # Makes symbolic links to data files
-if PIPELINE_SPECIFICATIONS=="case":
+if "case" in PIPELINE_SPECIFICATIONS:
     rule make_data_links_case:
         # input:
         #     sample_info_csv="data/{sampleID}/sample_info.csv",
@@ -242,8 +242,7 @@ else:
                 makelink(paths[0],sample,filename,f'data/{sample}')
 
 
-if PIPELINE_SPECIFICATIONS=="mapping" or PIPELINE_SPECIFICATIONS=="all":
-
+if "mapping" in PIPELINE_SPECIFICATIONS:
 # DATA PROCESSING ####################################################################################################
 # Prepare filtered, clean FASTQ samples
 
@@ -467,7 +466,7 @@ if PIPELINE_SPECIFICATIONS=="mapping" or PIPELINE_SPECIFICATIONS=="all":
 # candidate SNV positions into a candidate mutation table
 # Option to collect information about read coverage over the whole genome and generate a coverage matrix
 
-if PIPELINE_SPECIFICATIONS=="case" or PIPELINE_SPECIFICATIONS=="all":
+if "case" in PIPELINE_SPECIFICATIONS:
 
     # Generates a list of candidate SNV positions for a given sample
     rule variants2positions:
@@ -566,7 +565,7 @@ if PIPELINE_SPECIFICATIONS=="case" or PIPELINE_SPECIFICATIONS=="all":
 # ASSEMBLY STEP ####################################################################################################
 # Generates an annotated genome assembly reads from each sample
 
-if PIPELINE_SPECIFICATIONS=="assembly":
+if "assembly" in PIPELINE_SPECIFICATIONS:
 
 
     # Assemble a genome from reads from a given sample using SPAdes
@@ -634,8 +633,7 @@ if PIPELINE_SPECIFICATIONS=="assembly":
 # Estimates abundance of taxa in each sample using kraken/breacken
 
 
-if PIPELINE_SPECIFICATIONS=="bracken":
-
+if "bracken" in PIPELINE_SPECIFICATIONS:
 
     # Turn fastq files into fasta files
     rule FQ2FA:
