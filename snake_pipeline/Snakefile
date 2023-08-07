@@ -204,25 +204,8 @@ if "case" in PIPELINE_SPECIFICATIONS and "mapping" not in PIPELINE_SPECIFICATION
                 subprocess.run( f"ln -fs -T {PATH_ls[idx]}/1-Mapping/diversity/{SAMPLE_ls[idx]}_ref_{REF_Genome_ls[idx]}_*diversity* 1-Mapping/diversity/{SAMPLE_ls[idx]}_ref_{REF_Genome_ls[idx]}_outgroup{OUTGROUP_ls[idx]}.diversity.pickle.gz" ,shell=True)
                 subprocess.run( f"ln -fs -T {PATH_ls[idx]}/1-Mapping/quals/{SAMPLE_ls[idx]}_ref_{REF_Genome_ls[idx]}_*quals* 1-Mapping/quals/{SAMPLE_ls[idx]}_ref_{REF_Genome_ls[idx]}_outgroup{OUTGROUP_ls[idx]}.quals.pickle.gz" ,shell=True)
                 subprocess.run( f"ln -fs -T {PATH_ls[idx]}/1-Mapping/vcf/{SAMPLE_ls[idx]}_ref_{REF_Genome_ls[idx]}_*variant.vcf.gz 1-Mapping/vcf/{SAMPLE_ls[idx]}_ref_{REF_Genome_ls[idx]}_aligned.sorted.strain.variant.vcf.gz" ,shell=True)
+
 elif "mapping" in PIPELINE_SPECIFICATIONS:
-    """rule make_data_links:
-      input:
-        fwd=mdl_input_fwd,
-        rev=mdl_input_rev,
-      output:
-        fq1o='data/{sampleID}/R1.fq.gz',
-        fq2o='data/{sampleID}/R2.fq.gz',
-      run:
-        if len(input.fwd) > 1: # if there is more than one file, concatenate and zip
-          fwdstr=' '.join(input.fwd)
-          revstr=' '.join(input.rev)
-          print(f"zcat {fwdstr} | gzip > data/{wildcards.sampleID}/R1.fq.gz")
-          subprocess.run(f"zcat {fwdstr} | gzip > data/{wildcards.sampleID}/R1.fq.gz", shell=True)
-          subprocess.run(f"zcat {revstr} | gzip > data/{wildcards.sampleID}/R2.fq.gz", shell=True)
-        else: # otherwise, just make a link
-          subprocess.run(f"ln -s -T {input.fwd} data/{wildcards.sampleID}/R1.fq.gz", shell=True)
-          subprocess.run(f"ln -s -T {input.rev} data/{wildcards.sampleID}/R2.fq.gz", shell=True)
-"""
     rule make_data_links:
       # NOTE: All raw data needs to be names fastq.gz. No fq! The links will be names fq though.
         input:
@@ -246,8 +229,8 @@ if "mapping" in PIPELINE_SPECIFICATIONS:
 
     rule cutadapt:
         input: 
-            ft1in = make_data_links.out.fq1,
-            fq2in = make_data_links.out.fq2,
+            ft1in = rules.make_data_links.out.fq1,
+            fq2in = rules.make_data_links.out.fq2,
         output:
             fq1o = "preprocessing/{sampleID}/R1_trim.fq.gz",
             fq2o = "preprocessing/{sampleID}/R2_trim.fq.gz",
