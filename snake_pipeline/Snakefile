@@ -234,7 +234,7 @@ if "mapping" in PIPELINE_SPECIFICATIONS:
         output:
             fq1o = "preprocessing/{sampleID}/R1_trim.fq.gz",
             fq2o = "preprocessing/{sampleID}/R2_trim.fq.gz",
-        log: "logs/preprocessing/preprocessing_{sampleID}.txt", # necessary for bowtie2qc
+        log: "logs/preprocessing_{sampleID}.txt", # necessary for bowtie2qc
         conda:
             "envs/cutadapt.yaml",
         shell:
@@ -259,7 +259,7 @@ if "mapping" in PIPELINE_SPECIFICATIONS:
         conda:
             "envs/sickle-trim.yaml",
         log:
-            log = "logs/preprocessing/preprocessing_{sampleID}.txt", # necessary for bowtie2qc
+            log = "logs/preprocessing_{sampleID}.txt", # necessary for bowtie2qc
         output:
             fq1o = "preprocessing/{sampleID}/R1_filt.fq.gz",
             fq2o = "preprocessing/{sampleID}/R2_filt.fq.gz",
