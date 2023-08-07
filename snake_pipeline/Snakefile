@@ -516,28 +516,70 @@ if "case" in PIPELINE_SPECIFICATIONS:
 
 
     # Builds candidate mutation table (stats across candidate SNV positions)
-    # Option to build raw coverage matrix and normalized coverage matrix
-    rule candidate_mutation_table:
-        input:
-            positions = rules.combine_positions.output.allpositions, # "2-Case/temp/allpositions.pickle",
-            string_diversity = rules.candidate_mutation_table_prep.output.string_diversity, # "2-Case/temp/string_diversity_mat.txt",
-            string_quals = rules.candidate_mutation_table_prep.output.string_quals, # "2-Case/temp/string_qual_mat.txt",
-            string_sampleID_names = rules.candidate_mutation_table_prep.output.string_sampleID_names, # "2-Case/temp/string_sampleID_names.txt",
-            string_outgroup_bool = rules.candidate_mutation_table_prep.output.string_outgroup_bool, # "2-Case/temp/string_outgroup_bool.txt",
-        output:
-            unpack(get_candidate_mutation_table_output)
-        conda:
-            "envs/py_for_snakemake.yaml",
-        run:
-            if GENERATE_NORMALIZED_COVERAGE_MATRIX and GENERATE_RAW_COVERAGE_MATRIX:
-                shell("python3 {SCRIPTS_DIRECTORY}/build_candidate_mutation_table.py -p {input.positions} -s {input.string_sampleID_names} -g {input.string_outgroup_bool} -q {input.string_quals} -d {input.string_diversity} -o {output.cmt} -c {output.cov_raw} -n {output.cov_norm} ;")
-            elif GENERATE_NORMALIZED_COVERAGE_MATRIX:
-                shell("python3 {SCRIPTS_DIRECTORY}/build_candidate_mutation_table.py -p {input.positions} -s {input.string_sampleID_names} -g {input.string_outgroup_bool} -q {input.string_quals} -d {input.string_diversity} -o {output.cmt} -n {output.cov_norm} ;")
-            elif GENERATE_NORMALIZED_COVERAGE_MATRIX:
-                shell("python3 {SCRIPTS_DIRECTORY}/build_candidate_mutation_table.py -p {input.positions} -s {input.string_sampleID_names} -g {input.string_outgroup_bool} -q {input.string_quals} -d {input.string_diversity} -o {output.cmt} -c {output.cov_raw} ;")
-            else:
-                shell("python3 {SCRIPTS_DIRECTORY}/build_candidate_mutation_table.py -p {input.positions} -s {input.string_sampleID_names} -g {input.string_outgroup_bool} -q {input.string_quals} -d {input.string_diversity} -o {output.cmt} ;")
-            
+    # Option to build raw coverage matrix and normalized coverage matrix automatically parsed
+    if GENERATE_NORMALIZED_COVERAGE_MATRIX and GENERATE_RAW_COVERAGE_MATRIX:
+        rule candidate_mutation_table:
+            input:
+                positions = rules.combine_positions.output.allpositions, # "2-Case/temp/allpositions.pickle",
+                string_diversity = rules.candidate_mutation_table_prep.output.string_diversity, # "2-Case/temp/string_diversity_mat.txt",
+                string_quals = rules.candidate_mutation_table_prep.output.string_quals, # "2-Case/temp/string_qual_mat.txt",
+                string_sampleID_names = rules.candidate_mutation_table_prep.output.string_sampleID_names, # "2-Case/temp/string_sampleID_names.txt",
+                string_outgroup_bool = rules.candidate_mutation_table_prep.output.string_outgroup_bool, # "2-Case/temp/string_outgroup_bool.txt",
+            output:
+                cmt = expand("2-Case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz"),
+                cov_norm = expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.npz"),
+                cov_raw = expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.npz"),
+            conda:
+                "envs/py_for_snakemake.yaml",
+            shell:
+                "python3 {SCRIPTS_DIRECTORY}/build_candidate_mutation_table.py -p {input.positions} -s {input.string_sampleID_names} -g {input.string_outgroup_bool} -q {input.string_quals} -d {input.string_diversity} -o {output.cmt} -c {output.cov_raw} -n {output.cov_norm} ;"
+     
+    elif GENERATE_NORMALIZED_COVERAGE_MATRIX:
+        rule candidate_mutation_table:
+            input:
+                positions = rules.combine_positions.output.allpositions, # "2-Case/temp/allpositions.pickle",
+                string_diversity = rules.candidate_mutation_table_prep.output.string_diversity, # "2-Case/temp/string_diversity_mat.txt",
+                string_quals = rules.candidate_mutation_table_prep.output.string_quals, # "2-Case/temp/string_qual_mat.txt",
+                string_sampleID_names = rules.candidate_mutation_table_prep.output.string_sampleID_names, # "2-Case/temp/string_sampleID_names.txt",
+                string_outgroup_bool = rules.candidate_mutation_table_prep.output.string_outgroup_bool, # "2-Case/temp/string_outgroup_bool.txt",
+            output:
+                cmt = expand("2-Case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz"),
+                cov_norm = expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.npz"),
+            conda:
+                "envs/py_for_snakemake.yaml",
+            shell:
+                "python3 {SCRIPTS_DIRECTORY}/build_candidate_mutation_table.py -p {input.positions} -s {input.string_sampleID_names} -g {input.string_outgroup_bool} -q {input.string_quals} -d {input.string_diversity} -o {output.cmt} -n {output.cov_norm} ;"
+    
+    elif GENERATE_RAW_COVERAGE_MATRIX:
+        rule candidate_mutation_table:
+            input:
+                positions = rules.combine_positions.output.allpositions, # "2-Case/temp/allpositions.pickle",
+                string_diversity = rules.candidate_mutation_table_prep.output.string_diversity, # "2-Case/temp/string_diversity_mat.txt",
+                string_quals = rules.candidate_mutation_table_prep.output.string_quals, # "2-Case/temp/string_qual_mat.txt",
+                string_sampleID_names = rules.candidate_mutation_table_prep.output.string_sampleID_names, # "2-Case/temp/string_sampleID_names.txt",
+                string_outgroup_bool = rules.candidate_mutation_table_prep.output.string_outgroup_bool, # "2-Case/temp/string_outgroup_bool.txt",
+            output:
+                cmt = expand("2-Case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz"),
+                cov_raw = expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.npz"),
+            conda:
+                "envs/py_for_snakemake.yaml",
+            shell:
+                "python3 {SCRIPTS_DIRECTORY}/build_candidate_mutation_table.py -p {input.positions} -s {input.string_sampleID_names} -g {input.string_outgroup_bool} -q {input.string_quals} -d {input.string_diversity} -o {output.cmt} -c {output.cov_raw} ;"
+
+    else:
+        rule candidate_mutation_table:
+            input:
+                positions = rules.combine_positions.output.allpositions, # "2-Case/temp/allpositions.pickle",
+                string_diversity = rules.candidate_mutation_table_prep.output.string_diversity, # "2-Case/temp/string_diversity_mat.txt",
+                string_quals = rules.candidate_mutation_table_prep.output.string_quals, # "2-Case/temp/string_qual_mat.txt",
+                string_sampleID_names = rules.candidate_mutation_table_prep.output.string_sampleID_names, # "2-Case/temp/string_sampleID_names.txt",
+                string_outgroup_bool = rules.candidate_mutation_table_prep.output.string_outgroup_bool, # "2-Case/temp/string_outgroup_bool.txt",
+            output:
+                cmt = expand("2-Case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz"),
+            conda:
+                "envs/py_for_snakemake.yaml",
+            shell:
+                "python3 {SCRIPTS_DIRECTORY}/build_candidate_mutation_table.py -p {input.positions} -s {input.string_sampleID_names} -g {input.string_outgroup_bool} -q {input.string_quals} -d {input.string_diversity} -o {output.cmt} ;"            
 
 
 # ASSEMBLY STEP ####################################################################################################
