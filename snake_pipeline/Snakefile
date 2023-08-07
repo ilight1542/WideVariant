@@ -170,7 +170,10 @@ def get_mdl_paths(SID): # returns all list of paths and filenames for a given sa
   # pathstr = list(compress(PATH_ls,is_sample)) # list of paths
   # path_ls = pathstr.split(' ')
   # filename = list(compress(FILENAME_ls,is_sample)) # list of paths
-  
+  # ensure paths can be combined in expected way later in pipeline (ends with /)
+  for i,path in enumerate(path_ls):
+    if not path.endswith('/'):
+        path_ls[i] = f'{path}/'
   return path_ls,filename
 
 
@@ -252,7 +255,6 @@ if PIPELINE_SPECIFICATIONS=="case":
                 subprocess.run( f"ln -fs -T {PATH_ls[idx]}/1-Mapping/quals/{SAMPLE_ls[idx]}_ref_{REF_Genome_ls[idx]}_*quals* 1-Mapping/quals/{SAMPLE_ls[idx]}_ref_{REF_Genome_ls[idx]}_outgroup{OUTGROUP_ls[idx]}.quals.pickle.gz" ,shell=True)
                 subprocess.run( f"ln -fs -T {PATH_ls[idx]}/1-Mapping/vcf/{SAMPLE_ls[idx]}_ref_{REF_Genome_ls[idx]}_*variant.vcf.gz 1-Mapping/vcf/{SAMPLE_ls[idx]}_ref_{REF_Genome_ls[idx]}_aligned.sorted.strain.variant.vcf.gz" ,shell=True)
 else:
-
     rule make_data_links:
       input:
         fwd=mdl_input_fwd,
