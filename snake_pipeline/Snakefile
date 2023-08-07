@@ -234,11 +234,11 @@ if "mapping" in PIPELINE_SPECIFICATIONS:
         output:
             fq1o = "preprocessing/{sampleID}/R1_trim.fq.gz",
             fq2o = "preprocessing/{sampleID}/R2_trim.fq.gz",
-        log: "logs/preprocessing.txt", # necessary for bowtie2qc
+        log: "logs/preprocessing/preprocessing_{sampleID}.txt", # necessary for bowtie2qc
         conda:
             "envs/cutadapt.yaml",
         shell:
-            "mkdir -p preprocessing/{sampleID}"
+            "mkdir -p preprocessing/"
             # NEEDS TO BE OF FORMAT FILENAMER1, FILENAMER2, NOITHING ELSE
             "cutadapt -a CTGTCTCTTAT --cores=4 "
                     "-o {output.fq1o} "
@@ -256,11 +256,10 @@ if "mapping" in PIPELINE_SPECIFICATIONS:
         params:
             qual=20, # Threshold for trimming based on average quality in a window
             readlen=50, # Threshold to keep a read based on length after trimming
-            preprocessing_dir = 'preprocessing'
         conda:
             "envs/sickle-trim.yaml",
         log:
-            log = "logs/preprocessing.txt", # necessary for bowtie2qc
+            log = "logs/preprocessing/preprocessing_{sampleID}.txt", # necessary for bowtie2qc
         output:
             fq1o = "preprocessing/{sampleID}/R1_filt.fq.gz",
             fq2o = "preprocessing/{sampleID}/R2_filt.fq.gz",
