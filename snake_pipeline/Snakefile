@@ -234,8 +234,6 @@ if "mapping" in PIPELINE_SPECIFICATIONS:
         output:
             fq1o = "preprocessing/{sampleID}/R1_trim.fq.gz",
             fq2o = "preprocessing/{sampleID}/R2_trim.fq.gz",
-        params:
-            preprocessing_dir = 'preprocessing',
         log: "logs/preprocessing.txt", # necessary for bowtie2qc
         conda:
             "envs/cutadapt.yaml",
