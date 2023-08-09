@@ -338,7 +338,7 @@ if "mapping" in PIPELINE_SPECIFICATIONS:
             bamA = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned.sorted.bam",
             bamAidx = "Mapping/clade_assemblies/3-bowtie2/{sampleID}_ref_{reference}_aligned.sorted.bam.bai",
         conda:
-            "envs/samtools116.yaml",
+            "envs/samtools_bcftools_sm.yaml",
         shadow: # avoids leaving leftover temp files esp if job aborted
             "minimal", 
         shell:
@@ -376,7 +376,7 @@ if "mapping" in PIPELINE_SPECIFICATIONS:
         output:
             fasta_idx = REF_GENOME_DIRECTORY+"/{reference}/genome.fasta.fai",
         conda:
-            "envs/samtools15_bcftools12.yaml"
+            "envs/samtools_bcftools_sm.yaml"
         shell:
             " samtools faidx {input.fasta} ; "
 
@@ -395,7 +395,7 @@ if "mapping" in PIPELINE_SPECIFICATIONS:
             variants = "1-Mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.strain.variant.vcf.gz",
             vcf_strain = "1-Mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.strain.vcf.gz",
         conda:
-            "envs/samtools15_bcftools12.yaml"
+            "envs/samtools_bcftools_sm.yaml"
         shadow: 
             "minimal", # avoids leaving leftover temp files esp if job aborted
         shell:
@@ -596,7 +596,7 @@ if "assembly" in PIPELINE_SPECIFICATIONS:
         params:
           outdir="Assembly/spades/{sampleID}"
         conda:
-          "envs/spades.yaml"
+          "envs/spades_sm.yaml"
         threads: 16
         output:
           fasta="Assembly/spades/{sampleID}/contigs.fasta", # produced by spades''
@@ -675,7 +675,7 @@ if "bracken" in PIPELINE_SPECIFICATIONS:
           kraken_report="Kraken/kraken2/{sampleID}_krakenRep.txt",
           seq_results="Kraken/kraken2/{sampleID}_krakSeq.txt.gz",
       conda:
-          "envs/crack.yml",
+          "envs/kraken_bracken_sm.yaml",
       shell:
           "kraken2 --threads 20 "
           "--db /scratch/mit_lieberman/tools/databases/kraken2/ {input} "
@@ -689,7 +689,7 @@ if "bracken" in PIPELINE_SPECIFICATIONS:
       output:
           bracken_rep="Kraken/bracken/{sampleID}.bracken",
       conda:
-          "envs/crack.yml",
+          "envs/kraken_bracken_sm.yaml",
       shell:
           "scripts/bracken -d /scratch/mit_lieberman/tools/databases/jsb_AllClades/AllClades -i {input.kraken_report} -o {output.bracken_rep} -l S"
     

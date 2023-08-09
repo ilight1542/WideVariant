@@ -74,8 +74,10 @@ fi
 # gather remaining variable names for execution and logging purposes.
 experiment_name=$(grep "experiment_name" experiment_info.yaml | cut -d ':' -f2 )
 date=$(date)
-if grep "run_in_screen: True" -q experiment_info.yaml; then
+if grep -qi 'run_in_screen:[[:space:]]*true' experiment_info.yaml ; then     
     run_in_screen=true
+else
+    run_in_screen=false
 fi
 
 # echo to stdout update, also write to main log file.
@@ -89,7 +91,10 @@ echo "Experiment:${experiment_name} snakemake will commence at $date"
 # --use-conda allows to activate conda env necessary for rule
 # --conda-prefix envs: builds environment in envs folder where it will be 
 if $run_in_screen; then
-    screen -d -m -S"${experiment_name}" snakemake --profile .
+    echo "Starting a screen session..."
+    screen -d -m -S "${experiment_name}" bash -c "snakemake --profile ."
 else 
-    sbash run_snakemake.slurm
+    echo "Running Snakemake on the backend"
+    echo "NOTE: This is not on the fly executable yet and needs further updates!!!"
+    sbatch run_snakemake.slurm
 fi

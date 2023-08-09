@@ -7,7 +7,6 @@
 #SBATCH -e mainerr.txt
 #SBATCH --mail-user=YOUR_EMAIL_HERE
 #SBATCH --mail-type=ALL
-#SBATCH --exclude=node327
 
 # Activate conda environment (may need to change name of env)
 source activate snakemake

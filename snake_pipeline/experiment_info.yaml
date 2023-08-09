@@ -3,7 +3,7 @@
 ##########################################
 # Basic pipeline options
 experiment_name: test
-run_in_screen: False
+run_in_screen: True
 sample_table: ./samples.csv
 ref_genome_directory: ./tests/tutorial_reference_genome
 
