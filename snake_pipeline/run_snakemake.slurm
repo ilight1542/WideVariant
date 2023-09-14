@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH --job-name widevariant.main
 #SBATCH -n 1
-#SBATCH --time=12:00:00
+#SBATCH --time=24:00:00
 #SBATCH --mem=8GB
-#SBATCH -o mainout.txt
-#SBATCH -e mainerr.txt
-#SBATCH --mail-user=YOUR_EMAIL_HERE
-#SBATCH --mail-type=ALL
+#SBATCH -o logs/0_widevariant_main_%j.log
+#SBATCH -e logs/0_widevariant_main_%j.log
+#SBATCH --mail-user=UPDATE_EMAIL_ADDRESS
+#SBATCH --mail-type=FAIL
 
 # Activate conda environment (may need to change name of env)
 source activate snakemake

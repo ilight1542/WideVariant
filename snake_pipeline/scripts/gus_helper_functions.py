@@ -12,6 +12,7 @@ import csv
 import glob
 import subprocess
 import gzip
+import sys
 
 def read_samples_CSV(spls,quiet=False):
     hdr_check = ['Path','Sample','FileName','Reference','Group','Outgroup']
@@ -32,6 +33,9 @@ def read_samples_CSV(spls,quiet=False):
             switch = "off"
             continue
         # build lists
+        if line[0][0] != '/':
+            print('\n\nThe paths in the sample.csv must be absolut paths. Snakemake will not start!\n\n')
+            sys.exit()
         list_path.append(line[0])
         list_splID.append(line[1])
         list_fileN.append(line[2])
@@ -127,18 +131,14 @@ def findfastqfile(dr,ID,filename):
                     potentialhits_forward=glob.glob(dr + '/' + filename +'*1.fastq')
                     potentialhits_reverse=glob.glob(dr + '/' + filename +'*2.fastq')
                     if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-                        subprocess.run("gzip " + potentialhits_forward[0], shell=True)
-                        subprocess.run("gzip " + potentialhits_reverse[0], shell=True)
-                        fwd=potentialhits_forward[0]+'.gz'
-                        rev=potentialhits_reverse[0]+'.gz'
+                        fwd=potentialhits_forward[0]
+                        rev=potentialhits_reverse[0]
                     elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
                         potentialhits_forward=glob.glob(dr + '/' + filename +'*1_001.fastq')
                         potentialhits_reverse=glob.glob(dr + '/' + filename +'*2_001.fastq')
                         if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-                            subprocess.run("gzip " + potentialhits_forward[0], shell=True)
-                            subprocess.run("gzip " + potentialhits_reverse[0], shell=True)
-                            fwd=potentialhits_forward[0]+'.gz'
-                            rev=potentialhits_reverse[0]+'.gz'
+                            fwd=potentialhits_forward[0]
+                            rev=potentialhits_reverse[0]
                     else:
                         foldername=glob.glob(dr + '/' + filename + '*')
                         if foldername and os.path.isdir(foldername[0]):
@@ -153,24 +153,28 @@ def findfastqfile(dr,ID,filename):
                                 potentialhits_forward=glob.glob(foldername +  '/*' + filename + '*1*.fastq')
                                 potentialhits_reverse=glob.glob(foldername + '/*' + filename + '*2*.fastq')
                                 if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-                                    subprocess.run("gzip " + potentialhits_forward[0], shell=True)
-                                    subprocess.run("gzip " + potentialhits_reverse[0], shell=True)
-                                    fwd=potentialhits_forward[0]+'.gz'
-                                    rev=potentialhits_reverse[0]+'.gz'
+                                    fwd=potentialhits_forward[0]
+                                    rev=potentialhits_reverse[0]
     if not(fwd) or not(rev):
         raise ValueError('Either no file or more than 1 file found in ' + dr + ' for ' + ID)
-    ##zip fastq files if they aren't already zipped
     #TODO: add search pattern used to find fastqs for more useful error report
     #TODO: add error differentiation for no file or more than one file  
-    subprocess.run("gzip " + fwd, shell=True)   
-    subprocess.run("gzip " + rev, shell=True)   
+    
+    ##zip fastq files if they aren't already zipped
+    if fwd[-3:] != '.gz':
+        subprocess.run("gzip " + fwd, shell=True) 
+        fwd=fwd+'.gz'
+    if rev[-3:] != '.gz':
+        subprocess.run("gzip " + rev, shell=True)
+        rev=rev+'.gz'
     return [fwd, rev]
 
 def makelink(path,sample,filename,output_dir):
     #When sample is run on a single lane
     #File name can be either a COMPLETE directory name or a file name in batch(called path in this fx)
     [fwd_file, rev_file]=findfastqfile(path,sample, filename)
-    
+    print(f"ln -s -T {fwd_file} {output_dir}/{sample}/R1.fq.gz")   
+    print(f"ln -s -T {rev_file} {output_dir}/{sample}/R2.fq.gz")
     subprocess.run(f"ln -s -T {fwd_file} {output_dir}/{sample}/R1.fq.gz", shell=True)    
     subprocess.run(f"ln -s -T {rev_file} {output_dir}/{sample}/R2.fq.gz", shell=True)    
 

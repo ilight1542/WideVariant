@@ -216,11 +216,11 @@ elif "mapping" in PIPELINE_SPECIFICATIONS:
             fq2 = "data/{sampleID}/R2.fq.gz",
         run:
         # create links
-            paths, sample, reference, filename = read_sample_info_CSV(f'{sample_info_csv}')
+            paths, sample, reference, filename = read_sample_info_CSV(input.sample_info_csv)
             if len(paths) > 1:
-                cp_append_files(paths,sample,filename,f'data/{sample}')
+                cp_append_files(paths,sample,filename,'data')
             else:
-                makelink(paths[0],sample,filename,f'data/{sample}')
+                makelink(paths[0],sample,filename,'data')
 
 
 if "mapping" in PIPELINE_SPECIFICATIONS:
@@ -229,7 +229,7 @@ if "mapping" in PIPELINE_SPECIFICATIONS:
 
     rule cutadapt:
         input: 
-            ft1in = rules.make_data_links.output.fq1,
+            fq1in = rules.make_data_links.output.fq1,
             fq2in = rules.make_data_links.output.fq2,
         output:
             fq1o = "preprocessing/{sampleID}/R1_trim.fq.gz",
@@ -238,7 +238,6 @@ if "mapping" in PIPELINE_SPECIFICATIONS:
         conda:
             "envs/cutadapt.yaml",
         shell:
-            "mkdir -p preprocessing/"
             # NEEDS TO BE OF FORMAT FILENAMER1, FILENAMER2, NOITHING ELSE
             "cutadapt -a CTGTCTCTTAT --cores=4 "
                     "-o {output.fq1o} "
@@ -336,7 +335,7 @@ if "mapping" in PIPELINE_SPECIFICATIONS:
             DupStats = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_markdup_stats.txt",
         output:
             bamA = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned.sorted.bam",
-            bamAidx = "Mapping/clade_assemblies/3-bowtie2/{sampleID}_ref_{reference}_aligned.sorted.bam.bai",
+            bamAidx = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned.sorted.bam.bai",
         conda:
             "envs/samtools_bcftools_sm.yaml",
         shadow: # avoids leaving leftover temp files esp if job aborted
@@ -347,7 +346,7 @@ if "mapping" in PIPELINE_SPECIFICATIONS:
             " samtools fixmate -m {params.bamDup} {params.bamDupMate} ;"
             " samtools sort -o {params.bamDupMateSort} {params.bamDupMate} ;"
             " samtools markdup -r -s -f {params.DupStats} -d 100 -m s {params.bamDupMateSort} {output.bamA} ;"
-            " samtools index -o {output.bamAidx} {output.bamA} ;"
+            " samtools index {output.bamA} ;"
 
     # Deletes SAM file once BAM file is created (SAM files are very large)
     rule sam2bam_cleanup:
@@ -397,7 +396,7 @@ if "mapping" in PIPELINE_SPECIFICATIONS:
         conda:
             "envs/samtools_bcftools_sm.yaml"
         shadow: 
-            "minimal", # avoids leaving leftover temp files esp if job aborted
+            "shallow", # avoids leaving leftover temp files esp if job aborted, but need shallow to allow access to refgenome folder
         shell:
             " samtools mpileup -q30 -x -s -O -d3000 -f {params.ref} {input.bamA} > {output.pileup} ;" 
             " samtools mpileup -q30 -t SP -d3000 -vf {params.ref} {input.bamA} > {params.vcf_raw} ;"

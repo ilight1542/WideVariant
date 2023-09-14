@@ -3,9 +3,9 @@
 ##########################################
 # Basic pipeline options
 experiment_name: test
-run_in_screen: True
-sample_table: ./samples.csv
-ref_genome_directory: ./tests/tutorial_reference_genome
+run_in_screen: FALSE
+sample_table: 'samples.csv'
+ref_genome_directory: 'tests/tutorial_reference_genome'
 
 # Specific pipeline execution options
 pipeline_specifications: ["mapping","case"]
@@ -15,4 +15,4 @@ generate_raw_coverage_matrix: False
 ##########################################
 # do not modify the following parameters #
 ##########################################
-myscripts_directory: ./scripts
+myscripts_directory: 'scripts'
