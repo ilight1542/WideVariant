@@ -8,7 +8,7 @@ rule cutadapt:
         fq2o = "preprocessing/{sampleID}/R2_trim.fq.gz",
     log: "logs/preprocessing_{sampleID}.txt", # necessary for bowtie2qc
     conda:
-        "envs/cutadapt.yaml",
+        "../envs/cutadapt.yaml",
     shell:
         # NEEDS TO BE OF FORMAT FILENAMER1, FILENAMER2, NOITHING ELSE
         "cutadapt -a CTGTCTCTTAT --cores=4 "
@@ -28,7 +28,7 @@ rule sickle:
         qual=20, # Threshold for trimming based on average quality in a window
         readlen=50, # Threshold to keep a read based on length after trimming
     conda:
-        "envs/sickle-trim.yaml",
+        "../envs/sickle-trim.yaml",
     log:
         log = "logs/preprocessing_{sampleID}.txt", # necessary for bowtie2qc
     output:

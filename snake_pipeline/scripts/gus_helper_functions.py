@@ -171,6 +171,10 @@ def makelink(path,sample,filename,output_dir):
     #When sample is run on a single lane
     #File name can be either a COMPLETE directory name or a file name in batch(called path in this fx)
     [fwd_file, rev_file]=findfastqfile(path,sample, filename)
+    if not fwd_file.startswith('/') and not fwd_file.startswith('~/'):
+        fwd_file = os.getcwd() + '/' + fwd_file
+    if not rev_file.startswith('/') and not rev_file.startswith('~/'):
+        rev_file = os.getcwd() + '/' + rev_file
     print(f"ln -s -T {fwd_file} {output_dir}/{sample}/R1.fq.gz")   
     print(f"ln -s -T {rev_file} {output_dir}/{sample}/R2.fq.gz")
     subprocess.run(f"ln -s -T {fwd_file} {output_dir}/{sample}/R1.fq.gz", shell=True)    

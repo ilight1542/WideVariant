@@ -46,17 +46,12 @@ def check_ref_genome_main(parsed_config,list_refG):
         return check_ref_genome_paths(parsed_config,list_refG)
             
 def check_sample_paths(list_path,list_splID,list_fileN):
-    relative_path = False
     errors_list=[]
     for path,id,filename in zip(list_path,list_splID,list_fileN):
-        if not path.startswith('/') and not path.startswith('~/'):
-            relative_path = True
         try:
             findfastqfile(path,id,filename)
         except ValueError as e:
             errors_list.append(e)
-    if relative_path:
-        errors_list.append('At least one path in sample.csv is a relative path. Absolut paths are required.')
     return errors_list
 
 ''' positional and optional argument parser'''

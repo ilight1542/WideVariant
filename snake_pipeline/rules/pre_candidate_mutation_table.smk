@@ -9,7 +9,7 @@ rule variants2positions:
     output:
         positions = "2-Case/temp/{sampleID}_ref_{reference}_outgroup{outgroup}_positions.pickle",
     conda:
-        "envs/py_for_snakemake.yaml",
+        "../envs/py_for_snakemake.yaml",
     shell:
         "mkdir -p 2-Case/temp/ ;"
         "python {SCRIPTS_DIRECTORY}/variants2positions.py -i {input.variants} -o {output.positions} -r {params.refGenomeDir} -q {params.maxFQ} -b {params.outgroup_tag} ;"    
@@ -62,6 +62,6 @@ rule combine_positions:
     output:
         allpositions = "2-Case/temp/group_{cladeID}_allpositions.pickle",
     conda:
-        "envs/py_for_snakemake.yaml",
+        "../envs/py_for_snakemake.yaml",
     shell:
         "python {SCRIPTS_DIRECTORY}/combine_positions.py -i {input.string_input_pos} -r {params.refGenomeDir} -b {input.string_outgroup_bool} -o {output.allpositions} ;"

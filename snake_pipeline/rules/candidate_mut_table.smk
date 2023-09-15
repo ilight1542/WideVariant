@@ -12,6 +12,6 @@ rule candidate_mutation_table:
         cov_norm = "2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.npz" if GENERATE_NORMALIZED_COVERAGE_MATRIX == True else [],
         cov_raw = "2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.npz" if GENERATE_RAW_COVERAGE_MATRIX == True else [],
     conda:
-        "envs/py_for_snakemake.yaml",
+        "../envs/py_for_snakemake.yaml",
     shell:
         "python3 {SCRIPTS_DIRECTORY}/build_candidate_mutation_table.py -p {input.positions} -s {input.string_sampleID_names} -g {input.string_outgroup_bool} -q {input.string_quals} -d {input.string_diversity} -o {output.cmt} -c {output.cov_raw} -n {output.cov_norm} ;"

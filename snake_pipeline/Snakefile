@@ -172,9 +172,6 @@ if "case" in PIPELINE_SPECIFICATIONS:
     input_all.append(expand("1-Mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(REF_Genome_ls)))
     input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz",cladeID=UNIQ_GROUP_ls))
     # Include the following two lines ONLY if you also want coverage matrices. 
-    output_case = []
-                cov_norm = "2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.npz",
-                cov_raw = "2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.npz",
     if GENERATE_NORMALIZED_COVERAGE_MATRIX: 
         input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.pickle.gz",cladeID=UNIQ_GROUP_ls))
     if GENERATE_RAW_COVERAGE_MATRIX: 

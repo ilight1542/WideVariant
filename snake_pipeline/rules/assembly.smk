@@ -5,7 +5,7 @@ rule spades:
     params:
         outdir="Assembly/spades/{sampleID}"
     conda:
-        "envs/spades_sm.yaml"
+        "../envs/spades_sm.yaml"
     threads: 16
     output:
         fasta="Assembly/spades/{sampleID}/contigs.fasta", # produced by spades''

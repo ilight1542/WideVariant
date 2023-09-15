@@ -7,7 +7,7 @@ rule FQ2FA:
     shell:
         # set +o pipefail; necessary to prevent pipefail (zcat runs but head is done)
         "set +o pipefail; "
-        "gzip -cd {input.fq1o} | scripts/fq2fa_sed.sh /dev/stdin > {output.fa1o} ;"
+        "gzip -cd {input.fq1o} | {SCRIPTS_DIRECTORY}/fq2fa_sed.sh /dev/stdin > {output.fa1o} ;"
 
 
 # Run kraken (on forward read file only)
@@ -21,7 +21,7 @@ rule kraken2:
         krakenbracken_db=KRAKEN_BRACKEN_DB, 
     threads: 4,
     conda:
-        "envs/kraken_bracken_sm.yaml",
+        "../envs/kraken_bracken_sm.yaml",
     shell:
         "kraken2 --threads {threads} "
         "--db {params.krakenbracken_db} {input} "
@@ -38,6 +38,6 @@ rule bracken:
         krakenbracken_db=KRAKEN_BRACKEN_DB,
         read_length=KRAKEN_BRACKEN_DB_RL,
     conda:
-        "envs/kraken_bracken_sm.yaml",
+        "../envs/kraken_bracken_sm.yaml",
     shell:
-        "scripts/bracken -d {params.krakenbracken_db} -r {params.read_length} -i {input.kraken_report} -o {output.bracken_rep}"
+        "{SCRIPTS_DIRECTORY}/bracken -d {params.krakenbracken_db} -r {params.read_length} -i {input.kraken_report} -o {output.bracken_rep}"

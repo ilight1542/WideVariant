@@ -98,7 +98,7 @@ echo "Experiment:${experiment_name} snakemake will commence at $date"
 # --conda-prefix envs: builds environment in envs folder where it will be 
 if $run_in_screen; then
     echo "Starting a screen session..."
-    screen -d -m -S "${experiment_name}" bash -c "snakemake --profile . 2>&1 | tee logs/0_snakemake.log "
+    screen -d -m -S "${experiment_name}" bash -c "snakemake --profile . 2>&1 | tee logs/0_widevariant_main.log "
 else 
     echo "Running Snakemake on the backend"
     sbatch run_snakemake.slurm

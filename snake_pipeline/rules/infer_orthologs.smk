@@ -8,7 +8,7 @@ rule build_annotation_orthologs_input:
         "Assembly/orthologinfo_filtered/input_files.tsv",
     shell:
         """
-        paste <(echo {params.clade_identifier} | scripts/sed_nl.sh ) <(echo {input.prokka_faa} | scripts/sed_nl.sh ) > {output}
+        paste <(echo {params.clade_identifier} | {SCRIPTS_DIRECTORY}/sed_nl.sh ) <(echo {input.prokka_faa} | {SCRIPTS_DIRECTORY}/sed_nl.sh ) > {output}
         """
 
 # Infer ortholog info for each identified gene (based on AA sequence) across all clades using CD-HIT
@@ -22,4 +22,4 @@ rule infer_orthologs:
     output:
         "Assembly/orthologinfo_filtered/annotation_orthologs.tsv"
     shell:
-        "python3 scripts/annotation_orthologs_inference.py -f {input} -p {params.percent_identity} -m {params.cdhit_mem} -o {params.output_folder}"
+        "python3 {SCRIPTS_DIRECTORY}/annotation_orthologs_inference.py -f {input} -p {params.percent_identity} -m {params.cdhit_mem} -o {params.output_folder}"

@@ -8,13 +8,12 @@ rule bowtie2:
         refGenome = REF_GENOME_DIRECTORY+"/{reference}/genome_bowtie2",
     output:
         samA = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned.sam",
-    log:
         log = "1-Mapping/bowtie2/bowtie2_{sampleID}_ref_{reference}.txt", # necessary for bowtie2qc
     conda:
-        "envs/bowtie2.yaml"
+        "../envs/bowtie2.yaml"
     shell:
         # 8 threads coded into json
-        "bowtie2 --threads 8 -X 2000 --no-mixed --no-unal --dovetail -x {params.refGenome} -1 {input.fq1} -2 {input.fq2} -S {output.samA} 2> {log} "
+        "bowtie2 --threads 8 -X 2000 --no-mixed --no-unal --dovetail -x {params.refGenome} -1 {input.fq1} -2 {input.fq2} -S {output.samA} 2> {output.log} "
 
 # Compresses SAM file into BAM file (and removes duplicate reads)
 rule sam2bam:
@@ -29,7 +28,7 @@ rule sam2bam:
         bamA = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned.sorted.bam",
         bamAidx = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned.sorted.bam.bai",
     conda:
-        "envs/samtools_bcftools_sm.yaml",
+        "../envs/samtools_bcftools_sm.yaml",
     shadow: # avoids leaving leftover temp files esp if job aborted
         "minimal", 
     shell:
@@ -67,6 +66,6 @@ rule samtools_idx:
     output:
         fasta_idx = REF_GENOME_DIRECTORY+"/{reference}/genome.fasta.fai",
     conda:
-        "envs/samtools_bcftools_sm.yaml"
+        "../envs/samtools_bcftools_sm.yaml"
     shell:
         " samtools faidx {input.fasta} ; "

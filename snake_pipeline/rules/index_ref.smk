@@ -7,6 +7,6 @@ rule refGenome_index:
     output:
         bowtie2idx = REF_GENOME_DIRECTORY+"/{reference}/genome_bowtie2.1.bt2",
     conda:
-        "envs/bowtie2.yaml",
+        "../envs/bowtie2.yaml",
     shell:
         "bowtie2-build -q {input.fasta} {params} ;"

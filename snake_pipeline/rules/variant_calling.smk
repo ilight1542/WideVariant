@@ -12,7 +12,7 @@ rule mpileup2vcf:
         variants = "1-Mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.strain.variant.vcf.gz",
         vcf_strain = "1-Mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.strain.vcf.gz",
     conda:
-        "envs/samtools_bcftools_sm.yaml"
+        "../envs/samtools_bcftools_sm.yaml"
     shadow: 
         "shallow", # avoids leaving leftover temp files esp if job aborted, but need shallow to allow access to refgenome folder
     shell:
@@ -32,7 +32,7 @@ rule vcf2quals:
     output:
         file_quals = "1-Mapping/quals/{sampleID}_ref_{reference}_outgroup{outgroup}.quals.pickle.gz",
     conda:
-        "envs/py_for_snakemake.yaml",
+        "../envs/py_for_snakemake.yaml",
     shell:
         "mkdir -p 1-Mapping/quals/ ;"
         "python {SCRIPTS_DIRECTORY}/vcf2quals_snakemake.py -i {input.vcf_strain} -r {params.refGenomeDir} -o {output.file_quals} ;"
@@ -47,7 +47,7 @@ rule pileup2diversity_matrix:
         file_diversity = "1-Mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.diversity.pickle.gz",
         file_coverage = "1-Mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.aligned.sorted.strain.variant.coverage.pickle.gz",
     conda:
-        "envs/py_for_snakemake.yaml",
+        "../envs/py_for_snakemake.yaml",
     shell:
         "mkdir -p 1-Mapping/diversity/ ;"
         "python {SCRIPTS_DIRECTORY}/pileup2diversity.py -i {input.pileup} -r {params.refGenomeDir} -o {output.file_diversity} -c {output.file_coverage} ;"

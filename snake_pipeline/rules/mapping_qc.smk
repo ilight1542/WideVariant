@@ -7,6 +7,6 @@ rule bowtie2qc:
     params:
         outfile_noextension = "1-Mapping/bowtie2_qc/alignment_stats_ref_{reference}",
     conda:
-        "envs/bowtie2qc.yaml",
+        "../envs/bowtie2qc.yaml",
     shell:
         "python3 {SCRIPTS_DIRECTORY}/bowtie2qc.py -s {spls} -r {wildcards.reference} -d {CURRENT_DIRECTORY} -o {params.outfile_noextension}"

@@ -41,7 +41,7 @@ Some of the files in the template directory must be modified according to the gu
 
 Mandatory changes:
 * Fill in the csv with one row per sample and populate all columns
-	* Path: the *absolute* path to the directory where your raw data files are located
+	* Path: the path to the directory where your raw data files are located
 		* If you sequenced your sample more than once, then you can list directories to your sequencing data separated by spaces, e.g. "/path/to/seq/run/1/ /path/to/seq/run/2/". Note that the FileName in each directory must be the same.
 	* Sample: the name of the sample
 		* Constraints: Sample names must be unique
