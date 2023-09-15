@@ -63,15 +63,17 @@ Mandatory changes:
 * change `myscripts_directory` to path to `"/scripts"` folder in this directory
 * change `pipeline_specifications` from `["mapping","case"]` default, if necessary 
   * This determines which parts of the pipeline snakemake will run
-  * `pipeline_specifications` options are: 'mapping', 'case', 'assembly', 'bracken'
+  * `pipeline_specifications` options are: 'mapping', 'case', 'assembly', 'bracken', 'all'
 	*  mapping: process reads and align them to a reference genome
     *  case: identify candidate SNVs and generate candidate mutation table
     *  assembly: generate annotated assemblies for each sample
     *  bracken: estimate abundances of taxa in sample
+	*  all: run all steps
 * change `experiment_name`
 * change `ref_genome_directory` to the path which holds your reference genome folders
   * NOTE: Each unique reference genome defined in samples.csv should correspond to a folder name within the `ref_genome_directory` path.
   * For  instance reference genome is `Ypestis_CO92` in samples.csv, and the path defined in `ref_genome_directory` is `/my/path`, the overall structure should be: `/my/path/Ypestis_CO92/` with file `genome.fasta` or `genome.fasta.gz`.
+* change `krakenbracken_db` to the path which holds your kraken bracken DB
 
 #### `snakemake_pipeline/config.yaml`
 NOTE: this file may not be renamed

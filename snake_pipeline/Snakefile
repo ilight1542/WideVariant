@@ -188,14 +188,14 @@ if "assembly" in PIPELINE_SPECIFICATIONS:
 ''' INCLUDE RULES '''
 
 # Makes symbolic links to data files
-if "case" in PIPELINE_SPECIFICATIONS and "mapping" not in PIPELINE_SPECIFICATIONS:
+if ("case" in PIPELINE_SPECIFICATIONS) and ("mapping" not in PIPELINE_SPECIFICATIONS):
     include: 'rules/make_data_links_case.smk'
-elif "mapping" in PIPELINE_SPECIFICATIONS:
+elif ("mapping" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
     include: 'rules/make_data_links.smk'
     
 
 # DATA PROCESSING RULES####################################################################################################
-if "mapping" in PIPELINE_SPECIFICATIONS:
+if ("mapping" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
     # trim and filter reads
     include: 'rules/trim_filter_reads.smk'
     # Index reference genome for bowtie2
@@ -213,7 +213,7 @@ if "mapping" in PIPELINE_SPECIFICATIONS:
 # candidate SNV positions into a candidate mutation table
 # Option to collect information about read coverage over the whole genome and generate a coverage matrix
 
-if "case" in PIPELINE_SPECIFICATIONS:
+if ("case" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
     # Prepare input for candidate mutation table 
     include: 'rules/pre_candidate_mutation_table.smk'
     # generate candidate mutation table
@@ -222,7 +222,7 @@ if "case" in PIPELINE_SPECIFICATIONS:
 # ASSEMBLY STEP ####################################################################################################
 # Generates an annotated genome assembly reads from each sample
 
-if "assembly" in PIPELINE_SPECIFICATIONS:
+if ("assembly" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
     # Assemble a genome from reads from a given sample using SPAdes
     include: 'rules/assembly.smk'
     # Annotate genome
@@ -233,7 +233,7 @@ if "assembly" in PIPELINE_SPECIFICATIONS:
 # KRAKEN/BRACKEN ####################################################################################################
 # Estimates abundance of taxa in each sample using kraken/breacken
 
-if "bracken" in PIPELINE_SPECIFICATIONS:
+if ("bracken" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
 
     include: 'rules/kraken_bracken.smk'
 
