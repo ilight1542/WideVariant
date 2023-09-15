@@ -34,11 +34,7 @@ def read_samples_CSV(spls,quiet=False):
                     else:
                         print('\n\nSample csv is not formatted correctly.')
                         print('Snakemake will not start!\n\n')
-                        sys.exit()
-
-            if not line[0].startswith('/'):
-                print('\n\nThe paths in the sample.csv must be absolut paths. Snakemake will not start!\n\n')
-                sys.exit()
+                        sys.exit(1)
             
             line = line.strip('\n').split(',')
             # build lists
