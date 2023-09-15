@@ -12,6 +12,10 @@ pipeline_specifications: ["mapping","case"]
 generate_normalized_coverage_matrix: False
 generate_raw_coverage_matrix: False
 
+# databases 
+krakenbracken_db: '/nexus/posix0/MPIIB-keylab/databases/kraken2_1_2'
+krakenbracken_db_readlength: 100
+
 ##########################################
 # do not modify the following parameters #
 ##########################################

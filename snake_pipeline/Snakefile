@@ -9,9 +9,15 @@ import sys
 CURRENT_DIRECTORY = os.getcwd()
 REF_GENOME_DIRECTORY = config["ref_genome_directory"]
 SCRIPTS_DIRECTORY = config["myscripts_directory"]
+
 PIPELINE_SPECIFICATIONS = config["pipeline_specifications"]
+PIPELINE_SPECIFICATIONS = [steps.lower() for steps in PIPELINE_SPECIFICATIONS]
+
 GENERATE_NORMALIZED_COVERAGE_MATRIX = config["generate_normalized_coverage_matrix"]
 GENERATE_RAW_COVERAGE_MATRIX = config["generate_raw_coverage_matrix"]
+
+KRAKEN_BRACKEN_DB = config["krakenbracken_db"]
+KRAKEN_BRACKEN_DB_RL = config["krakenbracken_db_readlength"]
 
 sys.path.insert(0, SCRIPTS_DIRECTORY)
 spls = config["sample_table"]
@@ -91,31 +97,6 @@ def get_candidate_mutation_table_output(wildcards):
     return output_file_targets
 
 
-# Define a list of output files: snakemake will deterimine which pipeline steps need to be executed in order to generate the output files requested
-input_all=[]
-if "mapping" in PIPELINE_SPECIFICATIONS:
-    input_all.append(expand("1-Mapping/bowtie2/{sampleID}_ref_{references}_aligned.sorted.bam",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls))
-    input_all.append(expand("1-Mapping/vcf/{sampleID}_ref_{references}_aligned.sorted.strain.variant.vcf.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls))
-    input_all.append(expand("1-Mapping/quals/{sampleID}_ref_{references}_outgroup{outgroup}.quals.pickle.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
-    input_all.append(expand("1-Mapping/diversity/{sampleID}_ref_{references}_outgroup{outgroup}.diversity.pickle.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
-    input_all.append(expand("1-Mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(REF_Genome_ls)))
-if "case" in PIPELINE_SPECIFICATIONS:
-    input_all.append(expand("1-Mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(REF_Genome_ls)))
-    input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz",cladeID=UNIQ_GROUP_ls))
-    # Include the following two lines ONLY if you also want coverage matrices. 
-    # Be sure include -c and -n options when py script is called candidate_mutation_table rule and to uncomment the two extra outputs in the candidate_mutation_table rule.
-    if GENERATE_NORMALIZED_COVERAGE_MATRIX: 
-        input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.pickle.gz",cladeID=UNIQ_GROUP_ls))
-    if GENERATE_RAW_COVERAGE_MATRIX: 
-        input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.pickle.gz",cladeID=UNIQ_GROUP_ls))
-if "bracken" in PIPELINE_SPECIFICATIONS:
-    input_all.append(expand("Kraken/kraken2/{sampleID}_krakenRep.txt",sampleID=SAMPLE_ls))
-    input_all.append(expand("Kraken/bracken/{sampleID}.bracken",sampleID=SAMPLE_ls))
-if "assembly" in PIPELINE_SPECIFICATIONS:
-    input_all.append(expand("Assembly/spades/{sampleID}/contigs.fasta",sampleID=SAMPLE_ls))
-    input_all.append(expand("Assembly/prokka/{sampleID}/prokka_out.faa",sampleID=SAMPLE_ls))
-    input_all.append("Assembly/orthologinfo_filtered/annotation_orthologs.tsv")
-
 # def read_sample_info_CSV(path_to_sample_info_csv):
 #     with open(path_to_sample_info_csv,'r') as f:
 #         this_sample_info = f.readline() # only one line to read
@@ -177,6 +158,91 @@ def get_mdl_paths(sampleID): # returns all list of paths and filenames for a giv
   return path_ls,filename
 
 
+''' DEFINE OUTPUT FILES '''
+
+# Define a list of output files: snakemake will deterimine which pipeline steps need to be executed in order to generate the output files requested
+input_all=[]
+if "mapping" in PIPELINE_SPECIFICATIONS:
+    input_all.append(expand("1-Mapping/bowtie2/{sampleID}_ref_{references}_aligned.sorted.bam",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls))
+    input_all.append(expand("1-Mapping/vcf/{sampleID}_ref_{references}_aligned.sorted.strain.variant.vcf.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls))
+    input_all.append(expand("1-Mapping/quals/{sampleID}_ref_{references}_outgroup{outgroup}.quals.pickle.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
+    input_all.append(expand("1-Mapping/diversity/{sampleID}_ref_{references}_outgroup{outgroup}.diversity.pickle.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
+    input_all.append(expand("1-Mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(REF_Genome_ls)))
+if "case" in PIPELINE_SPECIFICATIONS:
+    input_all.append(expand("1-Mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(REF_Genome_ls)))
+    input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz",cladeID=UNIQ_GROUP_ls))
+    # Include the following two lines ONLY if you also want coverage matrices. 
+    output_case = []
+                cov_norm = "2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.npz",
+                cov_raw = "2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.npz",
+    if GENERATE_NORMALIZED_COVERAGE_MATRIX: 
+        input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.pickle.gz",cladeID=UNIQ_GROUP_ls))
+    if GENERATE_RAW_COVERAGE_MATRIX: 
+        input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.pickle.gz",cladeID=UNIQ_GROUP_ls))
+if "bracken" in PIPELINE_SPECIFICATIONS:
+    input_all.append(expand("Kraken/kraken2/{sampleID}_krakenRep.txt",sampleID=SAMPLE_ls))
+    input_all.append(expand("Kraken/bracken/{sampleID}.bracken",sampleID=SAMPLE_ls))
+if "assembly" in PIPELINE_SPECIFICATIONS:
+    input_all.append(expand("Assembly/spades/{sampleID}/contigs.fasta",sampleID=SAMPLE_ls))
+    input_all.append(expand("Assembly/prokka/{sampleID}/prokka_out.faa",sampleID=SAMPLE_ls))
+    input_all.append("Assembly/orthologinfo_filtered/annotation_orthologs.tsv")
+
+
+''' INCLUDE RULES '''
+
+# Makes symbolic links to data files
+if "case" in PIPELINE_SPECIFICATIONS and "mapping" not in PIPELINE_SPECIFICATIONS:
+    include: 'rules/make_data_links_case.smk'
+elif "mapping" in PIPELINE_SPECIFICATIONS:
+    include: 'rules/make_data_links.smk'
+    
+
+# DATA PROCESSING RULES####################################################################################################
+if "mapping" in PIPELINE_SPECIFICATIONS:
+    # trim and filter reads
+    include: 'rules/trim_filter_reads.smk'
+    # Index reference genome for bowtie2
+    include: 'rules/index_ref.smk'
+    # Align processed reads to reference genome with bowtie2
+    include: 'rules/mapping.smk'
+    # QC of mapping performance
+    include: 'rules/mapping_qc.smk'
+    # Call variants and parse vcf and pileup file
+    include: 'rules/variant_calling.smk'
+
+
+# CASE STEP ####################################################################################################
+# Takes alignments of samples to reference genome, identifies candidate SNV positions, and summarizes stats at 
+# candidate SNV positions into a candidate mutation table
+# Option to collect information about read coverage over the whole genome and generate a coverage matrix
+
+if "case" in PIPELINE_SPECIFICATIONS:
+    # Prepare input for candidate mutation table 
+    include: 'rules/pre_candidate_mutation_table.smk'
+    # generate candidate mutation table
+    include: 'rules/candidate_mut_table.smk'
+
+# ASSEMBLY STEP ####################################################################################################
+# Generates an annotated genome assembly reads from each sample
+
+if "assembly" in PIPELINE_SPECIFICATIONS:
+    # Assemble a genome from reads from a given sample using SPAdes
+    include: 'rules/assembly.smk'
+    # Annotate genome
+    include: 'rules/annotate.smk'
+    # Infer orthologs
+    include: 'rules/infer_orthologs.smk'
+
+# KRAKEN/BRACKEN ####################################################################################################
+# Estimates abundance of taxa in each sample using kraken/breacken
+
+if "bracken" in PIPELINE_SPECIFICATIONS:
+
+    include: 'rules/kraken_bracken.smk'
+
+
+
+
 ''' SNAKEMAKE '''
 
 rule all:
@@ -188,507 +254,6 @@ rule all:
         expand("data/{sampleID}/sample_info.csv",sampleID=SAMPLE_ls),
 
 
-# Makes symbolic links to data files
-if "case" in PIPELINE_SPECIFICATIONS and "mapping" not in PIPELINE_SPECIFICATIONS:
-    rule make_data_links_case:
-        # input:
-        #     sample_info_csv="data/{sampleID}/sample_info.csv",
-        output:
-            # Recommend using symbolic links to your likely many different input files      
-            vcf_links = expand("1-Mapping/vcf/{sampleID}_ref_{references}_aligned.sorted.strain.variant.vcf.gz",zip,sampleID=SAMPLE_ls, references=REF_Genome_ls),
-            qual_links = expand("1-Mapping/quals/{sampleID}_ref_{references}_outgroup{outgroup}.quals.pickle.gz",zip,sampleID=SAMPLE_ls, references=REF_Genome_ls, outgroup=OUTGROUP_ls),
-            div_links = expand("1-Mapping/diversity/{sampleID}_ref_{references}_outgroup{outgroup}.diversity.pickle.gz",zip,sampleID=SAMPLE_ls, references=REF_Genome_ls, outgroup=OUTGROUP_ls),
-        run:
-            subprocess.run( "mkdir -p 1-Mapping/vcf/ 1-Mapping/quals/ 1-Mapping/diversity/ " ,shell=True)
-            for idx, ele in enumerate(SAMPLE_ls):
-                subprocess.run( f"ln -fs -T {PATH_ls[idx]}/1-Mapping/diversity/{SAMPLE_ls[idx]}_ref_{REF_Genome_ls[idx]}_*diversity* 1-Mapping/diversity/{SAMPLE_ls[idx]}_ref_{REF_Genome_ls[idx]}_outgroup{OUTGROUP_ls[idx]}.diversity.pickle.gz" ,shell=True)
-                subprocess.run( f"ln -fs -T {PATH_ls[idx]}/1-Mapping/quals/{SAMPLE_ls[idx]}_ref_{REF_Genome_ls[idx]}_*quals* 1-Mapping/quals/{SAMPLE_ls[idx]}_ref_{REF_Genome_ls[idx]}_outgroup{OUTGROUP_ls[idx]}.quals.pickle.gz" ,shell=True)
-                subprocess.run( f"ln -fs -T {PATH_ls[idx]}/1-Mapping/vcf/{SAMPLE_ls[idx]}_ref_{REF_Genome_ls[idx]}_*variant.vcf.gz 1-Mapping/vcf/{SAMPLE_ls[idx]}_ref_{REF_Genome_ls[idx]}_aligned.sorted.strain.variant.vcf.gz" ,shell=True)
 
-elif "mapping" in PIPELINE_SPECIFICATIONS:
-    rule make_data_links:
-      # NOTE: All raw data needs to be names fastq.gz. No fq! The links will be names fq though.
-        input:
-            sample_info_csv = "data/{sampleID}/sample_info.csv",
-        output:
-            # Recommend using symbolic links to your likely many different input files
-            fq1 = "data/{sampleID}/R1.fq.gz",
-            fq2 = "data/{sampleID}/R2.fq.gz",
-        run:
-        # create links
-            paths, sample, reference, filename = read_sample_info_CSV(input.sample_info_csv)
-            if len(paths) > 1:
-                cp_append_files(paths,sample,filename,'data')
-            else:
-                makelink(paths[0],sample,filename,'data')
-
-
-if "mapping" in PIPELINE_SPECIFICATIONS:
-# DATA PROCESSING ####################################################################################################
-# Prepare filtered, clean FASTQ samples
-
-    rule cutadapt:
-        input: 
-            fq1in = rules.make_data_links.output.fq1,
-            fq2in = rules.make_data_links.output.fq2,
-        output:
-            fq1o = "preprocessing/{sampleID}/R1_trim.fq.gz",
-            fq2o = "preprocessing/{sampleID}/R2_trim.fq.gz",
-        log: "logs/preprocessing_{sampleID}.txt", # necessary for bowtie2qc
-        conda:
-            "envs/cutadapt.yaml",
-        shell:
-            # NEEDS TO BE OF FORMAT FILENAMER1, FILENAMER2, NOITHING ELSE
-            "cutadapt -a CTGTCTCTTAT --cores=4 "
-                    "-o {output.fq1o} "
-                    "{input.fq1in} "
-                    "1> {log} ;"
-            "cutadapt -a CTGTCTCTTAT --cores=4 "
-                    "-o {output.fq2o} "
-                    "{input.fq2in} "
-                    "1>> {log} ;"
-
-    rule sickle:
-        input:
-            fq1i = rules.cutadapt.output.fq1o,
-            fq2i = rules.cutadapt.output.fq2o,
-        params:
-            qual=20, # Threshold for trimming based on average quality in a window
-            readlen=50, # Threshold to keep a read based on length after trimming
-        conda:
-            "envs/sickle-trim.yaml",
-        log:
-            log = "logs/preprocessing_{sampleID}.txt", # necessary for bowtie2qc
-        output:
-            fq1o = "preprocessing/{sampleID}/R1_filt.fq.gz",
-            fq2o = "preprocessing/{sampleID}/R2_filt.fq.gz",
-            fqSo = "preprocessing/{sampleID}/filt_sgls.fq.gz",
-        shell:
-            "sickle pe -f {input.fq1i} -r {input.fq2i} "
-                        "-t sanger "
-                        "-o {output.fq1o} -p {output.fq2o} "
-                        "-s {output.fqSo} "
-                        "-g -q {params.qual} -l {params.readlen} -x -n "
-                        "1>> {log} ;"
-            "echo 'sickle command line params: minqual={params.qual} minreadlen={params.readlen}' 1>> {log} ;"
-            "rm {input.fq1i} ;"
-            "rm {input.fq2i} ;"
-
-# MAPPING STEP ####################################################################################################
-# Aligns processed reads onto a reference genome
-
-    # Indexes reference genome for bowtie2
-    rule refGenome_index: 
-        input:
-            fasta = REF_GENOME_DIRECTORY+"/{reference}/genome.fasta",
-        params:
-            REF_GENOME_DIRECTORY+"/{reference}/genome_bowtie2",
-        output:
-            bowtie2idx = REF_GENOME_DIRECTORY+"/{reference}/genome_bowtie2.1.bt2",
-        conda:
-            "envs/bowtie2.yaml",
-        shell:
-            "bowtie2-build -q {input.fasta} {params} ;"
-
-
-    # Aligns reads to the reference genome with bowtie2
-    rule bowtie2:
-        input:
-            fq1 = rules.sickle.output.fq1o,
-            fq2 = rules.sickle.output.fq2o,
-            bowtie2idx = ancient(rules.refGenome_index.output.bowtie2idx) # put here, so rule bowtie2 only executed after rule refGenome_index done
-        params:
-            refGenome = REF_GENOME_DIRECTORY+"/{reference}/genome_bowtie2",
-        output:
-            samA = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned.sam",
-        log:
-            log = "1-Mapping/bowtie2/bowtie2_{sampleID}_ref_{reference}.txt", # necessary for bowtie2qc
-        conda:
-            "envs/bowtie2.yaml"
-        shell:
-            # 8 threads coded into json
-            "bowtie2 --threads 8 -X 2000 --no-mixed --no-unal --dovetail -x {params.refGenome} -1 {input.fq1} -2 {input.fq2} -S {output.samA} 2> {log} "
-
-
-    # Runs a QC script to summarize results of bowtie2 mapping
-    rule bowtie2qc:
-        input:
-            get_bt2qc_input,
-        output:
-            alignment_stats = "1-Mapping/bowtie2_qc/alignment_stats_ref_{reference}.csv",
-        params:
-            outfile_noextension = "1-Mapping/bowtie2_qc/alignment_stats_ref_{reference}",
-        conda:
-            "envs/bowtie2qc.yaml",
-        shell:
-            "python3 {SCRIPTS_DIRECTORY}/bowtie2qc.py -s {spls} -r {wildcards.reference} -d {CURRENT_DIRECTORY} -o {params.outfile_noextension}"
-
-
-    # Compresses SAM file into BAM file (and removes duplicate reads)
-    rule sam2bam:
-        input:
-            samA = rules.bowtie2.output.samA,
-        params:
-            bamDup = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned_dups.bam",
-            bamDupMate = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned_dups.mates.bam",
-            bamDupMateSort = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned_dups.sorted.mates.bam",
-            DupStats = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_markdup_stats.txt",
-        output:
-            bamA = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned.sorted.bam",
-            bamAidx = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned.sorted.bam.bai",
-        conda:
-            "envs/samtools_bcftools_sm.yaml",
-        shadow: # avoids leaving leftover temp files esp if job aborted
-            "minimal", 
-        shell:
-            # 8 threads coded into json
-            " samtools view -bS {input.samA} | samtools sort -n - -o {params.bamDup} ;"
-            " samtools fixmate -m {params.bamDup} {params.bamDupMate} ;"
-            " samtools sort -o {params.bamDupMateSort} {params.bamDupMate} ;"
-            " samtools markdup -r -s -f {params.DupStats} -d 100 -m s {params.bamDupMateSort} {output.bamA} ;"
-            " samtools index {output.bamA} ;"
-
-    # Deletes SAM file once BAM file is created (SAM files are very large)
-    rule sam2bam_cleanup:
-    # must be a to separate rule from sam2bam because rm in sam2bam only deletes link in shadow directory
-        input:
-            bamA = rules.sam2bam.output.bamA,
-            bamAidx=rules.sam2bam.output.bamAidx,
-        params:
-            samA = rules.bowtie2.output.samA,
-            bamDup = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned_dups.bam",
-            bamDupMate = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned_dups.mates.bam",
-            bamDupMateSort = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned_dups.sorted.mates.bam",
-        output:
-            "1-Mapping/bowtie2/{sampleID}_ref_{reference}_cleanup_done.txt", 
-        priority: 100, # prioritizes this rule to get rid of big sam files as fast as possible; default priority for other rules is 0
-        shell:
-            # -f for cases where sam file doesn't exist (e.g. job previously cancelled/stalled after file deleted but before log file written)
-            " rm -f {params.samA} ; rm -f {params.bamDup} {params.bamDupMate} {params.bamDupMateSort} ;"
-            " touch {output} ;" 
-
-
-    # Indexes reference genome for samtools
-    rule samtools_idx:
-        input:
-            fasta = REF_GENOME_DIRECTORY+"/{reference}/genome.fasta",
-        output:
-            fasta_idx = REF_GENOME_DIRECTORY+"/{reference}/genome.fasta.fai",
-        conda:
-            "envs/samtools_bcftools_sm.yaml"
-        shell:
-            " samtools faidx {input.fasta} ; "
-
-
-    # Processes BAM file into VCF files
-    rule mpileup2vcf:
-        input:
-            bamA = rules.sam2bam.output.bamA,
-            bamClean = rules.sam2bam_cleanup.output,
-            fasta_idx = ancient(rules.samtools_idx.output.fasta_idx),
-        params:
-            ref = REF_GENOME_DIRECTORY+"/{reference}/genome.fasta",
-            vcf_raw = "1-Mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.strain.gz",
-        output:
-            pileup = "1-Mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.pileup",
-            variants = "1-Mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.strain.variant.vcf.gz",
-            vcf_strain = "1-Mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.strain.vcf.gz",
-        conda:
-            "envs/samtools_bcftools_sm.yaml"
-        shadow: 
-            "shallow", # avoids leaving leftover temp files esp if job aborted, but need shallow to allow access to refgenome folder
-        shell:
-            " samtools mpileup -q30 -x -s -O -d3000 -f {params.ref} {input.bamA} > {output.pileup} ;" 
-            " samtools mpileup -q30 -t SP -d3000 -vf {params.ref} {input.bamA} > {params.vcf_raw} ;"
-            " bcftools call -c -Oz -o {output.vcf_strain} {params.vcf_raw} ;"
-            " bcftools view -Oz -v snps -q .75 {output.vcf_strain} > {output.variants} ;"
-            " tabix -p vcf {output.variants} ;"
-            " rm {params.vcf_raw}"
-
-
-    # Parses VCF with python script
-    rule vcf2quals:
-        input:
-            vcf_strain = rules.mpileup2vcf.output.vcf_strain,
-        params:
-            refGenomeDir = REF_GENOME_DIRECTORY+"/{reference}/",
-        output:
-            file_quals = "1-Mapping/quals/{sampleID}_ref_{reference}_outgroup{outgroup}.quals.pickle.gz",
-        conda:
-            "envs/py_for_snakemake.yaml",
-        shell:
-            "mkdir -p 1-Mapping/quals/ ;"
-            "python {SCRIPTS_DIRECTORY}/vcf2quals_snakemake.py -i {input.vcf_strain} -r {params.refGenomeDir} -o {output.file_quals} ;"
-
-
-    # Parses pileup with python script
-    rule pileup2diversity_matrix:
-        input:
-            pileup = rules.mpileup2vcf.output.pileup,
-        params:
-            refGenomeDir = REF_GENOME_DIRECTORY+"/{reference}/", 
-        output:
-            file_diversity = "1-Mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.diversity.pickle.gz",
-            file_coverage = "1-Mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.aligned.sorted.strain.variant.coverage.pickle.gz",
-        conda:
-            "envs/py_for_snakemake.yaml",
-        shell:
-            "mkdir -p 1-Mapping/diversity/ ;"
-            "python {SCRIPTS_DIRECTORY}/pileup2diversity.py -i {input.pileup} -r {params.refGenomeDir} -o {output.file_diversity} -c {output.file_coverage} ;"
-
-
-
-# CASE STEP ####################################################################################################
-# Takes alignments of samples to reference genome, identifies candidate SNV positions, and summarizes stats at 
-# candidate SNV positions into a candidate mutation table
-# Option to collect information about read coverage over the whole genome and generate a coverage matrix
-
-if "case" in PIPELINE_SPECIFICATIONS:
-
-    # Generates a list of candidate SNV positions for a given sample
-    rule variants2positions:
-        input:
-            variants = "1-Mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.strain.variant.vcf.gz",
-        params:
-            refGenomeDir = REF_GENOME_DIRECTORY+"/{reference}/",
-            outgroup_tag = 0, # boolean (0==ingroup or 1==outgroup)
-            maxFQ = -30,
-        output:
-            positions = "2-Case/temp/{sampleID}_ref_{reference}_outgroup{outgroup}_positions.pickle",
-        conda:
-            "envs/py_for_snakemake.yaml",
-        shell:
-            "mkdir -p 2-Case/temp/ ;"
-            "python {SCRIPTS_DIRECTORY}/variants2positions.py -i {input.variants} -o {output.positions} -r {params.refGenomeDir} -q {params.maxFQ} -b {params.outgroup_tag} ;"    
-
-
-    # Creates a list of files with candidate SNV positions from each sample
-    rule combine_positions_prep:
-        input:
-            positions = get_positions_prep,
-        output:
-            string_input_p_positions = "2-Case/temp/group_{cladeID}_string_file_other_p_to_consider.txt",
-        run:
-            with open( output.string_input_p_positions ,"w") as f: 
-                print(*input.positions, sep="\n", file=f)
-
-
-    # Build input for candidate_mutation_table
-    rule candidate_mutation_table_prep:
-        input:
-            diversity = get_diversity,
-            quals = get_quals,
-        params:
-            sampleID_names = get_sampleID_names,
-            outgroup_bool = get_outgroup_bool,
-        output:
-            string_diversity = "2-Case/temp/group_{cladeID}_string_diversity.txt",
-            string_quals = "2-Case/temp/group_{cladeID}_string_qual.txt",
-            string_sampleID_names = "2-Case/temp/group_{cladeID}_string_sampleID_names.txt",
-            string_outgroup_bool = "2-Case/temp/group_{cladeID}_string_outgroup_bool.txt",
-        run:
-            with open( output.string_diversity ,"w") as f: 
-                print(*input.diversity, sep="\n", file=f)
-            with open( output.string_quals ,"w") as f:
-                print(*input.quals, sep="\n", file=f)
-            with open( output.string_sampleID_names ,"w") as f: 
-                print(*params.sampleID_names, sep="\n", file=f)
-            with open( output.string_outgroup_bool ,"w") as f: 
-                print(*params.outgroup_bool, sep="\n", file=f)
-
-
-    # Generates a list of candidate SNV positions based on candidate SNV positions across ingroup samples
-    # (Ignores candidate SNVs in samples marked as outgroups)
-    rule combine_positions:
-        input:
-            string_input_pos = rules.combine_positions_prep.output.string_input_p_positions,
-            string_outgroup_bool = rules.candidate_mutation_table_prep.output.string_outgroup_bool,
-        params:
-            # file_other_p_to_consider = "2-Case/temp/other_positions.pickle",
-            refGenomeDir = get_ref_genome, # expands to single reference genome!
-        output:
-            allpositions = "2-Case/temp/group_{cladeID}_allpositions.pickle",
-        conda:
-            "envs/py_for_snakemake.yaml",
-        shell:
-            "python {SCRIPTS_DIRECTORY}/combine_positions.py -i {input.string_input_pos} -r {params.refGenomeDir} -b {input.string_outgroup_bool} -o {output.allpositions} ;"
-
-
-    # Builds candidate mutation table (stats across candidate SNV positions)
-    # Option to build raw coverage matrix and normalized coverage matrix automatically parsed
-    if GENERATE_NORMALIZED_COVERAGE_MATRIX and GENERATE_RAW_COVERAGE_MATRIX:
-        rule candidate_mutation_table:
-            input:
-                positions = rules.combine_positions.output.allpositions, # "2-Case/temp/allpositions.pickle",
-                string_diversity = rules.candidate_mutation_table_prep.output.string_diversity, # "2-Case/temp/string_diversity_mat.txt",
-                string_quals = rules.candidate_mutation_table_prep.output.string_quals, # "2-Case/temp/string_qual_mat.txt",
-                string_sampleID_names = rules.candidate_mutation_table_prep.output.string_sampleID_names, # "2-Case/temp/string_sampleID_names.txt",
-                string_outgroup_bool = rules.candidate_mutation_table_prep.output.string_outgroup_bool, # "2-Case/temp/string_outgroup_bool.txt",
-            output:
-                cmt = "2-Case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz",
-                cov_norm = "2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.npz",
-                cov_raw = "2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.npz",
-            conda:
-                "envs/py_for_snakemake.yaml",
-            shell:
-                "python3 {SCRIPTS_DIRECTORY}/build_candidate_mutation_table.py -p {input.positions} -s {input.string_sampleID_names} -g {input.string_outgroup_bool} -q {input.string_quals} -d {input.string_diversity} -o {output.cmt} -c {output.cov_raw} -n {output.cov_norm} ;"
-     
-    elif GENERATE_NORMALIZED_COVERAGE_MATRIX:
-        rule candidate_mutation_table:
-            input:
-                positions = rules.combine_positions.output.allpositions, # "2-Case/temp/allpositions.pickle",
-                string_diversity = rules.candidate_mutation_table_prep.output.string_diversity, # "2-Case/temp/string_diversity_mat.txt",
-                string_quals = rules.candidate_mutation_table_prep.output.string_quals, # "2-Case/temp/string_qual_mat.txt",
-                string_sampleID_names = rules.candidate_mutation_table_prep.output.string_sampleID_names, # "2-Case/temp/string_sampleID_names.txt",
-                string_outgroup_bool = rules.candidate_mutation_table_prep.output.string_outgroup_bool, # "2-Case/temp/string_outgroup_bool.txt",
-            output:
-                cmt = "2-Case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz",
-                cov_norm = "2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.npz",
-            conda:
-                "envs/py_for_snakemake.yaml",
-            shell:
-                "python3 {SCRIPTS_DIRECTORY}/build_candidate_mutation_table.py -p {input.positions} -s {input.string_sampleID_names} -g {input.string_outgroup_bool} -q {input.string_quals} -d {input.string_diversity} -o {output.cmt} -n {output.cov_norm} ;"
     
-    elif GENERATE_RAW_COVERAGE_MATRIX:
-        rule candidate_mutation_table:
-            input:
-                positions = rules.combine_positions.output.allpositions, # "2-Case/temp/allpositions.pickle",
-                string_diversity = rules.candidate_mutation_table_prep.output.string_diversity, # "2-Case/temp/string_diversity_mat.txt",
-                string_quals = rules.candidate_mutation_table_prep.output.string_quals, # "2-Case/temp/string_qual_mat.txt",
-                string_sampleID_names = rules.candidate_mutation_table_prep.output.string_sampleID_names, # "2-Case/temp/string_sampleID_names.txt",
-                string_outgroup_bool = rules.candidate_mutation_table_prep.output.string_outgroup_bool, # "2-Case/temp/string_outgroup_bool.txt",
-            output:
-                cmt = "2-Case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz",
-                cov_raw = "2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.npz",
-            conda:
-                "envs/py_for_snakemake.yaml",
-            shell:
-                "python3 {SCRIPTS_DIRECTORY}/build_candidate_mutation_table.py -p {input.positions} -s {input.string_sampleID_names} -g {input.string_outgroup_bool} -q {input.string_quals} -d {input.string_diversity} -o {output.cmt} -c {output.cov_raw} ;"
-
-    else:
-        rule candidate_mutation_table:
-            input:
-                positions = rules.combine_positions.output.allpositions, # "2-Case/temp/allpositions.pickle",
-                string_diversity = rules.candidate_mutation_table_prep.output.string_diversity, # "2-Case/temp/string_diversity_mat.txt",
-                string_quals = rules.candidate_mutation_table_prep.output.string_quals, # "2-Case/temp/string_qual_mat.txt",
-                string_sampleID_names = rules.candidate_mutation_table_prep.output.string_sampleID_names, # "2-Case/temp/string_sampleID_names.txt",
-                string_outgroup_bool = rules.candidate_mutation_table_prep.output.string_outgroup_bool, # "2-Case/temp/string_outgroup_bool.txt",
-            output:
-                cmt = "2-Case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz",
-            conda:
-                "envs/py_for_snakemake.yaml",
-            shell:
-                "python3 {SCRIPTS_DIRECTORY}/build_candidate_mutation_table.py -p {input.positions} -s {input.string_sampleID_names} -g {input.string_outgroup_bool} -q {input.string_quals} -d {input.string_diversity} -o {output.cmt} ;"            
-
-
-# ASSEMBLY STEP ####################################################################################################
-# Generates an annotated genome assembly reads from each sample
-
-if "assembly" in PIPELINE_SPECIFICATIONS:
-
-
-    # Assemble a genome from reads from a given sample using SPAdes
-    rule spades:
-        input:
-          fastq1=rules.sickle2050.output.fq1o,
-          fastq2=rules.sickle2050.output.fq2o,
-        params:
-          outdir="Assembly/spades/{sampleID}"
-        conda:
-          "envs/spades_sm.yaml"
-        threads: 16
-        output:
-          fasta="Assembly/spades/{sampleID}/contigs.fasta", # produced by spades''
-        shell:
-          "spades.py -m 500 -k 21,33,55,77 --phred-offset 33 --careful -t {threads} -1 {input.fastq1} -2 {input.fastq2} -o {params.outdir}"
-
-
-    # Annotate assembly using prokka
-    rule prokka:
-      input:
-          rules.spades.output.fasta,
-      params:
-          outdir="Assembly/prokka/{sampleID}",
-      threads: 16
-      output:
-          txt="Assembly/prokka/{sampleID}/prokka_out.txt",
-          faa="Assembly/prokka/{sampleID}/prokka_out.faa",
-      conda:
-          "envs/prokka.yml"
-      shell:
-          "prokka --compliant --force --cpus {threads} --outdir {params.outdir} --prefix prokka_out {input} ; conda deactivate"
-
-
-
-    # Get two-column (caldeID,path2faa) input file for ortholog_inference script
-    rule build_annotation_orthologs_input:
-        input:
-            prokka_faa=expand("Assembly/prokka/{sampleID}/prokka_out.faa",sampleID=SAMPLE_ls_long),
-        params:
-            clade_identifier=expand("{sampleID}",sampleID=SAMPLE_ls_long),
-        output:
-            "Assembly/orthologinfo_filtered/input_files.tsv",
-        shell:
-            """
-            paste <(echo {params.clade_identifier} | scripts/sed_nl.sh ) <(echo {input.prokka_faa} | scripts/sed_nl.sh ) > {output}
-            """
-
-    # Infer ortholog info for each identified gene (based on AA sequence) across all clades using CD-HIT
-    rule infer_orthologs:
-        input:
-            rules.build_annotation_orthologs_input.output
-        params:
-            percent_identity="0.9", # percent identity for clustering
-            cdhit_mem="8000", # max mem available for cdhit
-            output_folder="Assembly/orthologinfo_filtered/"
-        output:
-            "Assembly/orthologinfo_filtered/annotation_orthologs.tsv"
-        shell:
-            "python3 scripts/annotation_orthologs_inference.py -f {input} -p {params.percent_identity} -m {params.cdhit_mem} -o {params.output_folder}"
-
-
-
-# KRAKEN/BRACKEN ####################################################################################################
-# Estimates abundance of taxa in each sample using kraken/breacken
-
-
-if "bracken" in PIPELINE_SPECIFICATIONS:
-
-    # Turn fastq files into fasta files
-    rule FQ2FA:
-      input:
-          fq1o = rules.sickle2050.output.fq1o,
-      output:
-          fa1o="tmp/{sampleID}_1.fa",
-      shell:
-          # set +o pipefail; necessary to prevent pipefail (zcat runs but head is done)
-          "set +o pipefail; "
-          "gzip -cd {input.fq1o} | scripts/fq2fa_sed.sh /dev/stdin > {output.fa1o} ;"
-
-
-    # Run kraken (on forward read file only)
-    rule kraken2:
-      input:
-          fa1o = rules.FQ2FA.output.fa1o, # assessment based only on fwd reads
-      output:
-          kraken_report="Kraken/kraken2/{sampleID}_krakenRep.txt",
-          seq_results="Kraken/kraken2/{sampleID}_krakSeq.txt.gz",
-      conda:
-          "envs/kraken_bracken_sm.yaml",
-      shell:
-          "kraken2 --threads 20 "
-          "--db /scratch/mit_lieberman/tools/databases/kraken2/ {input} "
-          "--report {output.kraken_report} |gzip > {output.seq_results} "
-
-
-    # Run bracken
-    rule bracken:
-      input:
-          kraken_report = rules.kraken2.output.kraken_report,
-      output:
-          bracken_rep="Kraken/bracken/{sampleID}.bracken",
-      conda:
-          "envs/kraken_bracken_sm.yaml",
-      shell:
-          "scripts/bracken -d /scratch/mit_lieberman/tools/databases/jsb_AllClades/AllClades -i {input.kraken_report} -o {output.bracken_rep} -l S"
     

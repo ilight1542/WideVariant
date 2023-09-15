@@ -7,7 +7,6 @@ from Bio import SeqIO
 from itertools import compress
 import os
 import numpy as np
-import pickle
 import csv
 import glob
 import subprocess
@@ -15,35 +14,38 @@ import gzip
 import sys
 
 def read_samples_CSV(spls,quiet=False):
-    hdr_check = ['Path','Sample','FileName','Reference','Group','Outgroup']
-    switch = "on"
-    file = open(spls, 'r')
-    #initialize lists
-    list_path = []; list_splID = []; list_fileN = []; list_refG = []
-    list_group=[]; list_outgroup=[]
-    for line in file:
-        line = line.strip('\n').split(',')
-        # Test Header. Note: Even when header wrong code continues (w/ warning), but first line not read.
-        if switch == "on":
-            if (line == hdr_check):
-                if quiet:
-                    print("Passed CSV header check")
-            else:
-                Warning("CSV did NOT pass header check! Code continues, but first line ignored")
-            switch = "off"
-            continue
-        # build lists
-        if line[0][0] != '/':
-            print('\n\nThe paths in the sample.csv must be absolut paths. Snakemake will not start!\n\n')
-            sys.exit()
-        list_path.append(line[0])
-        list_splID.append(line[1])
-        list_fileN.append(line[2])
-        list_refG.append(line[3])
-        list_group.append(line[4])
-        list_outgroup.append(line[5])
+    smpl_csv_dict = {'Path': [],'Sample': [],'FileName': [],'Reference': [],'Group': [],'Outgroup': []}
 
-    return [list_path,list_splID,list_fileN,list_refG,list_group,list_outgroup]
+    with open(spls, 'r') as fid: 
+        for line_id, line in enumerate(fid):
+            # check if first line is header. Note: Even when header is not found code continues (w/ warning).
+            if line_id == 0:
+                if line.startswith('Path,Sample,'):
+                    hdr_colnames = line.strip('\n').split(',')
+                    hdr_to_col_id = {hdr: id for id, hdr in enumerate(hdr_colnames)}
+                    if quiet:
+                        print("Passed CSV header check")
+                    continue
+                else:
+                    Warning("\n\nCSV did NOT pass header check!")
+                    if len(line.strip('\n').split(',')) == len(smpl_csv_dict.keys()):
+                        Warning('Assumes column order to be: Path,Sample,FileName,Reference,Group,Outgroup\n\n')
+                        hdr_to_col_id = {hdr: id for id, hdr in enumerate(smpl_csv_dict.keys())}
+                    else:
+                        print('\n\nSample csv is not formatted correctly.')
+                        print('Snakemake will not start!\n\n')
+                        sys.exit()
+
+            if not line[0].startswith('/'):
+                print('\n\nThe paths in the sample.csv must be absolut paths. Snakemake will not start!\n\n')
+                sys.exit()
+            
+            line = line.strip('\n').split(',')
+            # build lists
+            for key, id in hdr_to_col_id.items():
+                smpl_csv_dict[key].append(line[id])
+        
+    return [smpl_csv_dict['Path'], smpl_csv_dict['Sample'], smpl_csv_dict['FileName'], smpl_csv_dict['Reference'], smpl_csv_dict['Group'], smpl_csv_dict['Outgroup']]
 
 
 def split_samplesCSV(PATH_ls,SAMPLE_ls,FILENAME_ls,REF_Genome_ls,GROUP_ls,OUTGROUP_ls):

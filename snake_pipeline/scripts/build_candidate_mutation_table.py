@@ -80,10 +80,10 @@ parser.add_argument("-o", dest="candidate_mutation_table",
 # parser.add_argument("-c", dest="get_cov", help="Set flag to build raw coverage matrix as sparse csr gzip numpy object (dirname+cov_raw_sparsecsr_mat.npz)",action="store_true", default=False)
 # parser.add_argument("-n", dest="get_dbl_norm_cov", help="Set flag to build double normalized coverage matrix as sparse csr gzip numpy object (dirname+cov_norm_sparsecsr_mat.npz)",action="store_true", default=False)
 parser.add_argument("-c", dest="cov_mat_raw", help="Output raw coverage matrix as sparse csr gzip numpy object (*.npz)",
-                    action='store', default='none')
+                    action='store', nargs='?', const='none', default='none')
 parser.add_argument("-n", dest="cov_mat_norm",
                     help="Output double normalized coverage matrix as sparse csr gzip numpy object (*.npz)",
-                    action='store', default='none')
+                    action='store', nargs='?', const='none', default='none')
 parser.add_argument("-t", dest="dim", help="Specify the number of statistics (default 8)", type=int, default=8)
 args = parser.parse_args()
 
