@@ -1,7 +1,7 @@
 rule spades:
     input:
-        fastq1=rules.sickle2050.output.fq1o,
-        fastq2=rules.sickle2050.output.fq2o,
+        fastq1=rules.sickle.output.fq1o,
+        fastq2=rules.sickle.output.fq2o,
     params:
         outdir="Assembly/spades/{sampleID}"
     conda:

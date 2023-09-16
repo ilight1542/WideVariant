@@ -1,7 +1,7 @@
 # Turn fastq files into fasta files
 rule FQ2FA:
     input:
-        fq1o = rules.sickle2050.output.fq1o,
+        fq1o = rules.sickle.output.fq1o,
     output:
         fa1o="tmp/{sampleID}_1.fa",
     shell:
@@ -40,4 +40,4 @@ rule bracken:
     conda:
         "../envs/kraken_bracken_sm.yaml",
     shell:
-        "{SCRIPTS_DIRECTORY}/bracken -d {params.krakenbracken_db} -r {params.read_length} -i {input.kraken_report} -o {output.bracken_rep}"
+        "bracken -d {params.krakenbracken_db} -r {params.read_length} -i {input.kraken_report} -o {output.bracken_rep}"

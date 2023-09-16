@@ -1,9 +1,9 @@
 # Get two-column (caldeID,path2faa) input file for ortholog_inference script
 rule build_annotation_orthologs_input:
     input:
-        prokka_faa=expand("Assembly/prokka/{sampleID}/prokka_out.faa",sampleID=SAMPLE_ls_long),
+        prokka_faa=expand("Assembly/prokka/{sampleID}/prokka_out.faa",sampleID=SAMPLE_ls),
     params:
-        clade_identifier=expand("{sampleID}",sampleID=SAMPLE_ls_long),
+        clade_identifier=expand("{sampleID}",sampleID=SAMPLE_ls),
     output:
         "Assembly/orthologinfo_filtered/input_files.tsv",
     shell:
@@ -21,5 +21,7 @@ rule infer_orthologs:
         output_folder="Assembly/orthologinfo_filtered/"
     output:
         "Assembly/orthologinfo_filtered/annotation_orthologs.tsv"
+    conda:
+        "../envs/cdhit.yaml"
     shell:
         "python3 {SCRIPTS_DIRECTORY}/annotation_orthologs_inference.py -f {input} -p {params.percent_identity} -m {params.cdhit_mem} -o {params.output_folder}"

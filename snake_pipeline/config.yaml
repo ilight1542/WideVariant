@@ -88,16 +88,16 @@ set-resources:
    - build_data_links:cpus_per_task=10
    - build_data_links:time="12:00:00"
    # kraken2
-   - kraken2:mem_per_cpu=10000
+   - kraken2:mem=64G
    - kraken2:cpus_per_task=20
    - kraken2:time="05:00:00"
    # spades
-   - spades:mem=500G
+   - spades:mem=100G
    - spades:cpus_per_task=16
    - spades:time="12:00:00"
    # sumstats
    - sumstats:mem=10000
    # prokka
-   - prokka:mem=100G
+   - prokka:mem=64G
    - prokka:cpus_per_task=16
    - prokka:time="04:00:00"

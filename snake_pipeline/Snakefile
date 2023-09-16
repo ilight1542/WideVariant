@@ -162,24 +162,24 @@ def get_mdl_paths(sampleID): # returns all list of paths and filenames for a giv
 
 # Define a list of output files: snakemake will deterimine which pipeline steps need to be executed in order to generate the output files requested
 input_all=[]
-if "mapping" in PIPELINE_SPECIFICATIONS:
+if ("mapping" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
     input_all.append(expand("1-Mapping/bowtie2/{sampleID}_ref_{references}_aligned.sorted.bam",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls))
     input_all.append(expand("1-Mapping/vcf/{sampleID}_ref_{references}_aligned.sorted.strain.variant.vcf.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls))
     input_all.append(expand("1-Mapping/quals/{sampleID}_ref_{references}_outgroup{outgroup}.quals.pickle.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
     input_all.append(expand("1-Mapping/diversity/{sampleID}_ref_{references}_outgroup{outgroup}.diversity.pickle.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
     input_all.append(expand("1-Mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(REF_Genome_ls)))
-if "case" in PIPELINE_SPECIFICATIONS:
+if ("case" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
     input_all.append(expand("1-Mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(REF_Genome_ls)))
     input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz",cladeID=UNIQ_GROUP_ls))
     # Include the following two lines ONLY if you also want coverage matrices. 
-    if GENERATE_NORMALIZED_COVERAGE_MATRIX: 
+    if GENERATE_NORMALIZED_COVERAGE_MATRIX:
         input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.pickle.gz",cladeID=UNIQ_GROUP_ls))
-    if GENERATE_RAW_COVERAGE_MATRIX: 
+    if GENERATE_RAW_COVERAGE_MATRIX:
         input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.pickle.gz",cladeID=UNIQ_GROUP_ls))
-if "bracken" in PIPELINE_SPECIFICATIONS:
+if ("bracken" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
     input_all.append(expand("Kraken/kraken2/{sampleID}_krakenRep.txt",sampleID=SAMPLE_ls))
     input_all.append(expand("Kraken/bracken/{sampleID}.bracken",sampleID=SAMPLE_ls))
-if "assembly" in PIPELINE_SPECIFICATIONS:
+if ("assembly" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
     input_all.append(expand("Assembly/spades/{sampleID}/contigs.fasta",sampleID=SAMPLE_ls))
     input_all.append(expand("Assembly/prokka/{sampleID}/prokka_out.faa",sampleID=SAMPLE_ls))
     input_all.append("Assembly/orthologinfo_filtered/annotation_orthologs.tsv")

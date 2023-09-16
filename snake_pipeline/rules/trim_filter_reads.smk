@@ -29,19 +29,18 @@ rule sickle:
         readlen=50, # Threshold to keep a read based on length after trimming
     conda:
         "../envs/sickle-trim.yaml",
-    log:
-        log = "logs/preprocessing_{sampleID}.txt", # necessary for bowtie2qc
     output:
         fq1o = "preprocessing/{sampleID}/R1_filt.fq.gz",
         fq2o = "preprocessing/{sampleID}/R2_filt.fq.gz",
         fqSo = "preprocessing/{sampleID}/filt_sgls.fq.gz",
+        log = "logs/preprocessing_{sampleID}.txt", # necessary for bowtie2qc
     shell:
         "sickle pe -f {input.fq1i} -r {input.fq2i} "
                     "-t sanger "
                     "-o {output.fq1o} -p {output.fq2o} "
                     "-s {output.fqSo} "
                     "-g -q {params.qual} -l {params.readlen} -x -n "
-                    "1>> {log} ;"
-        "echo 'sickle command line params: minqual={params.qual} minreadlen={params.readlen}' 1>> {log} ;"
+                    "1>> {output.log} ;"
+        "echo 'sickle command line params: minqual={params.qual} minreadlen={params.readlen}' 1>> {output.log} ;"
         "rm {input.fq1i} ;"
         "rm {input.fq2i} ;"

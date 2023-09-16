@@ -32,6 +32,7 @@ map_state={"PENDING":'running',
            "NODE_FAIL":'failed',
            "REVOKED":'failed',
            "SPECIAL_EXIT":'failed',
+           "OUT_OF_ME+":'failed',
            "":'running'}
 
 
