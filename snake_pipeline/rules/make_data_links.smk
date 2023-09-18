@@ -10,6 +10,6 @@ rule make_data_links:
     # create links
         paths, sample, reference, filename = read_sample_info_CSV(input.sample_info_csv)
         if len(paths) > 1:
-            cp_append_files(paths,sample,filename,'data')
+            cp_append_files(paths,sample,filename,'results/data')
         else:
-            makelink(paths[0],sample,filename,'data')
+            makelink(paths[0],sample,filename,'results/data')
