@@ -9,8 +9,8 @@ rule candidate_mutation_table:
         string_outgroup_bool = rules.candidate_mutation_table_prep.output.string_outgroup_bool, # "2-case/temp/string_outgroup_bool.txt",
     output:
         cmt = "results/2-case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz",
-        cov_norm = "results/2-case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.npz" if GENERATE_NORMALIZED_COVERAGE_MATRIX == True else [],
-        cov_raw = "results/2-case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.npz" if GENERATE_RAW_COVERAGE_MATRIX == True else [],
+        cov_norm = "results/2-case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.npz" if GENERATE_NORMALIZED_COVERAGE_MATRIX == True else 'results/2-case/temp/normalized_coverage_matrix_dummy.txt',
+        cov_raw = "results/2-case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.npz" if GENERATE_RAW_COVERAGE_MATRIX == True else 'results/2-case/temp/raw_coverage_matrix_dummy.txt',
     conda:
         "../envs/py_for_snakemake.yaml",
     shell:

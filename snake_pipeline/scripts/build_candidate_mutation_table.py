@@ -240,11 +240,11 @@ if __name__ == "__main__":
     path_to_cov_mat_raw = args.cov_mat_raw
     path_to_cov_mat_norm = args.cov_mat_norm
     dim=args.dim
-    if path_to_cov_mat_raw == 'none':
+    if path_to_cov_mat_raw == 'results/2-case/temp/raw_coverage_matrix_dummy.txt':
         flag_cov_raw = False
     else:
         flag_cov_raw = True
-    if path_to_cov_mat_norm == 'none':
+    if path_to_cov_mat_norm == 'results/2-case/temp/normalized_coverage_matrix_dummy.txt':
         flag_cov_norm = False
     else:
         flag_cov_norm = True
