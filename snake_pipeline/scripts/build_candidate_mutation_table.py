@@ -60,6 +60,8 @@ import os
 import sys, argparse
 import gzip
 from scipy import sparse
+from pathlib import Path
+
 
 ''' positional and optional argument parser'''
 
@@ -240,11 +242,15 @@ if __name__ == "__main__":
     path_to_cov_mat_raw = args.cov_mat_raw
     path_to_cov_mat_norm = args.cov_mat_norm
     dim=args.dim
-    if path_to_cov_mat_raw == 'results/2-case/temp/raw_coverage_matrix_dummy.txt':
+    if path_to_cov_mat_raw.contains('2-case/temp'):
+        # target output is a dummy file and will not be calculated
+        Path(path_to_cov_mat_raw).touch()
         flag_cov_raw = False
     else:
         flag_cov_raw = True
-    if path_to_cov_mat_norm == 'results/2-case/temp/normalized_coverage_matrix_dummy.txt':
+    if path_to_cov_mat_norm.contains('2-case/temp'):
+        # target output is a dummy file and will not be calculated
+        Path(path_to_cov_mat_norm).touch()
         flag_cov_norm = False
     else:
         flag_cov_norm = True
