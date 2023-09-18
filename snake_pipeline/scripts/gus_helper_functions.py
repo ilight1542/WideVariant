@@ -44,7 +44,7 @@ def read_samples_CSV(spls,quiet=False):
     return [smpl_csv_dict['Path'], smpl_csv_dict['Sample'], smpl_csv_dict['FileName'], smpl_csv_dict['Reference'], smpl_csv_dict['Group'], smpl_csv_dict['Outgroup']]
 
 
-def split_samplesCSV(PATH_ls,SAMPLE_ls,FILENAME_ls,REF_Genome_ls,GROUP_ls,OUTGROUP_ls):
+def split_samplesCSV(PATH_ls,SAMPLE_ls,FILENAME_ls,REF_Genome_ls,GROUP_ls,OUTGROUP_ls, outdir):
     '''Take info from samples.csv, concat by sample name & save each line as sample_info.csv in data/{sampleID}'''
     
     #Loop through unique samples
@@ -59,10 +59,10 @@ def split_samplesCSV(PATH_ls,SAMPLE_ls,FILENAME_ls,REF_Genome_ls,GROUP_ls,OUTGRO
         
         sample_info_csv=list(zip(sample_paths,[sample]*sum(sample_info_bool),sample_filenames,sample_references,sample_groups,sample_outgroups))
         
-        path_to_sample_info_csv = f'data/{sample}/sample_info.csv'
+        path_to_sample_info_csv = f'{outdir}{sample}/sample_info.csv'
         # make data directory for this sample if it doesn't already exist
-        if not(os.path.isdir('data/' + sample)):
-            os.makedirs('data/' + sample, exist_ok=True)
+        if not(os.path.isdir(f'{outdir}{sample}')):
+            os.makedirs(f'{outdir}{sample}', exist_ok=True)
         # check to see if this mini csv with sample info already exists
         if os.path.isfile(path_to_sample_info_csv):
             # if so, read file

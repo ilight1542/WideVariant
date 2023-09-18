@@ -39,7 +39,7 @@ from itertools import compress
 [PATH_ls, SAMPLE_ls, FILENAME_ls, REF_Genome_ls, GROUP_ls, OUTGROUP_ls] = read_samples_CSV(spls)
 
 # Write sample_info.csv for each sample
-split_samplesCSV(PATH_ls, SAMPLE_ls, FILENAME_ls, REF_Genome_ls, GROUP_ls, OUTGROUP_ls)
+split_samplesCSV(PATH_ls, SAMPLE_ls, FILENAME_ls, REF_Genome_ls, GROUP_ls, OUTGROUP_ls, 'results/data/')
 
 UNIQ_GROUP_ls = set(GROUP_ls)
 
