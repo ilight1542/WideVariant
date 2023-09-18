@@ -64,17 +64,17 @@ def get_outgroup_bool(wildcards):
 
 def get_positions_prep(wildcards):
     sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
-    mat_positions_prep=expand("2-Case/temp/{sampleID}_ref_{reference}_outgroup{outgroup}_positions.pickle",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
+    mat_positions_prep=expand("results/2-case/temp/{sampleID}_ref_{reference}_outgroup{outgroup}_positions.pickle",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
     return mat_positions_prep
 
 def get_diversity(wildcards):
     sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
-    diversity_mat = expand("1-Mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.diversity.pickle.gz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
+    diversity_mat = expand("results/1-mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.diversity.pickle.gz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
     return diversity_mat   
 
 def get_quals(wildcards):
     sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
-    quals_mat = expand("1-Mapping/quals/{sampleID}_ref_{reference}_outgroup{outgroup}.quals.pickle.gz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
+    quals_mat = expand("results/1-mapping/quals/{sampleID}_ref_{reference}_outgroup{outgroup}.quals.pickle.gz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
     return quals_mat 
 
 def get_ref_genome(wildcards):
@@ -84,16 +84,16 @@ def get_ref_genome(wildcards):
 
 def get_bt2qc_input(wildcards):
     sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.reference)
-    bt2_logs = expand("1-Mapping/bowtie2/bowtie2_{sampleID}_ref_{reference}.txt",zip,sampleID=sampleID_clade, reference=reference_clade )
+    bt2_logs = expand("results/1-mapping/bowtie2/bowtie2_{sampleID}_ref_{reference}.txt",zip,sampleID=sampleID_clade, reference=reference_clade )
     return bt2_logs
 
 def get_candidate_mutation_table_output(wildcards):
     output_file_targets = dict()
-    output_file_targets["cmt"] = expand("2-Case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz")
+    output_file_targets["cmt"] = expand("results/2-case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz")
     if GENERATE_NORMALIZED_COVERAGE_MATRIX:
-        output_file_targets["cov_norm"] = expand(cov_norm = "2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.npz")
+        output_file_targets["cov_norm"] = expand(cov_norm = "results/2-case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.npz")
     if GENERATE_RAW_COVERAGE_MATRIX:
-        output_file_targets["cov_raw"] = expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.npz")
+        output_file_targets["cov_raw"] = expand("results/2-case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.npz")
     return output_file_targets
 
 
@@ -146,7 +146,7 @@ def get_mdl_paths(sampleID): # returns all list of paths and filenames for a giv
   
   # path_to_sample_info_csv = 'data/sampleID/sample_info.csv'
 
-  path_ls, _, _, filename = read_sample_info_CSV(f'data/{sampleID}/sample_info.csv')
+  path_ls, _, _, filename = read_sample_info_CSV(f'results/data/{sampleID}/sample_info.csv')
   # is_sample = [int(i == sampleID) for i in SAMPLE_ls] # boolean which is true when sample_ls == sampleID
   # pathstr = list(compress(PATH_ls,is_sample)) # list of paths
   # path_ls = pathstr.split(' ')
@@ -163,26 +163,26 @@ def get_mdl_paths(sampleID): # returns all list of paths and filenames for a giv
 # Define a list of output files: snakemake will deterimine which pipeline steps need to be executed in order to generate the output files requested
 input_all=[]
 if ("mapping" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
-    input_all.append(expand("1-Mapping/bowtie2/{sampleID}_ref_{references}_aligned.sorted.bam",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls))
-    input_all.append(expand("1-Mapping/vcf/{sampleID}_ref_{references}_aligned.sorted.strain.variant.vcf.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls))
-    input_all.append(expand("1-Mapping/quals/{sampleID}_ref_{references}_outgroup{outgroup}.quals.pickle.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
-    input_all.append(expand("1-Mapping/diversity/{sampleID}_ref_{references}_outgroup{outgroup}.diversity.pickle.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
-    input_all.append(expand("1-Mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(REF_Genome_ls)))
+    input_all.append(expand("results/1-mapping/bowtie2/{sampleID}_ref_{references}_aligned.sorted.bam",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls))
+    input_all.append(expand("results/1-mapping/vcf/{sampleID}_ref_{references}_aligned.sorted.strain.variant.vcf.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls))
+    input_all.append(expand("results/1-mapping/quals/{sampleID}_ref_{references}_outgroup{outgroup}.quals.pickle.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
+    input_all.append(expand("results/1-mapping/diversity/{sampleID}_ref_{references}_outgroup{outgroup}.diversity.pickle.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
+    input_all.append(expand("results/1-mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(REF_Genome_ls)))
 if ("case" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
-    input_all.append(expand("1-Mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(REF_Genome_ls)))
-    input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz",cladeID=UNIQ_GROUP_ls))
+    input_all.append(expand("results/1-mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(REF_Genome_ls)))
+    input_all.append(expand("results/2-case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz",cladeID=UNIQ_GROUP_ls))
     # Include the following two lines ONLY if you also want coverage matrices. 
     if GENERATE_NORMALIZED_COVERAGE_MATRIX:
-        input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.pickle.gz",cladeID=UNIQ_GROUP_ls))
+        input_all.append(expand("results/2-case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.pickle.gz",cladeID=UNIQ_GROUP_ls))
     if GENERATE_RAW_COVERAGE_MATRIX:
-        input_all.append(expand("2-Case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.pickle.gz",cladeID=UNIQ_GROUP_ls))
+        input_all.append(expand("results/2-case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.pickle.gz",cladeID=UNIQ_GROUP_ls))
 if ("bracken" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
-    input_all.append(expand("Kraken/kraken2/{sampleID}_krakenRep.txt",sampleID=SAMPLE_ls))
-    input_all.append(expand("Kraken/bracken/{sampleID}.bracken",sampleID=SAMPLE_ls))
+    input_all.append(expand("results/kraken/kraken2/{sampleID}_krakenRep.txt",sampleID=SAMPLE_ls))
+    input_all.append(expand("results/kraken/bracken/{sampleID}.bracken",sampleID=SAMPLE_ls))
 if ("assembly" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
-    input_all.append(expand("Assembly/spades/{sampleID}/contigs.fasta",sampleID=SAMPLE_ls))
-    input_all.append(expand("Assembly/prokka/{sampleID}/prokka_out.faa",sampleID=SAMPLE_ls))
-    input_all.append("Assembly/orthologinfo_filtered/annotation_orthologs.tsv")
+    input_all.append(expand("results/assembly/spades/{sampleID}/contigs.fasta",sampleID=SAMPLE_ls))
+    input_all.append(expand("results/assembly/prokka/{sampleID}/prokka_out.faa",sampleID=SAMPLE_ls))
+    input_all.append("results/assembly/orthologinfo_filtered/annotation_orthologs.tsv")
 
 
 ''' INCLUDE RULES '''
@@ -230,8 +230,8 @@ if ("assembly" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS)
     # Infer orthologs
     include: 'rules/infer_orthologs.smk'
 
-# KRAKEN/BRACKEN ####################################################################################################
-# Estimates abundance of taxa in each sample using kraken/breacken
+# results/kraken/BRACKEN ####################################################################################################
+# Estimates abundance of taxa in each sample using results/kraken/breacken
 
 if ("bracken" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
 
@@ -247,8 +247,8 @@ rule all:
     # Snakemake will only execute the steps (rules) necessary to create these output files.
     input:
         input_all,
-        expand("data/{sampleID}/sample_info.csv",sampleID=SAMPLE_ls),
-        expand("data/{sampleID}/sample_info.csv",sampleID=SAMPLE_ls),
+        expand("results/data/{sampleID}/sample_info.csv",sampleID=SAMPLE_ls),
+        expand("results/data/{sampleID}/sample_info.csv",sampleID=SAMPLE_ls),
 
 
 
