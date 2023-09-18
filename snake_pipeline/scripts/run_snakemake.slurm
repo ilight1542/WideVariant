@@ -9,7 +9,7 @@
 #SBATCH --mail-type=FAIL
 
 # Activate conda environment (may need to change name of env)
-source activate snakemake
+source activate widevariant
 
 snakemake --profile .
 

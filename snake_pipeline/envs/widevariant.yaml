@@ -1,4 +1,4 @@
-name: snakemake
+name: widevariant
 channels:
   - conda-forge
   - bioconda

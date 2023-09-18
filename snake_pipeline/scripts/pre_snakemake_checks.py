@@ -59,7 +59,9 @@ def check_sample_paths(list_path,list_splID,list_fileN):
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                  description='''\
                             Runs automated checks at the start of the pipeline execution. \
-                            Will output all collected errors to stdout for end-user to fix prior to pipeline execution.
+                            Collects and outputs all encountered errors to stdout for end-user to fix prior to pipeline execution.
+
+                            Additional errors that are encounterable early should be added to this script.
 
                             #errorfast
                             '''
