@@ -59,6 +59,7 @@ if [[ -d "${conda_envs_path}/widevariant" ]];then
     source ${activate_conda_path} widevariant
 else
     conda env create -n widevariant --file envs/widevariant.yaml
+    source ${activate_conda_path} widevariant
 fi
 
 conda config --set ssl_verify no
