@@ -7,8 +7,8 @@ rule bowtie2:
     params:
         refGenome = REF_GENOME_DIRECTORY+"/{reference}/genome_bowtie2",
     output:
-        samA = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned.sam",
-        log = "1-Mapping/bowtie2/bowtie2_{sampleID}_ref_{reference}.txt", # necessary for bowtie2qc
+        samA = "results/1-mapping/bowtie2/{sampleID}_ref_{reference}_aligned.sam",
+        log = "results/1-mapping/bowtie2/bowtie2_{sampleID}_ref_{reference}.txt", # necessary for bowtie2qc
     conda:
         "../envs/bowtie2.yaml"
     shell:
@@ -20,13 +20,13 @@ rule sam2bam:
     input:
         samA = rules.bowtie2.output.samA,
     params:
-        bamDup = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned_dups.bam",
-        bamDupMate = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned_dups.mates.bam",
-        bamDupMateSort = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned_dups.sorted.mates.bam",
-        DupStats = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_markdup_stats.txt",
+        bamDup = "results/1-mapping/bowtie2/{sampleID}_ref_{reference}_aligned_dups.bam",
+        bamDupMate = "results/1-mapping/bowtie2/{sampleID}_ref_{reference}_aligned_dups.mates.bam",
+        bamDupMateSort = "results/1-mapping/bowtie2/{sampleID}_ref_{reference}_aligned_dups.sorted.mates.bam",
+        DupStats = "results/1-mapping/bowtie2/{sampleID}_ref_{reference}_markdup_stats.txt",
     output:
-        bamA = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned.sorted.bam",
-        bamAidx = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned.sorted.bam.bai",
+        bamA = "results/1-mapping/bowtie2/{sampleID}_ref_{reference}_aligned.sorted.bam",
+        bamAidx = "results/1-mapping/bowtie2/{sampleID}_ref_{reference}_aligned.sorted.bam.bai",
     conda:
         "../envs/samtools_bcftools_sm.yaml",
     shadow: # avoids leaving leftover temp files esp if job aborted
@@ -47,11 +47,11 @@ rule sam2bam_cleanup:
         bamAidx=rules.sam2bam.output.bamAidx,
     params:
         samA = rules.bowtie2.output.samA,
-        bamDup = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned_dups.bam",
-        bamDupMate = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned_dups.mates.bam",
-        bamDupMateSort = "1-Mapping/bowtie2/{sampleID}_ref_{reference}_aligned_dups.sorted.mates.bam",
+        bamDup = "results/1-mapping/bowtie2/{sampleID}_ref_{reference}_aligned_dups.bam",
+        bamDupMate = "results/1-mapping/bowtie2/{sampleID}_ref_{reference}_aligned_dups.mates.bam",
+        bamDupMateSort = "results/1-mapping/bowtie2/{sampleID}_ref_{reference}_aligned_dups.sorted.mates.bam",
     output:
-        "1-Mapping/bowtie2/{sampleID}_ref_{reference}_cleanup_done.txt", 
+        "results/1-mapping/bowtie2/{sampleID}_ref_{reference}_cleanup_done.txt", 
     priority: 100, # prioritizes this rule to get rid of big sam files as fast as possible; default priority for other rules is 0
     shell:
         # -f for cases where sam file doesn't exist (e.g. job previously cancelled/stalled after file deleted but before log file written)

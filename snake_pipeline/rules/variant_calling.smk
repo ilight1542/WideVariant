@@ -6,11 +6,11 @@ rule mpileup2vcf:
         fasta_idx = ancient(rules.samtools_idx.output.fasta_idx),
     params:
         ref = REF_GENOME_DIRECTORY+"/{reference}/genome.fasta",
-        vcf_raw = "1-Mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.strain.gz",
+        vcf_raw = "results/results/1-mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.strain.gz",
     output:
-        pileup = "1-Mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.pileup",
-        variants = "1-Mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.strain.variant.vcf.gz",
-        vcf_strain = "1-Mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.strain.vcf.gz",
+        pileup = "results/1-mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.pileup",
+        variants = "results/1-mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.strain.variant.vcf.gz",
+        vcf_strain = "results/1-mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.strain.vcf.gz",
     conda:
         "../envs/samtools_bcftools_sm.yaml"
     shadow: 
@@ -30,11 +30,11 @@ rule vcf2quals:
     params:
         refGenomeDir = REF_GENOME_DIRECTORY+"/{reference}/",
     output:
-        file_quals = "1-Mapping/quals/{sampleID}_ref_{reference}_outgroup{outgroup}.quals.pickle.gz",
+        file_quals = "results/1-mapping/quals/{sampleID}_ref_{reference}_outgroup{outgroup}.quals.pickle.gz",
     conda:
         "../envs/py_for_snakemake.yaml",
     shell:
-        "mkdir -p 1-Mapping/quals/ ;"
+        "mkdir -p results/1-mapping/quals/ ;"
         "python {SCRIPTS_DIRECTORY}/vcf2quals_snakemake.py -i {input.vcf_strain} -r {params.refGenomeDir} -o {output.file_quals} ;"
 
 # Parses pileup with python script
@@ -44,10 +44,10 @@ rule pileup2diversity_matrix:
     params:
         refGenomeDir = REF_GENOME_DIRECTORY+"/{reference}/", 
     output:
-        file_diversity = "1-Mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.diversity.pickle.gz",
-        file_coverage = "1-Mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.aligned.sorted.strain.variant.coverage.pickle.gz",
+        file_diversity = "results/1-mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.diversity.pickle.gz",
+        file_coverage = "results/1-mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.aligned.sorted.strain.variant.coverage.pickle.gz",
     conda:
         "../envs/py_for_snakemake.yaml",
     shell:
-        "mkdir -p 1-Mapping/diversity/ ;"
+        "mkdir -p results/1-mapping/diversity/ ;"
         "python {SCRIPTS_DIRECTORY}/pileup2diversity.py -i {input.pileup} -r {params.refGenomeDir} -o {output.file_diversity} -c {output.file_coverage} ;"

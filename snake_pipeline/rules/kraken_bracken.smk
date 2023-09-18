@@ -3,7 +3,7 @@ rule FQ2FA:
     input:
         fq1o = rules.sickle.output.fq1o,
     output:
-        fa1o="tmp/{sampleID}_1.fa",
+        fa1o="results/tmp/{sampleID}_1.fa",
     shell:
         # set +o pipefail; necessary to prevent pipefail (zcat runs but head is done)
         "set +o pipefail; "
@@ -15,8 +15,8 @@ rule kraken2:
     input:
         fa1o = rules.FQ2FA.output.fa1o, # assessment based only on fwd reads
     output:
-        kraken_report="Kraken/kraken2/{sampleID}_krakenRep.txt",
-        seq_results="Kraken/kraken2/{sampleID}_krakSeq.txt.gz",
+        kraken_report="results/kraken/kraken2/{sampleID}_krakenRep.txt",
+        seq_results="results/kraken/kraken2/{sampleID}_krakSeq.txt.gz",
     params:
         krakenbracken_db=KRAKEN_BRACKEN_DB, 
     threads: 4,
@@ -33,7 +33,7 @@ rule bracken:
     input:
         kraken_report = rules.kraken2.output.kraken_report,
     output:
-        bracken_rep="Kraken/bracken/{sampleID}.bracken",
+        bracken_rep="results/kraken/bracken/{sampleID}.bracken",
     params:
         krakenbracken_db=KRAKEN_BRACKEN_DB,
         read_length=KRAKEN_BRACKEN_DB_RL,

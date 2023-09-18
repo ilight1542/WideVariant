@@ -3,9 +3,9 @@ rule bowtie2qc:
     input:
         get_bt2qc_input,
     output:
-        alignment_stats = "1-Mapping/bowtie2_qc/alignment_stats_ref_{reference}.csv",
+        alignment_stats = "results/1-mapping/bowtie2_qc/alignment_stats_ref_{reference}.csv",
     params:
-        outfile_noextension = "1-Mapping/bowtie2_qc/alignment_stats_ref_{reference}",
+        outfile_noextension = "results/1-mapping/bowtie2_qc/alignment_stats_ref_{reference}",
     conda:
         "../envs/bowtie2qc.yaml",
     shell:

@@ -4,9 +4,9 @@ rule cutadapt:
         fq1in = rules.make_data_links.output.fq1,
         fq2in = rules.make_data_links.output.fq2,
     output:
-        fq1o = "preprocessing/{sampleID}/R1_trim.fq.gz",
-        fq2o = "preprocessing/{sampleID}/R2_trim.fq.gz",
-    log: "logs/preprocessing_{sampleID}.txt", # necessary for bowtie2qc
+        fq1o = "results/preprocessing/{sampleID}/R1_trim.fq.gz",
+        fq2o = "results/preprocessing/{sampleID}/R2_trim.fq.gz",
+        log = "logs/preprocessing_{sampleID}.txt", # necessary for bowtie2qc
     conda:
         "../envs/cutadapt.yaml",
     shell:
@@ -14,11 +14,11 @@ rule cutadapt:
         "cutadapt -a CTGTCTCTTAT --cores=4 "
                 "-o {output.fq1o} "
                 "{input.fq1in} "
-                "1> {log} ;"
+                "1> {output.log} ;"
         "cutadapt -a CTGTCTCTTAT --cores=4 "
                 "-o {output.fq2o} "
                 "{input.fq2in} "
-                "1>> {log} ;"
+                "1>> {output.log} ;"
 
 rule sickle:
     input:
@@ -30,9 +30,9 @@ rule sickle:
     conda:
         "../envs/sickle-trim.yaml",
     output:
-        fq1o = "preprocessing/{sampleID}/R1_filt.fq.gz",
-        fq2o = "preprocessing/{sampleID}/R2_filt.fq.gz",
-        fqSo = "preprocessing/{sampleID}/filt_sgls.fq.gz",
+        fq1o = "results/preprocessing/{sampleID}/R1_filt.fq.gz",
+        fq2o = "results/preprocessing/{sampleID}/R2_filt.fq.gz",
+        fqSo = "results/preprocessing/{sampleID}/filt_sgls.fq.gz",
         log = "logs/preprocessing_{sampleID}.txt", # necessary for bowtie2qc
     shell:
         "sickle pe -f {input.fq1i} -r {input.fq2i} "

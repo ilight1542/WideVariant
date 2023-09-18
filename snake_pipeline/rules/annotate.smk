@@ -3,11 +3,11 @@ rule prokka:
     input:
         rules.spades.output.fasta,
     params:
-        outdir="Assembly/prokka/{sampleID}",
+        outdir="results/assembly/prokka/{sampleID}",
     threads: 16
     output:
-        txt="Assembly/prokka/{sampleID}/prokka_out.txt",
-        faa="Assembly/prokka/{sampleID}/prokka_out.faa",
+        txt="results/assembly/prokka/{sampleID}/prokka_out.txt",
+        faa="results/assembly/prokka/{sampleID}/prokka_out.faa",
     conda:
         "../envs/prokka.yml"
     shell:
