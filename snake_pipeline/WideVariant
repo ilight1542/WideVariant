@@ -38,7 +38,7 @@ if [[ ! ${#email_update} -eq 0 ]]; then
     ## update email in config.yaml
     sed -i "s/UPDATE_EMAIL_ADDRESS/$email/g" config.yaml
     ## update email in run_snakemake.slurm
-    sed -i "s/UPDATE_EMAIL_ADDRESS/$email/g" run_snakemake.slurm
+    sed -i "s/UPDATE_EMAIL_ADDRESS/$email/g" scripts/run_snakemake.slurm
 fi
 
 
@@ -101,5 +101,5 @@ if $run_in_screen; then
     screen -d -m -S "${experiment_name}" bash -c "snakemake --profile . 2>&1 | tee logs/0_widevariant_main.log "
 else 
     echo "Running Snakemake on the backend"
-    sbatch run_snakemake.slurm
+    sbatch scripts/run_snakemake.slurm
 fi
