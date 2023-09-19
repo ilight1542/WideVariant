@@ -6,9 +6,9 @@ Created on Mon Feb  7 12:36:31 2022
 @author: evanqu
 """
 import numpy as np
+import os
 import gzip
 import sys
-import pickle
 import argparse
 import gus_helper_functions as ghf
 
@@ -37,51 +37,49 @@ def generate_positions_single_sample(path_to_variant_vcf,path_to_output_position
     include = np.zeros((genome_length,1))
     
     #For outgroup samples only
-    if outgroup_bool==True:
+    if outgroup_bool:
         Var_positions=ghf.p2chrpos(np.nonzero(include)[0]+1,chr_starts)
-        with open(path_to_output_positions,"wb") as f:
-            pickle.dump(Var_positions,f)
-            print("Outgroup sample - no positions collected")
+        np.savez_compressed(path_to_output_positions, Positions = Var_positions)
+        print("Outgroup sample - no positions collected")
         return
     
-    file = gzip.open(path_to_variant_vcf,'rt')
-    
-    for line in file:
-        if not line.startswith("#"):
-            lineinfo = line.strip().split('\t')
-            
-            chromo=lineinfo[0]
-            position_on_chr=lineinfo[1] #1-indexed
-            
-            if len(chr_starts) == 1:
-                position=int(lineinfo[1])
-            else:
-                if chromo not in scaf_names:
-                    raise ValueError("Scaffold name in vcf file not found in reference")
-                position=int(chr_starts[np.where(chromo==scaf_names)]) + int(position_on_chr)
-                #chr_starts begins at 0
+    with gzip.open(path_to_variant_vcf, 'rt') as fid:
+        for line in fid:
+            if not line.startswith("#"):
+                lineinfo = line.strip().split('\t')
                 
-            alt=lineinfo[4]
-            ref=lineinfo[3]
-            
-            #only consider for simple calls (not indel, not ambiguous)
-            if (alt) and ("," not in alt) and (len(alt) == len(ref)) and (len(ref)==1):
-                #find and parse quality score
-                xt = lineinfo[7]
-                xtinfo = xt.split(';')
-                entrywithFQ=[x for x in xtinfo if x.startswith('FQ')][0]
-                fq=entrywithFQ[entrywithFQ.index("=")+1:]
+                chromo=lineinfo[0]
+                position_on_chr=lineinfo[1] #1-indexed
                 
-                if float(fq) < maxFQ: #better than maxFQ
-                    include[position-1]=1
-                    #-1 converts position (1-indexed) to index
+                if len(chr_starts) == 1:
+                    position=int(lineinfo[1])
+                else:
+                    if chromo not in scaf_names:
+                        raise ValueError("Scaffold name in vcf file not found in reference")
+                    position=int(chr_starts[np.where(chromo==scaf_names)]) + int(position_on_chr)
+                    #chr_starts begins at 0
+                    
+                alt=lineinfo[4]
+                ref=lineinfo[3]
+                
+                #only consider for simple calls (not indel, not ambiguous)
+                if (alt) and ("," not in alt) and (len(alt) == len(ref)) and (len(ref)==1):
+                    #find and parse quality score
+                    xt_info = lineinfo[7].split(';')
+                    entrywithFQ=[x for x in xt_info if x.startswith('FQ')]
+                    entrywithFQ_str = entrywithFQ[0]
+                    fq=entrywithFQ_str[entrywithFQ_str.index("=")+1:]
+                    
+                    if float(fq) < maxFQ: #better than maxFQ
+                        include[position-1]=1
+                        #-1 converts position (1-indexed) to index
     
     #+1 converts index back to position for p2chrpos
     Var_positions=ghf.p2chrpos(np.nonzero(include)[0]+1,chr_starts)
     
     #save
-    with gzip.open(path_to_output_positions,"wb") as f:
-        pickle.dump(Var_positions,f)
+    outpath = os.getcwd() + '/' + path_to_output_positions
+    np.savez_compressed(outpath, Positions = Var_positions)
         
     print(f"{len(Var_positions)} variable positions found passing quality threshold")
     

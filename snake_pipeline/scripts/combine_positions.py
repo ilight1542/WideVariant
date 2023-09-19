@@ -7,6 +7,7 @@ Created on Mon Feb  7 20:00:41 2022
 """
 import numpy as np
 import pickle
+import os
 import argparse
 import gzip
 import gus_helper_functions as ghf
@@ -102,8 +103,7 @@ def combine_positions(path_to_positions_files, path_to_output_p_file, path_to_ou
     allp=cp
     
     print("Saving list of all positions...")
-    with open(path_to_output_p_file,"wb") as wf:
-        pickle.dump(allp,wf)
+    np.savez_compressed(os.getcwd() + '/' + path_to_output_p_file, p=p)
     
     return
 

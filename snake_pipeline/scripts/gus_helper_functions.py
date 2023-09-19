@@ -287,7 +287,7 @@ def p2chrpos(p, ChrStarts):
 
 # def get_positions_prep(wildcards):
 #     sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
-#     mat_positions_prep=expand("Case/temp/{sampleID}_ref_{reference}_outgroup{outgroup}_positions.pickle",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
+#     mat_positions_prep=expand("Case/temp/{sampleID}_ref_{reference}_outgroup{outgroup}_positions.npz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
 #     return mat_positions_prep
 
 # def get_diversity(wildcards):
@@ -297,7 +297,7 @@ def p2chrpos(p, ChrStarts):
 
 # def get_quals(wildcards):
 #     sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
-#     quals_mat = expand("Mapping/quals/{sampleID}_ref_{reference}_outgroup{outgroup}.quals.pickle.gz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
+#     quals_mat = expand("Mapping/quals/{sampleID}_ref_{reference}_outgroup{outgroup}.quals.npz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
 #     return quals_mat 
 
 # def get_ref_genome(wildcards):

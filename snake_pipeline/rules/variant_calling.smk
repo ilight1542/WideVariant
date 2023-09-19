@@ -30,7 +30,7 @@ rule vcf2quals:
     params:
         refGenomeDir = REF_GENOME_DIRECTORY+"/{reference}/",
     output:
-        file_quals = "results/1-mapping/quals/{sampleID}_ref_{reference}_outgroup{outgroup}.quals.pickle.gz",
+        file_quals = "results/1-mapping/quals/{sampleID}_ref_{reference}_outgroup{outgroup}.quals.npz",
     conda:
         "../envs/py_for_snakemake.yaml",
     shell:
