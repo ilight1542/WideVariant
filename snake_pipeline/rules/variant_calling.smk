@@ -44,8 +44,8 @@ rule pileup2diversity_matrix:
     params:
         refGenomeDir = REF_GENOME_DIRECTORY+"/{reference}/", 
     output:
-        file_diversity = "results/1-mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.diversity.pickle.gz",
-        file_coverage = "results/1-mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.aligned.sorted.strain.variant.coverage.pickle.gz",
+        file_diversity = "results/1-mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.diversity.npz",
+        file_coverage = "results/1-mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.aligned.sorted.strain.variant.coverage.npz",
     conda:
         "../envs/py_for_snakemake.yaml",
     shell:

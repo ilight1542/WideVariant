@@ -292,7 +292,7 @@ def p2chrpos(p, ChrStarts):
 
 # def get_diversity(wildcards):
 #     sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
-#     diversity_mat = expand("Mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.diversity.pickle.gz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
+#     diversity_mat = expand("Mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.diversity.npz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
 #     return diversity_mat   
 
 # def get_quals(wildcards):
