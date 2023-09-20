@@ -6,7 +6,7 @@ rule mpileup2vcf:
         fasta_idx = ancient(rules.samtools_idx.output.fasta_idx),
     params:
         ref = REF_GENOME_DIRECTORY+"/{reference}/genome.fasta",
-        vcf_raw = "results/results/1-mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.strain.gz",
+        vcf_raw = "results/1-mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.strain.gz",
     output:
         pileup = "results/1-mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.pileup",
         variants = "results/1-mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.strain.variant.vcf.gz",

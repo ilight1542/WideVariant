@@ -6,6 +6,7 @@
 
 snakefile: Snakefile
 use-conda: True
+conda-prefix: /PATH/TO/PRELOADED/CONDA/ENVS
 conda-frontend: mamba
 rerun-incomplete: True
 restart-times: 1
@@ -13,6 +14,7 @@ jobs: 100
 latency-wait: 30
 keep-going: True
 configfile: ./experiment_info.yaml
+group-components: make_link_group=100000
 
 # modify if necessary
 cluster-status: ./scripts/slurm_status_script.py
@@ -28,7 +30,7 @@ cluster:
     --mem={resources.mem}
     --time={resources.time}
     --job-name="SM.{rule}"
-    --output="./logs/%j_{rule}.err.txt"
+    --output="./logs/%j_{rule}.out.txt"
     --error="./logs/%j_{rule}.err.txt"
     --mail-user="UPDATE_EMAIL_ADDRESS"
     --mail-type="FAIL"
@@ -101,3 +103,8 @@ set-resources:
    - prokka:mem=64G
    - prokka:cpus_per_task=16
    - prokka:time="04:00:00"
+   # infer_orthologs (group)
+   - infer_orthologs:mem=8G
+   - infer_orthologs:cpus_per_task=1
+   - infer_orthologs:time="04:00:00"
+
