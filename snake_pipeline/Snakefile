@@ -248,7 +248,6 @@ rule all:
     input:
         input_all,
         expand("results/data/{sampleID}/sample_info.csv",sampleID=SAMPLE_ls),
-        expand("results/data/{sampleID}/sample_info.csv",sampleID=SAMPLE_ls),
 
 
 

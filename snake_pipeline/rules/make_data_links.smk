@@ -6,6 +6,7 @@ rule make_data_links:
         # Recommend using symbolic links to your likely many different input files
         fq1 = "results/data/{sampleID}/R1.fq.gz",
         fq2 = "results/data/{sampleID}/R2.fq.gz",
+    group: 'make_link_group',
     run:
     # create links
         paths, sample, reference, filename = read_sample_info_CSV(input.sample_info_csv)

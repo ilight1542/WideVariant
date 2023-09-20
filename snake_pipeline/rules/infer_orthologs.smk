@@ -6,13 +6,15 @@ rule build_annotation_orthologs_input:
         clade_identifier=expand("{sampleID}",sampleID=SAMPLE_ls),
     output:
         "results/assembly/orthologinfo_filtered/input_files.tsv",
+    group:
+        "infer_orthologs"
     shell:
         """
         paste <(echo {params.clade_identifier} | {SCRIPTS_DIRECTORY}/sed_nl.sh ) <(echo {input.prokka_faa} | {SCRIPTS_DIRECTORY}/sed_nl.sh ) > {output}
         """
 
 # Infer ortholog info for each identified gene (based on AA sequence) across all clades using CD-HIT
-rule infer_orthologs:
+rule run_annotation_orthologs_inference:
     input:
         rules.build_annotation_orthologs_input.output
     params:
@@ -23,5 +25,7 @@ rule infer_orthologs:
         "results/assembly/orthologinfo_filtered/annotation_orthologs.tsv"
     conda:
         "../envs/cdhit.yaml"
+    group:
+        "infer_orthologs"
     shell:
         "python3 {SCRIPTS_DIRECTORY}/annotation_orthologs_inference.py -f {input} -p {params.percent_identity} -m {params.cdhit_mem} -o {params.output_folder}"
