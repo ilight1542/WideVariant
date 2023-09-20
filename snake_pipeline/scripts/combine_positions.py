@@ -7,6 +7,7 @@ Created on Mon Feb  7 20:00:41 2022
 """
 import numpy as np
 import pickle
+import os
 import argparse
 import gzip
 import gus_helper_functions as ghf
@@ -78,7 +79,7 @@ def combine_positions(path_to_positions_files, path_to_output_p_file, path_to_ou
         for line in file:
             in_outgroup.append(line)
     #Bool of samples to include
-    include = [not i for i in in_outgroup]
+    ingroup = [not i for i in in_outgroup]
     
     #Get positions on reference genome
     [chr_starts,genome_length,scaf_names] = ghf.genomestats(REFGENOMEDIRECTORY)
@@ -92,9 +93,9 @@ def combine_positions(path_to_positions_files, path_to_output_p_file, path_to_ou
             positions_files_ls.append(line)
             
     # print(f"\nIngroup paths used to generate positions: {positions_files_ls[include]}")
-    print(include)
+    print(ingroup)
     
-    cp = generate_positions_snakemake(positions_files_ls,REFGENOMEDIRECTORY)
+    cp = generate_positions_snakemake(positions_files_ls[ingroup],REFGENOMEDIRECTORY)
     print(f"Found {len(cp)} positions where provided vcfs called a fixed variant in at least one in-group sample \n")
 
     #Todo: Add candidate positions manually
@@ -102,8 +103,7 @@ def combine_positions(path_to_positions_files, path_to_output_p_file, path_to_ou
     allp=cp
     
     print("Saving list of all positions...")
-    with open(path_to_output_p_file,"wb") as wf:
-        pickle.dump(allp,wf)
+    np.savez_compressed(os.getcwd() + '/' + path_to_output_p_file, p=p)
     
     return
 

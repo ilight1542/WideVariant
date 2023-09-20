@@ -2,7 +2,7 @@
 # Option to build raw coverage matrix and normalized coverage matrix automatically parsed
 rule candidate_mutation_table:
     input:
-        positions = rules.combine_positions.output.allpositions, # "2-case/temp/allpositions.pickle",
+        positions = rules.combine_positions.output.allpositions, # "2-case/temp/allpositions.npz",
         string_diversity = rules.candidate_mutation_table_prep.output.string_diversity, # "2-case/temp/string_diversity_mat.txt",
         string_quals = rules.candidate_mutation_table_prep.output.string_quals, # "2-case/temp/string_qual_mat.txt",
         string_sampleID_names = rules.candidate_mutation_table_prep.output.string_sampleID_names, # "2-case/temp/string_sampleID_names.txt",

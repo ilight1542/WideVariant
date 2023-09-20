@@ -7,7 +7,7 @@ rule variants2positions:
         outgroup_tag = 0, # boolean (0==ingroup or 1==outgroup)
         maxFQ = -30,
     output:
-        positions = "results/2-case/temp/{sampleID}_ref_{reference}_outgroup{outgroup}_positions.pickle",
+        positions = "results/2-case/temp/{sampleID}_ref_{reference}_outgroup{outgroup}_positions.npz",
     conda:
         "../envs/py_for_snakemake.yaml",
     shell:
@@ -57,10 +57,10 @@ rule combine_positions:
         string_input_pos = rules.combine_positions_prep.output.string_input_p_positions,
         string_outgroup_bool = rules.candidate_mutation_table_prep.output.string_outgroup_bool,
     params:
-        # file_other_p_to_consider = "results/2-case/temp/other_positions.pickle",
+        # file_other_p_to_consider = "results/2-case/temp/other_positions.npz",
         refGenomeDir = get_ref_genome, # expands to single reference genome!
     output:
-        allpositions = "results/2-case/temp/group_{cladeID}_allpositions.pickle",
+        allpositions = "results/2-case/temp/group_{cladeID}_allpositions.npz",
     conda:
         "../envs/py_for_snakemake.yaml",
     shell:

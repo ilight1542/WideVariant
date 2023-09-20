@@ -64,17 +64,17 @@ def get_outgroup_bool(wildcards):
 
 def get_positions_prep(wildcards):
     sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
-    mat_positions_prep=expand("results/2-case/temp/{sampleID}_ref_{reference}_outgroup{outgroup}_positions.pickle",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
+    mat_positions_prep=expand("results/2-case/temp/{sampleID}_ref_{reference}_outgroup{outgroup}_positions.npz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
     return mat_positions_prep
 
 def get_diversity(wildcards):
     sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
-    diversity_mat = expand("results/1-mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.diversity.pickle.gz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
+    diversity_mat = expand("results/1-mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.diversity.npz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
     return diversity_mat   
 
 def get_quals(wildcards):
     sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
-    quals_mat = expand("results/1-mapping/quals/{sampleID}_ref_{reference}_outgroup{outgroup}.quals.pickle.gz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
+    quals_mat = expand("results/1-mapping/quals/{sampleID}_ref_{reference}_outgroup{outgroup}.quals.npz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
     return quals_mat 
 
 def get_ref_genome(wildcards):
@@ -165,17 +165,17 @@ input_all=[]
 if ("mapping" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
     input_all.append(expand("results/1-mapping/bowtie2/{sampleID}_ref_{references}_aligned.sorted.bam",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls))
     input_all.append(expand("results/1-mapping/vcf/{sampleID}_ref_{references}_aligned.sorted.strain.variant.vcf.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls))
-    input_all.append(expand("results/1-mapping/quals/{sampleID}_ref_{references}_outgroup{outgroup}.quals.pickle.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
-    input_all.append(expand("results/1-mapping/diversity/{sampleID}_ref_{references}_outgroup{outgroup}.diversity.pickle.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
+    input_all.append(expand("results/1-mapping/quals/{sampleID}_ref_{references}_outgroup{outgroup}.quals.npz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
+    input_all.append(expand("results/1-mapping/diversity/{sampleID}_ref_{references}_outgroup{outgroup}.diversity.npz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
     input_all.append(expand("results/1-mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(REF_Genome_ls)))
 if ("case" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
     input_all.append(expand("results/1-mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(REF_Genome_ls)))
     input_all.append(expand("results/2-case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz",cladeID=UNIQ_GROUP_ls))
     # Include the following two lines ONLY if you also want coverage matrices. 
     if GENERATE_NORMALIZED_COVERAGE_MATRIX:
-        input_all.append(expand("results/2-case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.pickle.gz",cladeID=UNIQ_GROUP_ls))
+        input_all.append(expand("results/2-case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.npz",cladeID=UNIQ_GROUP_ls))
     if GENERATE_RAW_COVERAGE_MATRIX:
-        input_all.append(expand("results/2-case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.pickle.gz",cladeID=UNIQ_GROUP_ls))
+        input_all.append(expand("results/2-case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.npz",cladeID=UNIQ_GROUP_ls))
 if ("bracken" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
     input_all.append(expand("results/kraken/kraken2/{sampleID}_krakenRep.txt",sampleID=SAMPLE_ls))
     input_all.append(expand("results/kraken/bracken/{sampleID}.bracken",sampleID=SAMPLE_ls))
