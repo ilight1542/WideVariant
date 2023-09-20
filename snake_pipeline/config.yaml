@@ -14,7 +14,8 @@ jobs: 100
 latency-wait: 30
 keep-going: True
 configfile: ./experiment_info.yaml
-group-components: make_link_group=100000
+group-components: make_link_group=1000
+rerun-triggers: mtime
 
 # modify if necessary
 cluster-status: ./scripts/slurm_status_script.py
@@ -85,14 +86,18 @@ set-resources:
    - combine_positions:cpus_per_task=1
    - combine_positions:time="02:00:00"
    # build_data_links
-   - build_data_links:mem=24000
-   - build_data_links:mem_per_cpu=24000
-   - build_data_links:cpus_per_task=10
+   - build_data_links:mem=8000
+   - build_data_links:mem_per_cpu=8000
+   - build_data_links:cpus_per_task=1
    - build_data_links:time="12:00:00"
    # kraken2
    - kraken2:mem=64G
    - kraken2:cpus_per_task=20
    - kraken2:time="05:00:00"
+   # bracken
+   - bracken:mem=64G
+   - bracken:cpus_per_task=20
+   - bracken:time="05:00:00"
    # spades
    - spades:mem=100G
    - spades:cpus_per_task=16
