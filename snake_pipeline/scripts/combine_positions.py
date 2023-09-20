@@ -52,10 +52,10 @@ def generate_positions_snakemake(positions_files_list, REFGENOMEDIRECTORY):
     # initialize vector to count occurrances of variants across samples
     timesvariant = np.zeros((genome_length,1))
     
-    for i in range(len(positions_files_list)):
+    for path in positions_files_list:
         #load in positions array for sample
-        with gzip.open(positions_files_list[i].rstrip('\n'),"rb") as f:
-            positions=pickle.load(f)
+        tmp=np.load(os.getcwd() + '/' + path.rstrip('\n'))
+        positions=tmp['Positions']
         
         if len(positions)>2:
             x=chrpos2index(positions,chr_starts)
@@ -77,9 +77,7 @@ def combine_positions(path_to_positions_files, path_to_output_p_file, path_to_ou
     in_outgroup=[]
     with open(path_to_outgroup_boolean_file) as file:
         for line in file:
-            in_outgroup.append(line)
-    #Bool of samples to include
-    ingroup = [not i for i in in_outgroup]
+            in_outgroup.append(int(line.strip()))
     
     #Get positions on reference genome
     [chr_starts,genome_length,scaf_names] = ghf.genomestats(REFGENOMEDIRECTORY)
@@ -91,17 +89,18 @@ def combine_positions(path_to_positions_files, path_to_output_p_file, path_to_ou
     with open(path_to_positions_files) as file:
         for line in file:
             positions_files_ls.append(line)
-            
+    ## exclude outgroup samples (in_outgroup == 1)
+    positions_files_ingroup_ls = np.delete(positions_files_ls, np.where(in_outgroup != 0)[0])
+
     # print(f"\nIngroup paths used to generate positions: {positions_files_ls[include]}")
-    print(ingroup)
-    
-    cp = generate_positions_snakemake(positions_files_ls[ingroup],REFGENOMEDIRECTORY)
+    cp = generate_positions_snakemake(positions_files_ingroup_ls,REFGENOMEDIRECTORY)
     print(f"Found {len(cp)} positions where provided vcfs called a fixed variant in at least one in-group sample \n")
 
     #Todo: Add candidate positions manually
     #Combine different types of positions
     allp=cp
-    
+    p=np.sort(allp)
+
     print("Saving list of all positions...")
     np.savez_compressed(os.getcwd() + '/' + path_to_output_p_file, p=p)
     

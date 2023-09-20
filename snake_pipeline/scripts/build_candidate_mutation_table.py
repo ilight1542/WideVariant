@@ -132,9 +132,8 @@ def main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_fil
     for i in range(numSamples):
         print('Loading quals matrix for sample: ' + str(i))
         print('Filename: ' + paths_to_quals_files[i])
-        with gzip.open(paths_to_quals_files[i], "rb") as f:
-            quals_temp = pickle.load(f)
-        quals = quals_temp.flatten()
+        infile=np.load(paths_to_quals_files[i]) # from previous step, should include variable called p
+        quals=infile['quals'].flatten()
         Quals[:, i] = quals[p - 1]  # -1 convert position to index
 
     ## counts: counts for each base from forward and reverse reads at each candidate position for all samples
@@ -188,7 +187,6 @@ def main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_fil
 
             # Scale and convert to int to save space
             array_cov_norm_scaled = (np.round(array_cov_norm, 3) * 1000).astype('int64')
-            print(array_cov_norm_scaled.dtype)
 
     ## get coverage stats
     ## NOTE: Indexes 0-10: sites with coverage 1, 2, 3,... 
@@ -275,13 +273,13 @@ if __name__ == "__main__":
     path_to_cov_mat_raw = args.cov_mat_raw
     path_to_cov_mat_norm = args.cov_mat_norm
     dim=args.dim
-    if path_to_cov_mat_raw.contains('2-case/temp') or (path_to_cov_mat_raw == ''):
+    if ('2-case/temp' in path_to_cov_mat_raw) or (path_to_cov_mat_raw == ''):
         # target output is a dummy file and will not be calculated
         Path(path_to_cov_mat_raw).touch()
         flag_cov_raw = False
     else:
         flag_cov_raw = True
-    if path_to_cov_mat_norm.contains('2-case/temp') or (path_to_cov_mat_raw == ''):
+    if ('2-case/temp' in path_to_cov_mat_norm) or (path_to_cov_mat_raw == ''):
         # target output is a dummy file and will not be calculated
         Path(path_to_cov_mat_norm).touch()
         flag_cov_norm = False

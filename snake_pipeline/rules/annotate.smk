@@ -11,4 +11,4 @@ rule prokka:
     conda:
         "../envs/prokka.yml"
     shell:
-        "prokka --compliant --force --cpus {threads} --outdir {params.outdir} --prefix prokka_out {input} ; conda deactivate"
+        "prokka --compliant --force --cpus {threads} --outdir {params.outdir} --prefix prokka_out {input}"

@@ -34,7 +34,6 @@ rule vcf2quals:
     conda:
         "../envs/py_for_snakemake.yaml",
     shell:
-        "mkdir -p results/1-mapping/quals/ ;"
         "python {SCRIPTS_DIRECTORY}/vcf2quals_snakemake.py -i {input.vcf_strain} -r {params.refGenomeDir} -o {output.file_quals} ;"
 
 # Parses pileup with python script
@@ -49,5 +48,4 @@ rule pileup2diversity_matrix:
     conda:
         "../envs/py_for_snakemake.yaml",
     shell:
-        "mkdir -p results/1-mapping/diversity/ ;"
         "python {SCRIPTS_DIRECTORY}/pileup2diversity.py -i {input.pileup} -r {params.refGenomeDir} -o {output.file_diversity} -c {output.file_coverage} ;"

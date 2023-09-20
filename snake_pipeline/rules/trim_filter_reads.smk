@@ -42,5 +42,3 @@ rule sickle:
                     "-g -q {params.qual} -l {params.readlen} -x -n "
                     "1>> {output.log} ;"
         "echo 'sickle command line params: minqual={params.qual} minreadlen={params.readlen}' 1>> {output.log} ;"
-        "rm {input.fq1i} ;"
-        "rm {input.fq2i} ;"

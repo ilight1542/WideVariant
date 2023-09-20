@@ -87,89 +87,14 @@ def get_bt2qc_input(wildcards):
     bt2_logs = expand("results/1-mapping/bowtie2/bowtie2_{sampleID}_ref_{reference}.txt",zip,sampleID=sampleID_clade, reference=reference_clade )
     return bt2_logs
 
-def get_candidate_mutation_table_output(wildcards):
-    output_file_targets = dict()
-    output_file_targets["cmt"] = expand("results/2-case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz")
-    if GENERATE_NORMALIZED_COVERAGE_MATRIX:
-        output_file_targets["cov_norm"] = expand(cov_norm = "results/2-case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.npz")
-    if GENERATE_RAW_COVERAGE_MATRIX:
-        output_file_targets["cov_raw"] = expand("results/2-case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.npz")
-    return output_file_targets
-
-
-# def read_sample_info_CSV(path_to_sample_info_csv):
-#     with open(path_to_sample_info_csv,'r') as f:
-#         this_sample_info = f.readline() # only one line to read
-#     this_sample_info = this_sample_info.strip('#').split(',')
-#     path = this_sample_info[0] # remember python indexing starts at 0
-#     paths = path.split(' ')
-#     sample = this_sample_info[1]
-#     filename = this_sample_info[2]
-#     reference = this_sample_info[3]
-    
-#     return paths, sample, reference, filename
-
-# def get_cutadapt_output(path_to_sample_info_csv):
-    
-#     path_ls, _, _, filenames = read_sample_info_CSV(path_to_sample_info_csv)
-
-#     path_ls_replace = [p.replace('/','_') for p in path_ls]
-    
-#     cutadapt_out = [expand("tmp/{path_ls_replace}_{filenames}_R1_trim.fq.gz", path=path_ls_replace, fn=filenames),
-#                     expand("tmp/{path_ls_replace}_{filenames}_R1_trim.fq.gz", path=path_ls_replace, fn=filenames)]
-#     print(cutadapt_out)
-
-#     return cutadapt_out
-
-# def get_sickle_output(path_to_sample_info_csv):
-
-#     path_ls, _, _, filenames = read_sample_info_CSV(path_to_sample_info_csv)
-
-#     sickle_out = [expand("{path}/{fn}/R1_filt.fq.gz", path=path_ls, fn=filenames),
-#                  expand("{path}/{fn}/R2_filt.fq.gz", path=path_ls, fn=filenames),
-#                  expand("{path}/{fn}/filt_sgls.fq.gz", path=path_ls, fn=filenames),
-#                  expand("{path}/{fn}/sickle_manifest.txt", path=path_ls, fn=filenames)]
-#     print(sickle_out)
-#     return sickle_out
-
-def mdl_input_fwd(wildcards): # returns all paths for forward reads for a given sample
-  [paths,filename]=get_mdl_paths(wildcards.sampleID)
-  fwd=expand("{path_to_raw_data}{fn}/R1_filt.fq.gz", path_to_raw_data=paths, fn=filename)
-  return fwd
-
-def mdl_input_rev(wildcards):# returns all paths for reverse reads for a given sample
-  [paths,filename]=get_mdl_paths(wildcards.sampleID)
-  rev=expand("{path_to_raw_data}{fn}/R2_filt.fq.gz", path_to_raw_data=paths, fn=filename)
-  return rev
-
-def get_mdl_paths(sampleID): # returns all list of paths and filenames for a given samplename
-  
-  # path_to_sample_info_csv = 'data/sampleID/sample_info.csv'
-
-  path_ls, _, _, filename = read_sample_info_CSV(f'results/data/{sampleID}/sample_info.csv')
-  # is_sample = [int(i == sampleID) for i in SAMPLE_ls] # boolean which is true when sample_ls == sampleID
-  # pathstr = list(compress(PATH_ls,is_sample)) # list of paths
-  # path_ls = pathstr.split(' ')
-  # filename = list(compress(FILENAME_ls,is_sample)) # list of paths
-  # ensure paths can be combined in expected way later in pipeline (ends with /)
-  for i,path in enumerate(path_ls):
-    if not path.endswith('/'):
-        path_ls[i] = f'{path}/'
-  return path_ls,filename
-
-
-''' DEFINE OUTPUT FILES '''
 
 # Define a list of output files: snakemake will deterimine which pipeline steps need to be executed in order to generate the output files requested
 input_all=[]
-if ("mapping" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
-    input_all.append(expand("results/1-mapping/bowtie2/{sampleID}_ref_{references}_aligned.sorted.bam",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls))
-    input_all.append(expand("results/1-mapping/vcf/{sampleID}_ref_{references}_aligned.sorted.strain.variant.vcf.gz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls))
+if ("mapping" in PIPELINE_SPECIFICATIONS):
     input_all.append(expand("results/1-mapping/quals/{sampleID}_ref_{references}_outgroup{outgroup}.quals.npz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
     input_all.append(expand("results/1-mapping/diversity/{sampleID}_ref_{references}_outgroup{outgroup}.diversity.npz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
     input_all.append(expand("results/1-mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(REF_Genome_ls)))
 if ("case" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
-    input_all.append(expand("results/1-mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(REF_Genome_ls)))
     input_all.append(expand("results/2-case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz",cladeID=UNIQ_GROUP_ls))
     # Include the following two lines ONLY if you also want coverage matrices. 
     if GENERATE_NORMALIZED_COVERAGE_MATRIX:
@@ -177,11 +102,8 @@ if ("case" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
     if GENERATE_RAW_COVERAGE_MATRIX:
         input_all.append(expand("results/2-case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.npz",cladeID=UNIQ_GROUP_ls))
 if ("bracken" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
-    input_all.append(expand("results/kraken/kraken2/{sampleID}_krakenRep.txt",sampleID=SAMPLE_ls))
     input_all.append(expand("results/kraken/bracken/{sampleID}.bracken",sampleID=SAMPLE_ls))
 if ("assembly" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
-    input_all.append(expand("results/assembly/spades/{sampleID}/contigs.fasta",sampleID=SAMPLE_ls))
-    input_all.append(expand("results/assembly/prokka/{sampleID}/prokka_out.faa",sampleID=SAMPLE_ls))
     input_all.append("results/assembly/orthologinfo_filtered/annotation_orthologs.tsv")
 
 
@@ -248,6 +170,7 @@ rule all:
     input:
         input_all,
         expand("results/data/{sampleID}/sample_info.csv",sampleID=SAMPLE_ls),
+        expand("results/data/{sampleID}/sample_info.csv",sampleID=SAMPLE_ls)
 
 
 
