@@ -17,7 +17,7 @@ rule mpileup2vcf:
         "shallow", # avoids leaving leftover temp files esp if job aborted, but need shallow to allow access to refgenome folder
     shell:
         " samtools mpileup -q30 -x -s -O -d3000 -f {params.ref} {input.bamA} > {output.pileup} ;" 
-        " samtools mpileup -q30 -t SP -d3000 -vf {params.ref} {input.bamA} > {params.vcf_raw} ;"
+        " bcftools mpileup -Oz -q30 -a SP -d3000 -f {params.ref} {input.bamA} > {params.vcf_raw} ;"
         " bcftools call -c -Oz -o {output.vcf_strain} {params.vcf_raw} ;"
         " bcftools view -Oz -v snps -q .75 {output.vcf_strain} > {output.variants} ;"
         " tabix -p vcf {output.variants} ;"
