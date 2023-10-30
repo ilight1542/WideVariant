@@ -89,8 +89,9 @@ def combine_positions(path_to_positions_files, path_to_output_p_file, path_to_ou
     with open(path_to_positions_files) as file:
         for line in file:
             positions_files_ls.append(line)
-    ## exclude outgroup samples (in_outgroup == 1)
-    positions_files_ingroup_ls = np.delete(positions_files_ls, np.where(in_outgroup != 0)[0])
+    ## include only ingroup samples (in_outgroup == 0)
+    ingroup_files_to_include = np.array(in_outgroup) == 0
+    positions_files_ingroup_ls = np.array(positions_files_ls)[ingroup_files_to_include]
 
     # print(f"\nIngroup paths used to generate positions: {positions_files_ls[include]}")
     cp = generate_positions_snakemake(positions_files_ingroup_ls,REFGENOMEDIRECTORY)
