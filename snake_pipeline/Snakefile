@@ -116,10 +116,10 @@ if ("case" in PIPELINE_SPECIFICATIONS) and ("mapping" not in PIPELINE_SPECIFICAT
 elif ("mapping" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
     input_paths=expand("results/preprocessing/{sampleID}/R1_trim.fq.gz",sampleID=SAMPLE_ls)
     for path,sample,filename in zip(PATH_ls,SAMPLE_ls,FILENAME_ls):
-        if len(paths) > 1:
-            cp_append_files(paths,sample,filename,'results/data')
+        if isinstance(path, list) and len(path) > 1:
+            cp_append_files(path,sample,filename,'results/data')
         else:
-            makelink(paths[0],sample,filename,'results/data')
+            makelink(path,sample,filename,'results/data')
     
 
 # DATA PROCESSING RULES####################################################################################################
