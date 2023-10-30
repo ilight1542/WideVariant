@@ -1,14 +1,13 @@
 #!/bin/bash
-
-# launch snakemake to run jobs via SLURM
-# ntasks
-SM_PARAMS="job-name ntasks time mem mail-user mail-type error output"
-
-#SM_ARGS=" --parsable --cpus-per-task {cluster.cpus-per-task} --mem-per-cpu {cluster.mem-per-cpu-mb}"
-SM_ARGS=" --parsable --cpus-per-task {cluster.cpus-per-task}" #new
-
-for P in ${SM_PARAMS}; do SM_ARGS="${SM_ARGS} --$P {cluster.$P}"; done
-echo "SM_ARGS: ${SM_ARGS}"
+#
+# Wrapper script for WideVariant Snakemake pipeline
+# 
+# Checks for dependencies (conda installed) and execution access
+# Checks for parameter set for end-user (eg email for error reporting)
+# 
+# Finally runs a final check of input (scripts/pre_snakemake_checks_script.py)
+# This ensure that pipeline-breaking errors are caught before jobs get run
+# 
 
 ###############################################
 ## CHECKS TO AUTOMATICALLY FIX FOR EXECUTION ##
@@ -44,6 +43,12 @@ fi
 
 ## Conda checks
 activate_conda_path=$(echo $CONDA_EXE | sed 's#bin/conda#bin/activate#g')
+if [ -z $activate_conda_path ]
+then
+    echo "Error encountered. Exiting prior to start of snakemake."
+    echo "No conda path found! Do you have conda installed with the path encoded in variable CONDA_EXE? (check with `echo \$CONDA_EXE`)"
+    exit 1
+fi
 conda_envs_path=$(echo $CONDA_EXE | sed 's#bin/conda#envs#g' )
 update_conda_envs_path=$(grep "/PATH/TO/PRELOADED/CONDA/ENVS" config.yaml)
 if [[ ! ${#update_conda_envs_path} -eq 0 ]]
@@ -72,7 +77,7 @@ mkdir -p logs
 
 if ! python scripts/pre_snakemake_checks_script.py -e experiment_info.yaml ; then
     echo
-    echo "Errors encountered. Exiting prior to start of snakemake"
+    echo "Errors encountered. Exiting prior to start of snakemake."
     echo "Please correct errors and rerun!"
     exit 1
 fi
@@ -89,7 +94,9 @@ fi
 # echo to stdout update, also write to main log file.
 echo 
 echo "The WideVariant Snakemake is all set to run!"
-echo "Experiment:${experiment_name} snakemake will commence at $date"
+echo 
+echo "Experiment name: ${experiment_name}"
+echo "Snakemake will commence at $date"
 
 ### run snakemake
 # -j defines total number of jobs executed in parallel on cluster
@@ -99,7 +106,7 @@ echo "Experiment:${experiment_name} snakemake will commence at $date"
 # --conda-prefix envs: builds environment in envs folder where it will be 
 if $run_in_screen; then
     echo "Starting a screen session..."
-    screen -d -m -S "${experiment_name}" bash -c "snakemake --profile . 2>&1 | tee logs/0_widevariant_main.log "
+    screen -d -m -S WideVariant bash -c "snakemake --profile . 2>&1 | tee logs/0_widevariant_main.log "
 else 
     echo "Running Snakemake on the backend"
     sbatch scripts/run_snakemake.slurm

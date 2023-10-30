@@ -160,8 +160,6 @@ if ("bracken" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
     include: 'rules/kraken_bracken.smk'
 
 
-
-
 ''' SNAKEMAKE '''
 
 rule all:
@@ -171,7 +169,3 @@ rule all:
         input_all,
         expand("results/data/{sampleID}/sample_info.csv",sampleID=SAMPLE_ls)
 
-
-
-    
-    
