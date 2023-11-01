@@ -158,8 +158,8 @@ This was a dry-run (flag -n). The order of jobs does not reflect the order of ex
 ### Batch the Snakemake workflow to the cluster
 
 Ensure you are in your snakemake_pipeline directory.
-0) Start an interactive session if running in screen!
-1) `./WideVariant` 
+1) Start an interactive session if running in screen!
+2) `./WideVariant` 
 
 ### Track progress
 
