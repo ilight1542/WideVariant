@@ -10,7 +10,7 @@ ref_genome_directory: 'tests/tutorial_reference_genome'
 # Specific pipeline execution options
 pipeline_specifications: ["all"]
 generate_normalized_coverage_matrix: False
-generate_raw_coverage_matrix: False
+generate_raw_coverage_matrix: True
 
 # databases 
 krakenbracken_db: '/nexus/posix0/MPIIB-keylab/databases/kraken2_1_2'

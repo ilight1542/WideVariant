@@ -84,7 +84,7 @@ fi
 
 # gather remaining variable names for execution and logging purposes.
 experiment_name=$(grep "experiment_name" experiment_info.yaml | cut -d ':' -f2 )
-date=$(date)
+date=$(date --iso-8601)
 if grep -qi 'run_in_screen:[[:space:]]*true' experiment_info.yaml ; then     
     run_in_screen=true
 else
@@ -99,15 +99,11 @@ echo "Experiment name: ${experiment_name}"
 echo "Snakemake will commence at $date"
 
 ### run snakemake
-# -j defines total number of jobs executed in parallel on cluster
-# -n dryrun
-# -p print command lines
-# --use-conda allows to activate conda env necessary for rule
-# --conda-prefix envs: builds environment in envs folder where it will be 
+# running in screen launches the pipeline from the current node, within a screen session.
 if $run_in_screen; then
-    echo "Starting a screen session..."
-    screen -d -m -S WideVariant bash -c "snakemake --profile . 2>&1 | tee logs/0_widevariant_main.log "
+    echo "Starting a screen session to execute Snakemake locally..."
+    screen -d -m -S WideVariant bash -c "snakemake --profile . 2>&1 | tee logs/0_widevariant_main_local_${date}.log "
 else 
-    echo "Running Snakemake on the backend"
+    echo "Running Snakemake from a compute node."
     sbatch scripts/run_snakemake.slurm
 fi
