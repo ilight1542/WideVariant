@@ -112,8 +112,14 @@ if ("assembly" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS)
 # Makes symbolic links to data files
 if ("case" in PIPELINE_SPECIFICATIONS) and ("mapping" not in PIPELINE_SPECIFICATIONS):
     include: 'rules/make_data_links_case.smk'
+    input_paths=expand("results/preprocessing/{sampleID}/R1_trim.fq.gz",sampleID=SAMPLE_ls)
 elif ("mapping" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
-    include: 'rules/make_data_links.smk'
+    input_paths=expand("results/preprocessing/{sampleID}/R1_trim.fq.gz",sampleID=SAMPLE_ls)
+    for path,sample,filename in zip(PATH_ls,SAMPLE_ls,FILENAME_ls):
+        if isinstance(path, list) and len(path) > 1:
+            cp_append_files(path,sample,filename,'results/data')
+        else:
+            makelink(path,sample,filename,'results/data')
     
 
 # DATA PROCESSING RULES####################################################################################################
@@ -167,5 +173,5 @@ rule all:
     # Snakemake will only execute the steps (rules) necessary to create these output files.
     input:
         input_all,
-        expand("results/data/{sampleID}/sample_info.csv",sampleID=SAMPLE_ls)
+        input_paths
 
