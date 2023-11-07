@@ -110,12 +110,6 @@ if ("assembly" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS)
 
 
 ''' INCLUDE RULES '''
-
-# Makes symbolic links to data files
-if ("gen_cmt" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
-
-    
-
 # gen_cmt  ####################################################################################################
 # Processes raw reads, then aligns to a reference genome
 # Takes alignments of samples to reference genome, identifies candidate SNV positions, and summarizes stats at 
