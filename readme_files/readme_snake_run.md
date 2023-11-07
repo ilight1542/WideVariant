@@ -52,16 +52,16 @@ Mandatory changes:
 * change `ref_genome_directory` to the path which holds your reference genome folders
   * NOTE: Each unique reference genome defined in samples.csv should correspond to a folder name within the `ref_genome_directory` path.
   * For  instance reference genome is `Ypestis_CO92` in samples.csv, and the path defined in `ref_genome_directory` is `/my/path`, the overall structure should be: `/my/path/Ypestis_CO92/` with file `genome.fasta` or `genome.fasta.gz`.
-* change `pipeline_specifications` from `["all"]` default, if necessary 
+* change `pipeline_specifications` from `["gen_cmt"]` default, if necessary 
   * This determines which parts of the pipeline snakemake will run
-  * `pipeline_specifications` options are: 'mapping', 'case', 'assembly', 'bracken', 'all'
-	*  mapping: process reads and align them to a reference genome
-    *  case: identify candidate SNVs and generate candidate mutation table
+  * `pipeline_specifications` options are: 'gen_cmt' (generate Candidate Mutation Table), 'assembly', 'bracken', 'all'
+	*  gen_cmt: process reads and align them to a reference genome, then identify candidate SNVs and generate candidate mutation table
     *  assembly: generate annotated assemblies for each sample
     *  bracken: estimate abundances of taxa in sample
-	*  all: run all steps
+	*  all: run all pipeline sections
+Optional changes:
 * if desired, change `generate_normalized_coverage_matrix` and/or `generate_raw_coverage_matrix` to "True"
-* change `krakenbracken_db` to the path which holds your kraken bracken DB
+* if running `all` or `bracken` add a path for `krakenbracken_db` to the directory which holds your kraken bracken DB
 
 #### `snakemake_pipeline/config.yaml`
 NOTE: this file may not be renamed
@@ -140,7 +140,6 @@ candidate_mutation_table_prep        2              1              1
 combine_positions                    2              1              1
 combine_positions_prep               2              1              1
 cutadapt                             8              1              1
-make_data_links                      8              1              1
 mpileup2vcf                          8              1              1
 pileup2diversity_matrix              8              1              1
 refGenome_index                      2              1              1

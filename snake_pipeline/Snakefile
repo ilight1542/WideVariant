@@ -1,7 +1,5 @@
 # SNAKEMAKE WIDEVARIANT
 
-
-
 ''' GLOBAL '''
 import sys
 
@@ -90,13 +88,17 @@ def get_bt2qc_input(wildcards):
 
 # Define a list of output files: snakemake will deterimine which pipeline steps need to be executed in order to generate the output files requested
 input_all=[]
-if ("mapping" in PIPELINE_SPECIFICATIONS):
+if ("gen_cmt" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
+    raw_input_paths=expand("results/preprocessing/{sampleID}/R1_trim.fq.gz",sampleID=SAMPLE_ls)
+    for path,sample,filename in zip(PATH_ls,SAMPLE_ls,FILENAME_ls):
+        if isinstance(path, list) and len(path) > 1:
+            cp_append_files(path,sample,filename,'results/data')
+        else:
+            makelink(path,sample,filename,'results/data')
     input_all.append(expand("results/1-mapping/quals/{sampleID}_ref_{references}_outgroup{outgroup}.quals.npz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
     input_all.append(expand("results/1-mapping/diversity/{sampleID}_ref_{references}_outgroup{outgroup}.diversity.npz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
     input_all.append(expand("results/1-mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(REF_Genome_ls)))
-if ("case" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
     input_all.append(expand("results/2-case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz",cladeID=UNIQ_GROUP_ls))
-    # Include the following two lines ONLY if you also want coverage matrices. 
     if GENERATE_NORMALIZED_COVERAGE_MATRIX:
         input_all.append(expand("results/2-case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.npz",cladeID=UNIQ_GROUP_ls))
     if GENERATE_RAW_COVERAGE_MATRIX:
@@ -110,20 +112,16 @@ if ("assembly" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS)
 ''' INCLUDE RULES '''
 
 # Makes symbolic links to data files
-if ("case" in PIPELINE_SPECIFICATIONS) and ("mapping" not in PIPELINE_SPECIFICATIONS):
-    include: 'rules/make_data_links_case.smk'
-    input_paths=expand("results/preprocessing/{sampleID}/R1_trim.fq.gz",sampleID=SAMPLE_ls)
-elif ("mapping" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
-    input_paths=expand("results/preprocessing/{sampleID}/R1_trim.fq.gz",sampleID=SAMPLE_ls)
-    for path,sample,filename in zip(PATH_ls,SAMPLE_ls,FILENAME_ls):
-        if isinstance(path, list) and len(path) > 1:
-            cp_append_files(path,sample,filename,'results/data')
-        else:
-            makelink(path,sample,filename,'results/data')
+if ("gen_cmt" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
+
     
 
-# DATA PROCESSING RULES####################################################################################################
-if ("mapping" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
+# gen_cmt  ####################################################################################################
+# Processes raw reads, then aligns to a reference genome
+# Takes alignments of samples to reference genome, identifies candidate SNV positions, and summarizes stats at 
+# candidate SNV positions into a candidate mutation table
+# Option to collect information about read coverage over the whole genome and generate a coverage matrix
+if ("gen_cmt" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
     # trim and filter reads
     include: 'rules/trim_filter_reads.smk'
     # Index reference genome for bowtie2
@@ -134,20 +132,12 @@ if ("mapping" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
     include: 'rules/mapping_qc.smk'
     # Call variants and parse vcf and pileup file
     include: 'rules/variant_calling.smk'
-
-
-# CASE STEP ####################################################################################################
-# Takes alignments of samples to reference genome, identifies candidate SNV positions, and summarizes stats at 
-# candidate SNV positions into a candidate mutation table
-# Option to collect information about read coverage over the whole genome and generate a coverage matrix
-
-if ("case" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
     # Prepare input for candidate mutation table 
     include: 'rules/pre_candidate_mutation_table.smk'
     # generate candidate mutation table
     include: 'rules/candidate_mut_table.smk'
 
-# ASSEMBLY STEP ####################################################################################################
+# ASSEMBLY  ####################################################################################################
 # Generates an annotated genome assembly reads from each sample
 
 if ("assembly" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
@@ -158,7 +148,8 @@ if ("assembly" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS)
     # Infer orthologs
     include: 'rules/infer_orthologs.smk'
 
-# results/kraken/BRACKEN ####################################################################################################
+# BRACKEN  ####################################################################################################
+# results/kraken/BRACKEN
 # Estimates abundance of taxa in each sample using results/kraken/breacken
 
 if ("bracken" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
@@ -173,5 +164,5 @@ rule all:
     # Snakemake will only execute the steps (rules) necessary to create these output files.
     input:
         input_all,
-        input_paths
+        raw_input_paths
 
