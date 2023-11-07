@@ -27,4 +27,3 @@ dependencies:
   - samtools=1.15.1=h1170115_0
   - xz=5.2.5=h516909a_1
   - zlib=1.2.11=h166bdaf_1014
-prefix: /scratch/users/equ/tools/miniconda3/envs/samtools115

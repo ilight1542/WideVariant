@@ -41,11 +41,10 @@ def merge_fq(ls_sample_file,clade,reads2grab=None):
 		subprocess.run("gzip -cd " + ls2[i] + " | head -q -n " + str(lines2grab) + " | gzip >> " + outfile2,shell=True)
 	return [outfile1,outfile2]
 
-def run_spades(ls_merge_fq, clade, threads):
-	''' run spades. output to 3-spades/clade_[]/ '''
-	outfolder = "Assembly/3-spades/clade_"+clade+"/"
-	subprocess.run("mkdir -p " + outfolder , shell=True)
-	subprocess.run("spades.py --phred-offset 33 --careful -t " + str(threads) + " -1 " + ls_merge_fq[0] + " -2 " + ls_merge_fq[1] + " -o " + outfolder , shell=True)
+def run_spades(executable_spades, outdir, ls_merge_fq, clade, threads):
+	''' run spades. '''
+	subprocess.run("mkdir -p " + outdir , shell=True)
+	subprocess.run(f"{executable_spades} --phred-offset 33 --careful -t {str(threads)} -1 {ls_merge_fq[0]} -2 {ls_merge_fq[1]} -o {outdir}" , shell=True)
 
 
 ''' MAIN '''
@@ -65,16 +64,21 @@ if __name__ == "__main__":
 									''',
 									epilog="Questions or comments? --> fkey@mit.edu")
 	parser.add_argument("-i", dest='input', help="Input file per clade including sample-IDs validated by kraken", type=argparse.FileType('rt'))
+	parser.add_argument("-o", dest='outdir', help="Output directory", type=str)
 	parser.add_argument('-t', dest='threads',help="Number of threads",type=int,default=1)
 	parser.add_argument('-s', dest='cladeid',help="Clade ID (Snakemake wildcard!)",type=str)
+	parser.add_argument('-e', dest='exeSpades',help="Path to spades.py",default="spades.py",type=str)
 	args = parser.parse_args()
 	
 
 	# infile = '3-spades/samplesPerSubject/clade10_samples.txt' # from cammand line
+	executable_spades = args.exeSpades
 	infile = args.input
+	outdir = args.outdir
+	threads = args.threads
 	file_names = build_sample_file_list(infile)
 	cladeID = args.cladeid 
 	outfileLs = merge_fq(file_names,cladeID)
-	run_spades(outfileLs,cladeID,threads)
+	run_spades(executable_spades, outdir, outfileLs,cladeID, threads)
 	sys.exit()
 

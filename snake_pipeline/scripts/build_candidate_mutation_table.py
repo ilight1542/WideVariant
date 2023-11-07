@@ -60,6 +60,8 @@ import os
 import sys, argparse
 import gzip
 from scipy import sparse
+from pathlib import Path
+
 
 ''' positional and optional argument parser'''
 
@@ -69,7 +71,7 @@ parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpForm
                             Optional: Builds coverage matrix (optional w/ double-standardized matrix)
                                ''',
                                  epilog="Questions or comments? --> fkey@mit.edu")
-parser.add_argument("-p", dest="allpositions", help="All positions p file (.pickle)", required=True, action='store')
+parser.add_argument("-p", dest="allpositions", help="All positions p file (.npz)", required=True, action='store')
 parser.add_argument("-s", dest="sampleNames", help="File with sample names", required=True, action='store')
 parser.add_argument("-g", dest="outgroupBool", help="String outgroup bool", required=True, action='store')
 parser.add_argument("-q", dest="qualfiles", help="String qual matrix paths", required=True, action='store')
@@ -80,10 +82,10 @@ parser.add_argument("-o", dest="candidate_mutation_table",
 # parser.add_argument("-c", dest="get_cov", help="Set flag to build raw coverage matrix as sparse csr gzip numpy object (dirname+cov_raw_sparsecsr_mat.npz)",action="store_true", default=False)
 # parser.add_argument("-n", dest="get_dbl_norm_cov", help="Set flag to build double normalized coverage matrix as sparse csr gzip numpy object (dirname+cov_norm_sparsecsr_mat.npz)",action="store_true", default=False)
 parser.add_argument("-c", dest="cov_mat_raw", help="Output raw coverage matrix as sparse csr gzip numpy object (*.npz)",
-                    action='store', default='none')
+                    action='store', default='')
 parser.add_argument("-n", dest="cov_mat_norm",
                     help="Output double normalized coverage matrix as sparse csr gzip numpy object (*.npz)",
-                    action='store', default='none')
+                    action='store', default='')
 parser.add_argument("-t", dest="dim", help="Specify the number of statistics (default 8)", type=int, default=8)
 args = parser.parse_args()
 
@@ -98,8 +100,8 @@ def main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_fil
 
     # p: positions on genome that are candidate SNPs
     print('Processing candidate SNP positions...')
-    with open(path_to_p_file, 'rb') as f:
-        p = pickle.load(f)
+    infile=np.load(path_to_p_file) # from previous step, should include variable called p
+    p=infile['p'].flatten()
     print('Total number of positions: ' + str(len(p)))
 
     # SampleNames: list of names of all samples
@@ -130,9 +132,8 @@ def main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_fil
     for i in range(numSamples):
         print('Loading quals matrix for sample: ' + str(i))
         print('Filename: ' + paths_to_quals_files[i])
-        with gzip.open(paths_to_quals_files[i], "rb") as f:
-            quals_temp = pickle.load(f)
-        quals = quals_temp.flatten()
+        infile=np.load(paths_to_quals_files[i]) # from previous step, should include variable called p
+        quals=infile['quals'].flatten()
         Quals[:, i] = quals[p - 1]  # -1 convert position to index
 
     ## counts: counts for each base from forward and reverse reads at each candidate position for all samples
@@ -143,8 +144,8 @@ def main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_fil
     with open(fname, 'r') as f:
         paths_to_diversity_files = f.read().splitlines()
     # Load in first diversity to get some stats
-    with gzip.open(paths_to_diversity_files[1], 'rb') as f:
-        data = np.array(pickle.load(f))
+    tempfile=np.load(paths_to_diversity_files[1]) 
+    data=tempfile['data']
     size = np.shape(data)
     GenomeLength = size[0]
 
@@ -157,8 +158,8 @@ def main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_fil
     for i in range(numSamples):
         print('Loading counts matrix for sample: ' + str(i))
         print('Filename: ' + paths_to_diversity_files[i])
-        with gzip.open(paths_to_diversity_files[i], 'rb') as f:
-            data = np.array(pickle.load(f))
+        infile=np.load(paths_to_diversity_files[i]) 
+        data=infile['data']
         counts[:, :, i] = data[p - 1, 0:dim].T  # -1 convert position to index
 
         if flag_cov_raw:
@@ -186,7 +187,40 @@ def main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_fil
 
             # Scale and convert to int to save space
             array_cov_norm_scaled = (np.round(array_cov_norm, 3) * 1000).astype('int64')
-            print(array_cov_norm_scaled.dtype)
+
+    ## get coverage stats
+    ## NOTE: Indexes 0-10: sites with coverage 1, 2, 3,... 
+    ## NOTE: Index 11: median coverage across all sites
+    ## NOTE: Index 12: mean coverage across all sites
+    ## NOTE: Index 13: standard deviation of coverage across all sites
+    coverage_stats=np.zeros((numSamples,14),dtype='uint') 
+    for index in range(numSamples):
+        unique,counts_for_dict=np.unique(all_coverage_per_bp[:, index], return_counts=True)
+        counts_dict=dict(zip(unique,counts_for_dict))
+        ## find mean and median, create bins 0-10 four outputting
+        counts_for_output=[0]*11
+        total_covg=0
+        total_pos=0
+        for val in counts_dict:
+            if val <= 10:
+                counts_for_output[val]=counts_dict[val]
+            else:
+                counts_for_output[10]+=counts_dict[val]
+            total_pos+=counts_dict[val]
+            total_covg+=val*counts_dict[val]
+        mean_covg=total_covg/total_pos
+        median_val=total_pos/2
+        count_to_median=0
+        index_for_median=0
+        while count_to_median < median_val:
+            count_to_median+=counts_for_dict[index_for_median]
+            index_for_median+=1
+        median=index_for_median-1
+        ## save into coverage_stats
+        coverage_stats[index,0:11]=counts_for_output
+        coverage_stats[index,11]=median
+        coverage_stats[index,12]=mean_covg
+        coverage_stats[index,13]=np.std(all_coverage_per_bp[index])
 
     # Reshape & save matrices
 
@@ -196,7 +230,6 @@ def main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_fil
     in_outgroup = in_outgroup.flatten() #in_outgroup: num_samples 
     SampleNames = SampleNames #sampleNames: num_samples
     indel_counter = indel_counter.swapaxes(0,2) #indel_counter: num_samples x num_pos x 2
-
 
     outdir = os.path.dirname(path_to_candidate_mutation_table)
     if not os.path.exists(outdir):
@@ -220,7 +253,7 @@ def main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_fil
            'quals': Quals,
            'in_outgroup': in_outgroup,
            'indel_counter': indel_counter,
-           }
+           'coverage_stats': coverage_stats}
 
     file_path = path_to_candidate_mutation_table
     print("Saving " + path_to_candidate_mutation_table)
@@ -240,11 +273,15 @@ if __name__ == "__main__":
     path_to_cov_mat_raw = args.cov_mat_raw
     path_to_cov_mat_norm = args.cov_mat_norm
     dim=args.dim
-    if path_to_cov_mat_raw == 'none':
+    if ('2-case/temp' in path_to_cov_mat_raw) or (path_to_cov_mat_raw == ''):
+        # target output is a dummy file and will not be calculated
+        Path(path_to_cov_mat_raw).touch()
         flag_cov_raw = False
     else:
         flag_cov_raw = True
-    if path_to_cov_mat_norm == 'none':
+    if ('2-case/temp' in path_to_cov_mat_norm) or (path_to_cov_mat_raw == ''):
+        # target output is a dummy file and will not be calculated
+        Path(path_to_cov_mat_norm).touch()
         flag_cov_norm = False
     else:
         flag_cov_norm = True

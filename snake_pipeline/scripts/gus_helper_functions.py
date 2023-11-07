@@ -7,41 +7,44 @@ from Bio import SeqIO
 from itertools import compress
 import os
 import numpy as np
-import pickle
 import csv
 import glob
 import subprocess
 import gzip
+import sys
 
-def read_samples_CSV(spls):
-    hdr_check = ['Path','Sample','FileName','Reference','Group','Outgroup']
-    switch = "on"
-    file = open(spls, 'r')
-    #initialize lists
-    list_path = []; list_splID = []; list_fileN = []; list_refG = []
-    list_group=[]; list_outgroup=[]
-    for line in file:
-        line = line.strip('\n').split(',')
-        # Test Header. Note: Even when header wrong code continues (w/ warning), but first line not read.
-        if switch == "on":
-            if (line == hdr_check):
-                print("Passed CSV header check")
-            else:
-                Warning("CSV did NOT pass header check! Code continues, but first line ignored")
-            switch = "off"
-            continue
-        # build lists
-        list_path.append(line[0])
-        list_splID.append(line[1])
-        list_fileN.append(line[2])
-        list_refG.append(line[3])
-        list_group.append(line[4])
-        list_outgroup.append(line[5])
+def read_samples_CSV(spls,quiet=False):
+    smpl_csv_dict = {'Path': [],'Sample': [],'FileName': [],'Reference': [],'Group': [],'Outgroup': []}
 
-    return [list_path,list_splID,list_fileN,list_refG,list_group,list_outgroup]
+    with open(spls, 'r') as fid: 
+        for line_id, line in enumerate(fid):
+            # check if first line is header. Note: Even when header is not found code continues (w/ warning).
+            if line_id == 0:
+                if line.startswith('Path,Sample,'):
+                    hdr_colnames = line.strip('\n').split(',')
+                    hdr_to_col_id = {hdr: id for id, hdr in enumerate(hdr_colnames)}
+                    if quiet:
+                        print("Passed CSV header check")
+                    continue
+                else:
+                    Warning("\n\nCSV did NOT pass header check!")
+                    if len(line.strip('\n').split(',')) == len(smpl_csv_dict.keys()):
+                        Warning('Assumes column order to be: Path,Sample,FileName,Reference,Group,Outgroup\n\n')
+                        hdr_to_col_id = {hdr: id for id, hdr in enumerate(smpl_csv_dict.keys())}
+                    else:
+                        print('\n\nSample csv is not formatted correctly.')
+                        print('Snakemake will not start!\n\n')
+                        sys.exit(1)
+            
+            line = line.strip('\n').split(',')
+            # build lists
+            for key, id in hdr_to_col_id.items():
+                smpl_csv_dict[key].append(line[id])
+        
+    return [smpl_csv_dict['Path'], smpl_csv_dict['Sample'], smpl_csv_dict['FileName'], smpl_csv_dict['Reference'], smpl_csv_dict['Group'], smpl_csv_dict['Outgroup']]
 
 
-def split_samplesCSV(PATH_ls,SAMPLE_ls,FILENAME_ls,REF_Genome_ls,GROUP_ls,OUTGROUP_ls):
+def split_samplesCSV(PATH_ls,SAMPLE_ls,FILENAME_ls,REF_Genome_ls,GROUP_ls,OUTGROUP_ls, outdir):
     '''Take info from samples.csv, concat by sample name & save each line as sample_info.csv in data/{sampleID}'''
     
     #Loop through unique samples
@@ -56,13 +59,14 @@ def split_samplesCSV(PATH_ls,SAMPLE_ls,FILENAME_ls,REF_Genome_ls,GROUP_ls,OUTGRO
         
         sample_info_csv=list(zip(sample_paths,[sample]*sum(sample_info_bool),sample_filenames,sample_references,sample_groups,sample_outgroups))
         
+        path_to_sample_info_csv = f'{outdir}{sample}/sample_info.csv'
         # make data directory for this sample if it doesn't already exist
-        if not(os.path.isdir('data/' + sample)):
-            os.makedirs('data/' + sample, exist_ok=True)
+        if not(os.path.isdir(f'{outdir}{sample}')):
+            os.makedirs(f'{outdir}{sample}', exist_ok=True)
         # check to see if this mini csv with sample info already exists
-        if os.path.isfile('data/' + sample + '/sample_info.csv'):
+        if os.path.isfile(path_to_sample_info_csv):
             # if so, read file
-            old_file = open('data/' + sample + '/sample_info.csv','r')
+            old_file = open(path_to_sample_info_csv,'r')
             old_info_read = csv.reader(old_file)
             old_info = list(map(tuple, old_info_read))
             old_file.close()
@@ -71,18 +75,17 @@ def split_samplesCSV(PATH_ls,SAMPLE_ls,FILENAME_ls,REF_Genome_ls,GROUP_ls,OUTGRO
             if not(old_info == sample_info_csv):
                 # if not, remove the old file and save sample info in a new file
                 # print('Information file must be updated.')
-                os.remove('data/' + sample + '/sample_info.csv')
-                with open('data/' + sample + '/sample_info.csv', "w") as f:
+                os.remove(path_to_sample_info_csv)
+                with open(path_to_sample_info_csv, "w") as f:
                     writer = csv.writer(f)
                     for row in sample_info_csv:
                         writer.writerow(row)
         else: # if mini csv with sample info does not already exist
             # save sample info in mini csv
-            with open('data/' + sample + '/sample_info.csv', "w") as f:
+            with open(path_to_sample_info_csv, "w") as f:
                 writer = csv.writer(f)
                 for row in sample_info_csv:
                     writer.writerow(row)
-
 
 def read_sample_info_CSV(path_to_sample_info_csv):
     with open(path_to_sample_info_csv,'r') as f:
@@ -96,117 +99,84 @@ def read_sample_info_CSV(path_to_sample_info_csv):
     
     return paths, sample, reference, filename
 
-
 def findfastqfile(dr,ID,filename):
     fwd=[]
     rev=[]
-    #search for filename as directory first
     potentialhits_forward=glob.glob(dr + '/' + filename +'/*1.fastq.gz')
     potentialhits_reverse=glob.glob(dr + '/' + filename +'/*2.fastq.gz')
     if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
         fwd=potentialhits_forward[0]
         rev=potentialhits_reverse[0]
-    #then search for filename as file.gz
-    elif len(potentialhits_forward)==0 and len(potentialhits_reverse)==0:
-        potentialhits_forward=glob.glob(dr + '/' + filename +'*1.fastq.gz')
-        potentialhits_reverse=glob.glob(dr + '/' + filename +'*2.fastq.gz')
+    elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0: ## need or statement to further screen path if just one file was found i.e. for *R1_001.fastq.gz *R2_001.fastq.gz
+        potentialhits_forward=glob.glob(dr + '/' + filename +'/*1_001.fastq.gz')
+        potentialhits_reverse=glob.glob(dr + '/' + filename +'/*2_001.fastq.gz')
         if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
             fwd=potentialhits_forward[0]
             rev=potentialhits_reverse[0]
-        #then search as unzipped file
-        elif len(potentialhits_forward)==0 and len(potentialhits_reverse)==0:
-            potentialhits_forward=glob.glob(dr + '/' + filename +'*1.fastq')
-            potentialhits_reverse=glob.glob(dr + '/' + filename +'*2.fastq')
+        elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
+            potentialhits_forward=glob.glob(dr + '/' + filename +'*1.fastq.gz')
+            potentialhits_reverse=glob.glob(dr + '/' + filename +'*2.fastq.gz')
             if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-                subprocess.run("gzip " + potentialhits_forward[0], shell=True)  
-                subprocess.run("gzip " + potentialhits_reverse[0], shell=True)
-                fwd=potentialhits_forward[0]+'.gz'
-                rev=potentialhits_reverse[0]+'.gz'
-            else:
-                foldername=glob.glob(dr + '/' + filename + '*')
-                if foldername and os.path.isdir(foldername[0]):
-                    foldername=foldername[0]
-                    potentialhits_forward=glob.glob(foldername + '/*' + filename + '*1*.fastq.gz')
-                    potentialhits_reverse=glob.glob(foldername + '/*' + filename + '*2*.fastq.gz')
+                fwd=potentialhits_forward[0]
+                rev=potentialhits_reverse[0]
+            elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
+                potentialhits_forward=glob.glob(dr + '/' + filename +'*1_001.fastq.gz')
+                potentialhits_reverse=glob.glob(dr + '/' + filename +'*2_001.fastq.gz')
+                if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
+                    fwd=potentialhits_forward[0]
+                    rev=potentialhits_reverse[0]
+                elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
+                    potentialhits_forward=glob.glob(dr + '/' + filename +'*1.fastq')
+                    potentialhits_reverse=glob.glob(dr + '/' + filename +'*2.fastq')
                     if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
                         fwd=potentialhits_forward[0]
                         rev=potentialhits_reverse[0]
-                    elif len(potentialhits_forward)==0 and len(potentialhits_reverse)==0:
-                        print(foldername + '/*' + filename + '*2*.fastq.gz')
-                        potentialhits_forward=glob.glob(foldername +  '/*' + filename + '*1*.fastq')
-                        potentialhits_reverse=glob.glob(foldername + '/*' + filename + '*2*.fastq')
+                    elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
+                        potentialhits_forward=glob.glob(dr + '/' + filename +'*1_001.fastq')
+                        potentialhits_reverse=glob.glob(dr + '/' + filename +'*2_001.fastq')
                         if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-                            subprocess.run("gzip " + potentialhits_forward[0], shell=True)  
-                            subprocess.run("gzip " + potentialhits_reverse[0], shell=True)
-                            fwd=potentialhits_forward[0]+'.gz'
-                            rev=potentialhits_reverse[0]+'.gz'
+                            fwd=potentialhits_forward[0]
+                            rev=potentialhits_reverse[0]
+                    else:
+                        foldername=glob.glob(dr + '/' + filename + '*')
+                        if foldername and os.path.isdir(foldername[0]):
+                            foldername=foldername[0]
+                            potentialhits_forward=glob.glob(foldername + '/*' + filename + '*1*.fastq.gz')
+                            potentialhits_reverse=glob.glob(foldername + '/*' + filename + '*2*.fastq.gz')
+                            if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
+                                fwd=potentialhits_forward[0]
+                                rev=potentialhits_reverse[0]
+                            elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
+                                print(foldername + '/*' + filename + '*2*.fastq.gz')
+                                potentialhits_forward=glob.glob(foldername +  '/*' + filename + '*1*.fastq')
+                                potentialhits_reverse=glob.glob(foldername + '/*' + filename + '*2*.fastq')
+                                if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
+                                    fwd=potentialhits_forward[0]
+                                    rev=potentialhits_reverse[0]
     if not(fwd) or not(rev):
-        raise ValueError('Either no file or more than 1 file found in ' + dr + 'for ' + ID)
-    ##zip fastq files if they aren't already zipped
-    subprocess.run("gzip " + fwd, shell=True)   
-    subprocess.run("gzip " + rev, shell=True)   
-    return [fwd, rev]
+        raise ValueError('Either no file or more than 1 file found in ' + dr + ' for ' + ID)
+    #TODO: add search pattern used to find fastqs for more useful error report
+    #TODO: add error differentiation for no file or more than one file  
     
-#Jonathan new code
-# def findfastqfile(dr,ID,filename):
-#     fwd=[]
-#     rev=[]
-#     potentialhits_forward=glob.glob(dr + '/' + filename +'/*1.fastq.gz')
-#     potentialhits_reverse=glob.glob(dr + '/' + filename +'/*2.fastq.gz')
-#     if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-#         fwd=potentialhits_forward[0]
-#         rev=potentialhits_reverse[0]
-#     elif len(potentialhits_forward)==0 and len(potentialhits_reverse)==0:
-#         potentialhits_forward=glob.glob(dr + '/' + filename +'*1.fastq.gz')
-#         potentialhits_reverse=glob.glob(dr + '/' + filename +'*2.fastq.gz')
-#         if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-#             fwd=potentialhits_forward[0]
-#             rev=potentialhits_reverse[0]
-#         elif len(potentialhits_forward)==0 and len(potentialhits_reverse)==0:
-#             potentialhits_forward=glob.glob(dr + '/' + filename +'*1.fastq')
-#             potentialhits_reverse=glob.glob(dr + '/' + filename +'*2.fastq')
-#             if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-#                 subprocess.run("gzip " + potentialhits_forward[0], shell=True)
-#     # wildcards: sampleID=20221
-#     # resources: mem_mb=1000, disk_mb=1000, tmpdir=/tmp
-#                 subprocess.run("gzip " + potentialhits_reverse[0], shell=True)
-#                 fwd=potentialhits_forward[0]+'.gz'
-#                 rev=potentialhits_reverse[0]+'.gz'
-#             else:
-#                 foldername=glob.glob(dr + '/' + filename + '*')
-#                 if foldername and os.path.isdir(foldername[0]):
-#                     foldername=foldername[0]
-#                     potentialhits_forward=glob.glob(foldername + '/*' + filename + '*1*.fastq.gz')
-#                     potentialhits_reverse=glob.glob(foldername + '/*' + filename + '*2*.fastq.gz')
-#                     if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-#                         fwd=potentialhits_forward[0]
-#                         rev=potentialhits_reverse[0]
-#                     elif len(potentialhits_forward)==0 and len(potentialhits_reverse)==0:
-#                         print(foldername + '/*' + filename + '*2*.fastq.gz')
-#                         potentialhits_forward=glob.glob(foldername +  '/*' + filename + '*1*.fastq')
-#                         potentialhits_reverse=glob.glob(foldername + '/*' + filename + '*2*.fastq')
-#                         if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-#                             subprocess.run("gzip " + potentialhits_forward[0], shell=True)
-#                             subprocess.run("gzip " + potentialhits_reverse[0], shell=True)
-#                             fwd=potentialhits_forward[0]+'.gz'
-#                             rev=potentialhits_reverse[0]+'.gz'
-#     if not(fwd) or not(rev):
-#         raise ValueError('Either no file or more than 1 file found in ' + dr + 'for ' + ID)
-#     ##make read only --- addition 20220415 by Jonathan (jdg)
-#     subprocess.run("chmod 444 " + fwd, shell=True)
-#     subprocess.run("chmod 444 " + rev, shell=True)
-#     ##zip fastq files if they aren't already zipped
-#     subprocess.run("gzip " + fwd, shell=True)
-#     subprocess.run("gzip " + rev, shell=True)
-#     return [fwd, rev]
+    ##zip fastq files if they aren't already zipped
+    if fwd[-3:] != '.gz':
+        subprocess.run("gzip " + fwd, shell=True) 
+        fwd=fwd+'.gz'
+    if rev[-3:] != '.gz':
+        subprocess.run("gzip " + rev, shell=True)
+        rev=rev+'.gz'
+    return [fwd, rev]
 
 def makelink(path,sample,filename,output_dir):
     #When sample is run on a single lane
     #File name can be either a COMPLETE directory name or a file name in batch(called path in this fx)
     [fwd_file, rev_file]=findfastqfile(path,sample, filename)
-    # subprocess.run('ln -s -T ' + fwd_file + ' data/' + sample + '/R1.fq.gz', shell=Trueq)    
-    # subprocess.run('ln -s -T ' + rev_file + ' data/' + sample + '/R2.fq.gz', shell=True)    
-    
+    if not fwd_file.startswith('/') and not fwd_file.startswith('~/'):
+        fwd_file = os.getcwd() + '/' + fwd_file
+    if not rev_file.startswith('/') and not rev_file.startswith('~/'):
+        rev_file = os.getcwd() + '/' + rev_file
+    print(f"ln -s -T {fwd_file} {output_dir}/{sample}/R1.fq.gz")   
+    print(f"ln -s -T {rev_file} {output_dir}/{sample}/R2.fq.gz")
     subprocess.run(f"ln -s -T {fwd_file} {output_dir}/{sample}/R1.fq.gz", shell=True)    
     subprocess.run(f"ln -s -T {rev_file} {output_dir}/{sample}/R2.fq.gz", shell=True)    
 
@@ -222,8 +192,8 @@ def cp_append_files(paths,sample,filename,output_dir):
         rev_list=rev_list+ ' ' + rev_file
         print(rev_list)
         print(fwd_list)
-    subprocess.run("zcat " + fwd_list + ' | gzip > ' + output_dir + '/' +  sample + '/R1.fq.gz', shell=True)
-    subprocess.run("zcat " + rev_list + ' | gzip > ' + output_dir + '/' +  sample + '/R2.fq.gz', shell=True)
+    subprocess.run(f"zcat {fwd_list} | gzip > {output_dir}/{sample}/R1.fq.gz", shell=True)
+    subprocess.run(f"zcat {rev_list} | gzip > {output_dir}/{sample}/R2.fq.gz", shell=True)
     
 
 def read_fasta(REFGENOME_DIR): 
@@ -298,6 +268,7 @@ def p2chrpos(p, ChrStarts):
         chrpos = np.column_stack((chromo,p))
     return chrpos
 
+#TODO: remove if not necessary
 
 # def get_clade_wildcards(cladeID):
 #     is_clade = [int(i == cladeID) for i in GROUP_ls]
@@ -316,17 +287,17 @@ def p2chrpos(p, ChrStarts):
 
 # def get_positions_prep(wildcards):
 #     sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
-#     mat_positions_prep=expand("Case/temp/{sampleID}_ref_{reference}_outgroup{outgroup}_positions.pickle",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
+#     mat_positions_prep=expand("Case/temp/{sampleID}_ref_{reference}_outgroup{outgroup}_positions.npz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
 #     return mat_positions_prep
 
 # def get_diversity(wildcards):
 #     sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
-#     diversity_mat = expand("Mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.diversity.pickle.gz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
+#     diversity_mat = expand("Mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.diversity.npz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
 #     return diversity_mat   
 
 # def get_quals(wildcards):
 #     sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
-#     quals_mat = expand("Mapping/quals/{sampleID}_ref_{reference}_outgroup{outgroup}.quals.pickle.gz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
+#     quals_mat = expand("Mapping/quals/{sampleID}_ref_{reference}_outgroup{outgroup}.quals.npz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
 #     return quals_mat 
 
 # def get_ref_genome(wildcards):

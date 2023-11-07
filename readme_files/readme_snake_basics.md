@@ -125,11 +125,11 @@ Below are some tips on running Snakemake through the command line.
 
 For reproducibility, we recommend running Snakemake through the files provided (`myjob.slurm` and `snakemakeslurm.sh`). We do not recommend running Snakemake directly from the command line. For more information, see [How to run the snakemake pipeline](readme_snake_run.md).
 
-If your pipeline gets unexpectedly aborted or cancelled, you may need to unlock your Snakemake directory (`snakemake --unlock -s Snakefile.py`). Do NOT attempt this unless you are certain Snakemake is no longer running.
+If your pipeline gets unexpectedly aborted or cancelled, you may need to unlock your Snakemake directory (`snakemake --unlock -s Snakefile`). Do NOT attempt this unless you are certain Snakemake is no longer running.
 
 ### Dry runs
 
-We strongly recommend running a dryrun (`snakemake -s Snakefile.py -n -p -c1`) before batching your Snakemake pipeline to the cluster. This will print a list of jobs that Snakemake is planning to execute. 
+We strongly recommend running a dryrun (`snakemake -s Snakefile -n -p -c1`) before batching your Snakemake pipeline to the cluster. This will print a list of jobs that Snakemake is planning to execute. 
 
 ### Visualizing a Snakemake pipeline
 

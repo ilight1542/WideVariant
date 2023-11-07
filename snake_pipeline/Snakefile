@@ -1,0 +1,177 @@
+# SNAKEMAKE WIDEVARIANT
+
+
+
+''' GLOBAL '''
+import sys
+
+# Global variables: In theory do not need to be changed
+CURRENT_DIRECTORY = os.getcwd()
+REF_GENOME_DIRECTORY = config["ref_genome_directory"]
+SCRIPTS_DIRECTORY = config["myscripts_directory"]
+
+PIPELINE_SPECIFICATIONS = config["pipeline_specifications"]
+PIPELINE_SPECIFICATIONS = [steps.lower() for steps in PIPELINE_SPECIFICATIONS]
+
+GENERATE_NORMALIZED_COVERAGE_MATRIX = config["generate_normalized_coverage_matrix"]
+GENERATE_RAW_COVERAGE_MATRIX = config["generate_raw_coverage_matrix"]
+
+KRAKEN_BRACKEN_DB = config["krakenbracken_db"]
+KRAKEN_BRACKEN_DB_RL = config["krakenbracken_db_readlength"]
+
+sys.path.insert(0, SCRIPTS_DIRECTORY)
+spls = config["sample_table"]
+
+from gus_helper_functions import *
+from itertools import compress
+
+
+''' PRE-SNAKEMAKE '''
+
+# Extract info from samples.csv
+# Format: Path,Sample,FileName,Reference,Group,Outgroup
+# Required fields for each mode:
+    # all: Path,Sample,FileName,Reference,Group,Outgroup
+    # mapping: Path,Sample,FileName,Reference,Outgroup
+    # case: Path,Sample,Reference,Group,Outgroup
+    # assembly: Path,Sample,FileName,Reference
+    # bracken: Path,Sample,FileName,Reference
+[PATH_ls, SAMPLE_ls, FILENAME_ls, REF_Genome_ls, GROUP_ls, OUTGROUP_ls] = read_samples_CSV(spls)
+
+# Write sample_info.csv for each sample
+split_samplesCSV(PATH_ls, SAMPLE_ls, FILENAME_ls, REF_Genome_ls, GROUP_ls, OUTGROUP_ls, 'results/data/')
+
+UNIQ_GROUP_ls = set(GROUP_ls)
+
+
+
+''' FUNCTIONS '''
+
+def get_clade_wildcards(cladeID):
+    is_clade = [int(i == cladeID) for i in GROUP_ls]
+    sampleID_clade = list(compress(SAMPLE_ls,is_clade))
+    reference_clade = list(compress(REF_Genome_ls,is_clade))
+    outgroup_clade = list(compress(OUTGROUP_ls,is_clade))
+    return sampleID_clade,reference_clade,outgroup_clade
+    
+def get_sampleID_names(wildcards):  
+    sampleID_clade,_,_ = get_clade_wildcards(wildcards.cladeID)
+    return sampleID_clade
+
+def get_outgroup_bool(wildcards):  
+    _,_,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
+    return outgroup_clade
+
+def get_positions_prep(wildcards):
+    sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
+    mat_positions_prep=expand("results/2-case/temp/{sampleID}_ref_{reference}_outgroup{outgroup}_positions.npz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
+    return mat_positions_prep
+
+def get_diversity(wildcards):
+    sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
+    diversity_mat = expand("results/1-mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.diversity.npz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
+    return diversity_mat   
+
+def get_quals(wildcards):
+    sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
+    quals_mat = expand("results/1-mapping/quals/{sampleID}_ref_{reference}_outgroup{outgroup}.quals.npz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
+    return quals_mat 
+
+def get_ref_genome(wildcards):
+    sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
+    ref = expand(REF_GENOME_DIRECTORY+"/{reference}/",reference=set(reference_clade))
+    return ref
+
+def get_bt2qc_input(wildcards):
+    sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.reference)
+    bt2_logs = expand("results/1-mapping/bowtie2/bowtie2_{sampleID}_ref_{reference}.txt",zip,sampleID=sampleID_clade, reference=reference_clade )
+    return bt2_logs
+
+
+# Define a list of output files: snakemake will deterimine which pipeline steps need to be executed in order to generate the output files requested
+input_all=[]
+if ("mapping" in PIPELINE_SPECIFICATIONS):
+    input_all.append(expand("results/1-mapping/quals/{sampleID}_ref_{references}_outgroup{outgroup}.quals.npz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
+    input_all.append(expand("results/1-mapping/diversity/{sampleID}_ref_{references}_outgroup{outgroup}.diversity.npz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
+    input_all.append(expand("results/1-mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(REF_Genome_ls)))
+if ("case" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
+    input_all.append(expand("results/2-case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz",cladeID=UNIQ_GROUP_ls))
+    # Include the following two lines ONLY if you also want coverage matrices. 
+    if GENERATE_NORMALIZED_COVERAGE_MATRIX:
+        input_all.append(expand("results/2-case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.npz",cladeID=UNIQ_GROUP_ls))
+    if GENERATE_RAW_COVERAGE_MATRIX:
+        input_all.append(expand("results/2-case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.npz",cladeID=UNIQ_GROUP_ls))
+if ("bracken" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
+    input_all.append(expand("results/kraken/bracken/{sampleID}.bracken",sampleID=SAMPLE_ls))
+if ("assembly" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
+    input_all.append("results/assembly/orthologinfo_filtered/annotation_orthologs.tsv")
+
+
+''' INCLUDE RULES '''
+
+# Makes symbolic links to data files
+if ("case" in PIPELINE_SPECIFICATIONS) and ("mapping" not in PIPELINE_SPECIFICATIONS):
+    include: 'rules/make_data_links_case.smk'
+    input_paths=expand("results/preprocessing/{sampleID}/R1_trim.fq.gz",sampleID=SAMPLE_ls)
+elif ("mapping" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
+    input_paths=expand("results/preprocessing/{sampleID}/R1_trim.fq.gz",sampleID=SAMPLE_ls)
+    for path,sample,filename in zip(PATH_ls,SAMPLE_ls,FILENAME_ls):
+        if isinstance(path, list) and len(path) > 1:
+            cp_append_files(path,sample,filename,'results/data')
+        else:
+            makelink(path,sample,filename,'results/data')
+    
+
+# DATA PROCESSING RULES####################################################################################################
+if ("mapping" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
+    # trim and filter reads
+    include: 'rules/trim_filter_reads.smk'
+    # Index reference genome for bowtie2
+    include: 'rules/index_ref.smk'
+    # Align processed reads to reference genome with bowtie2
+    include: 'rules/mapping.smk'
+    # QC of mapping performance
+    include: 'rules/mapping_qc.smk'
+    # Call variants and parse vcf and pileup file
+    include: 'rules/variant_calling.smk'
+
+
+# CASE STEP ####################################################################################################
+# Takes alignments of samples to reference genome, identifies candidate SNV positions, and summarizes stats at 
+# candidate SNV positions into a candidate mutation table
+# Option to collect information about read coverage over the whole genome and generate a coverage matrix
+
+if ("case" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
+    # Prepare input for candidate mutation table 
+    include: 'rules/pre_candidate_mutation_table.smk'
+    # generate candidate mutation table
+    include: 'rules/candidate_mut_table.smk'
+
+# ASSEMBLY STEP ####################################################################################################
+# Generates an annotated genome assembly reads from each sample
+
+if ("assembly" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
+    # Assemble a genome from reads from a given sample using SPAdes
+    include: 'rules/assembly.smk'
+    # Annotate genome
+    include: 'rules/annotate.smk'
+    # Infer orthologs
+    include: 'rules/infer_orthologs.smk'
+
+# results/kraken/BRACKEN ####################################################################################################
+# Estimates abundance of taxa in each sample using results/kraken/breacken
+
+if ("bracken" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
+
+    include: 'rules/kraken_bracken.smk'
+
+
+''' SNAKEMAKE '''
+
+rule all:
+    # Special snakemake rule that defines which output files need to be created by the pipeline. 
+    # Snakemake will only execute the steps (rules) necessary to create these output files.
+    input:
+        input_all,
+        input_paths
+

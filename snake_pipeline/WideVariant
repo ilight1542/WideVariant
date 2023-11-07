@@ -1,0 +1,109 @@
+#!/bin/bash
+#
+# Wrapper script for WideVariant Snakemake pipeline
+# 
+# Checks for dependencies (conda installed) and execution access
+# Checks for parameter set for end-user (eg email for error reporting)
+# 
+# Finally runs a final check of input (scripts/pre_snakemake_checks_script.py)
+# This ensure that pipeline-breaking errors are caught before jobs get run
+# 
+
+###############################################
+## CHECKS TO AUTOMATICALLY FIX FOR EXECUTION ##
+###############################################
+## Check if slurm_status_script.py is executable and change if not
+if [[ ! -x "scripts/slurm_status_script.py" ]]
+then
+    chmod +x scripts/slurm_status_script.py;
+fi
+
+if [[ ! -x "scripts/pre_snakemake_checks_script.py" ]]
+then
+    chmod +x scripts/pre_snakemake_checks_script.py;
+fi
+###############################################
+## CHECKS FOR PROMPT FIX PRIOR TO EXECUTION ##
+###############################################
+
+# Checks of config.yaml
+## Check if email has been updated
+email_update=$(grep "UPDATE_EMAIL_ADDRESS" config.yaml)
+if [[ ! ${#email_update} -eq 0 ]]; then
+    echo
+    echo "Please type your email address for error reporting from slurm, and click 'enter'"
+    read email
+    echo "Slurm will automatically send emails to ${email} if errors occur."
+    ## update email in config.yaml
+    sed -i "s/UPDATE_EMAIL_ADDRESS/$email/g" config.yaml
+    ## update email in run_snakemake.slurm
+    sed -i "s/UPDATE_EMAIL_ADDRESS/$email/g" scripts/run_snakemake.slurm
+fi
+
+
+## Conda checks
+activate_conda_path=$(echo $CONDA_EXE | sed 's#bin/conda#bin/activate#g')
+if [ -z $activate_conda_path ]
+then
+    echo "Error encountered. Exiting prior to start of snakemake."
+    echo "No conda path found! Do you have conda installed with the path encoded in variable CONDA_EXE? (check with `echo \$CONDA_EXE`)"
+    exit 1
+fi
+conda_envs_path=$(echo $CONDA_EXE | sed 's#bin/conda#envs#g' )
+update_conda_envs_path=$(grep "/PATH/TO/PRELOADED/CONDA/ENVS" config.yaml)
+if [[ ! ${#update_conda_envs_path} -eq 0 ]]
+then
+    echo
+    echo "No conda environment location set, updating to default identified with your conda installation."
+    echo "${conda_envs_path} will be used as the location to search for preloaded conda environments and cache pipeline-specific conda environments."
+    echo "If you wish to designate an alternate location, please do so by modifying the 'conda-prefix' entry in config.yaml"
+    sed -i "s#/PATH/TO/PRELOADED/CONDA/ENVS#$conda_envs_path#g" config.yaml
+fi
+
+if [[ -d "${conda_envs_path}/widevariant" ]];then
+    source ${activate_conda_path} widevariant
+else
+    conda env create -n widevariant --file envs/widevariant.yaml
+    source ${activate_conda_path} widevariant
+fi
+
+conda config --set ssl_verify no
+
+
+## Generate paths necessary for snakemake to run
+mkdir -p logs
+
+# execute checking of pipeline consistency, file path checks
+
+if ! python scripts/pre_snakemake_checks_script.py -e experiment_info.yaml ; then
+    echo
+    echo "Errors encountered. Exiting prior to start of snakemake."
+    echo "Please correct errors and rerun!"
+    exit 1
+fi
+
+# gather remaining variable names for execution and logging purposes.
+experiment_name=$(grep "experiment_name" experiment_info.yaml | cut -d ':' -f2 )
+date=$(date --iso-8601)
+if grep -qi 'run_in_screen:[[:space:]]*true' experiment_info.yaml ; then     
+    run_in_screen=true
+else
+    run_in_screen=false
+fi
+
+# echo to stdout update, also write to main log file.
+echo 
+echo "The WideVariant Snakemake is all set to run!"
+echo 
+echo "Experiment name: ${experiment_name}"
+echo "Snakemake will commence at $date"
+
+### run snakemake
+# running in screen launches the pipeline from the current node, within a screen session.
+if $run_in_screen; then
+    echo "Starting a screen session to execute Snakemake locally..."
+    screen -d -m -S WideVariant bash -c "snakemake --profile . 2>&1 | tee logs/0_widevariant_main_local_${date}.log "
+else 
+    echo "Running Snakemake from a compute node."
+    sbatch scripts/run_snakemake.slurm
+fi

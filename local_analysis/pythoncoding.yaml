@@ -240,4 +240,3 @@ dependencies:
   - zstd=1.5.2=h582d3a0_0
   - pip:
     - bcbio-gff==0.6.9
-prefix: /Users/arolyn/miniconda3/envs/pythoncoding

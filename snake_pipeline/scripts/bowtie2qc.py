@@ -24,11 +24,12 @@ parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpForm
                                epilog="Questions or comments? --> aholton@mit.edu")
 parser.add_argument("-s", dest="samples", help="csv file with samples",required=True,action='store')
 parser.add_argument("-r", dest="refGenome", help="name of reference genome as string",required=True,action='store')
-parser.add_argument("-d", dest="currentDirectory", help="current directory of Snakefile", required=True, action="store")
+parser.add_argument("-m", dest="mappingstats", help="log file with bowtie2 mapping statistics", required = True, action="store")
 parser.add_argument("-o", dest="outfileString", help="name of outfile without file extension", required=True, action="store")
+parser.add_argument("-d", dest="currentDirectory", help="current directory of Snakefile", action="store", default=os.getcwd())
 args = parser.parse_args()
 
-def main(path_to_samples, reference_genome, current_directory, out_file_string):
+def main(path_to_samples, path_to_mappingsstats, reference_genome, current_directory, out_file_string):
 
     cwd = current_directory
     home_dir = cwd.split("/")[-1]
@@ -45,10 +46,9 @@ def main(path_to_samples, reference_genome, current_directory, out_file_string):
     alignment_stats["Percent Aligned Once"] = ""
     alignment_stats["Percent Overall Alignment"] = ""
 
-    # grab relevant info from log files
-    os.system("grep exactly 1-Mapping/bowtie2/bowtie2_*_ref_" + reference_genome + ".txt" " >> " + cwd + "/" + out_file_string + ".txt")
-    os.system("grep overall 1-Mapping/bowtie2/bowtie2_*_ref_" + reference_genome + ".txt" " >> " + cwd + "/" + out_file_string + ".txt") 
-
+    # grab relevant info from log files 
+    os.system(f"grep exactly {path_to_mappingsstats}/bowtie2_*_ref_{reference_genome}.txt >> {cwd}/{out_file_string}.txt")
+    os.system(f"grep overall {path_to_mappingsstats}/bowtie2_*_ref_{reference_genome}.txt >> {cwd}/{out_file_string}.txt") 
     sample_id_to_number_once  = {}        
     sample_id_to_percent_once = {}
     sample_id_to_overall      = {}
@@ -135,4 +135,6 @@ if __name__ == "__main__":
     reference_genome=args.refGenome
     current_directory=args.currentDirectory
     out_file_string=args.outfileString
-    main(path_to_samples, reference_genome, current_directory, out_file_string)
+    path_to_mappingsstats=args.mappingstats
+    main(path_to_samples, path_to_mappingsstats, reference_genome, current_directory, out_file_string)
+

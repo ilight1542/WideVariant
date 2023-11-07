@@ -1,4 +1,4 @@
-# WideVariant: Lieberman Lab SNP calling pipeline
+# WideVariant: Lieberman/Key Lab SNP calling pipeline
 
 
 ## Overview
