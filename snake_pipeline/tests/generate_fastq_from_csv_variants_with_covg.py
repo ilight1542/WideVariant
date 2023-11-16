@@ -91,7 +91,7 @@ def generate_reads_per_contig_necessary_for_coverages(input_coverage_csv,lengths
     return coverages_for_sample_dict
 
 def generate_reads_from_fasta(fasta_name, length, num_reads):
-    subprocess.run([f"wgsim -N {num_reads} -R 0 -1 {length} -2 {length} {fasta_name}.fasta {fasta_name}_R1.fq {fasta_name}_R2.fq"],shell=True)
+    subprocess.run([f"wgsim -N {num_reads} -e 0 -R 0 -1 {length} -2 {length} {fasta_name}.fasta {fasta_name}_R1.fq {fasta_name}_R2.fq"],shell=True)
 
 def combine_reads_across_contigs(sample_names,contig_names):
     for sample in sample_names:
