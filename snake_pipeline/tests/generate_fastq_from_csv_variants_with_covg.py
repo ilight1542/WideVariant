@@ -61,7 +61,6 @@ def generate_mutated_fastas(variants_boolean_csv,refgenome,basecalls_csv=None):
     contig_names, _, _, contig_seqs = parse_ref(refgenome)
     c_name_to_c_seqs=dict(zip(contig_names,contig_seqs))
     contig_pos=[x.split('_') for x in parsed_variants.columns]
-    samples=parsed_variants.index
     for sample_index,sample_variants in parsed_variants.iterrows():
         sample_variants_bool = np.array(sample_variants)
         for variant_position in np.where(sample_variants_bool)[0]:
