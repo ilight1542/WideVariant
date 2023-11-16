@@ -1,5 +1,5 @@
 import argparse
-import sys
+import os
 import pandas as pd
 import numpy as np
 import subprocess
@@ -16,6 +16,7 @@ parser.add_argument('-l', '--length', metavar='length', \
     required=False, help='length of reads to generate (each end)', \
     default= 150)
 parser.add_argument('-b', '--basecalls_csv',metavar='csv',required=False,help='specific ATCG mutations for the variant bool positions csv', default=None)
+parser.add_argument('-o', '--outgroup_csv',metavar='csv',required=False,help='specific ATCG mutations for the variant bool positions csv', default=None)
 
 args=parser.parse_args()
 
@@ -53,7 +54,6 @@ def generate_mutated_fastas(variants_boolean_csv,refgenome,basecalls_csv=None):
     """
     Parses variant positions in the variants boolean csv and outputs a new fasta file for each sample x contig for fasta generation
     """
-
     parsed_variants=pd.read_csv(variants_boolean_csv,header=0,index_col=0)
     if basecalls_csv:
         basecalls = pd.read_csv(variants_boolean_csv,header=0,index_col=0).values
@@ -90,15 +90,52 @@ def generate_reads_per_contig_necessary_for_coverages(input_coverage_csv,lengths
             coverages_for_sample_dict[f'{fasta_name}'] = int(value)
     return coverages_for_sample_dict
 
-def generate_reads_from_fasta(samplename, length, num_reads):
-    subprocess.run([f"wgsim -N {num_reads} -R 0 -1 {length} -2 {length} {samplename}.fasta {samplename}_R1.fq {samplename}_R2.fq"],shell=True)
+def generate_reads_from_fasta(fasta_name, length, num_reads):
+    subprocess.run([f"wgsim -N {num_reads} -R 0 -1 {length} -2 {length} {fasta_name}.fasta {fasta_name}_R1.fq {fasta_name}_R2.fq"],shell=True)
 
-def main(input_variants_csv,input_coverage_csv,input_basecalls_csv,length,reference):
+def combine_reads_across_contigs(coverage_csv):
+    parsed_covg=pd.read_csv(coverage_csv,header=0,index_col=0)
+    parsed_covg=parsed_covg[parsed_covg.columns[parsed_covg.columns != 'Covg total']]
+    sample_names=parsed_covg.index
+    contig_names=parsed_covg.columns
+    for sample in sample_names:
+        input_files_R1=[f'sample_{sample}_contig_{c}_R1.fq' for c in contig_names]
+        input_files_R2=[f'sample_{sample}_contig_{c}_R2.fq' for c in contig_names]
+        command_R1 = f"cat {' '.join(input_files_R1)} > {sample}_R1.fq"
+        command_R2 = f"cat {' '.join(input_files_R2)} > {sample}_R2.fq"
+        # Execute the shell command
+        subprocess.run(command_R1, shell=True)
+        subprocess.run(command_R2, shell=True)
+
+def prepare_samples_csv(sample_names,reference,outgroups):
+    cwd=os.getcwd()
+    with open('samples.csv','w') as f:
+        f.write('Path,Sample,FileName,Reference,Group,Outgroup\n')
+        for sample,outgroup in zip(sample_names,outgroups):
+            f.write(f'{cwd},{sample},{sample},{reference},1,{outgroup}\n')
+
+
+def get_sample_names_contig_names_outgroups(coverage_csv,outgroup_csv):
+    parsed_covg=pd.read_csv(coverage_csv,header=0,index_col=0)
+    parsed_covg=parsed_covg[parsed_covg.columns[parsed_covg.columns != 'Covg total']]
+    sample_names=parsed_covg.index
+    contig_names=parsed_covg.columns
+    if outgroup_csv == None:
+        outgroup_ids = [0 for s in sample_names]
+    else:
+        parsed_outgroup=pd.read_csv(outgroup_csv,header=0,index_col=0)
+        outgroup_ids=parsed_outgroup['Outgroup']
+    return sample_names,contig_names,outgroup_ids
+
+def main(input_variants_csv,input_coverage_csv,input_basecalls_csv,input_outgroup_csv,length,reference):
+    sample_names,contig_names,outgroup_ids = get_sample_names_contig_names_outgroups(input_coverage_csv,input_outgroup_csv)
     generate_mutated_fastas(input_variants_csv, reference,input_basecalls_csv)
     coverages_for_samples_dict = generate_reads_per_contig_necessary_for_coverages(input_coverage_csv,length,reference)
     for sample_contig_to_output in coverages_for_samples_dict:
         num_reads=coverages_for_samples_dict[sample_contig_to_output]
         generate_reads_from_fasta(sample_contig_to_output, length, num_reads)
+    combine_reads_across_contigs(sample_names,contig_names)
+    prepare_samples_csv(sample_names,outgroup_ids)
 
 if __name__ == '__main__':
     main(args.input_variants_csv,args.input_coverage_csv,args.basecalls_csv,args.length,args.reference)
