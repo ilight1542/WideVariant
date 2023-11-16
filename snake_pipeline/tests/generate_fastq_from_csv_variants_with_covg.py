@@ -110,7 +110,6 @@ def prepare_samples_csv(sample_names,reference,outgroups):
         for sample,outgroup in zip(sample_names,outgroups):
             f.write(f'{cwd},{sample},{sample},{reference},1,{outgroup}\n')
 
-
 def get_sample_names_contig_names_outgroups(coverage_csv,outgroup_csv):
     parsed_covg=pd.read_csv(coverage_csv,header=0,index_col=0)
     parsed_covg=parsed_covg[parsed_covg.columns[parsed_covg.columns != 'Covg total']]
@@ -131,7 +130,7 @@ def main(input_variants_csv,input_coverage_csv,input_basecalls_csv,input_outgrou
         num_reads=coverages_for_samples_dict[sample_contig_to_output]
         generate_reads_from_fasta(sample_contig_to_output, length, num_reads)
     combine_reads_across_contigs(sample_names,contig_names)
-    prepare_samples_csv(sample_names,outgroup_ids)
+    prepare_samples_csv(sample_names,reference,outgroup_ids)
 
 if __name__ == '__main__':
     main(args.input_variants_csv,args.input_coverage_csv,args.basecalls_csv,args.outgroup_csv,args.length,args.reference)
