@@ -138,4 +138,4 @@ def main(input_variants_csv,input_coverage_csv,input_basecalls_csv,input_outgrou
     prepare_samples_csv(sample_names,outgroup_ids)
 
 if __name__ == '__main__':
-    main(args.input_variants_csv,args.input_coverage_csv,args.basecalls_csv,args.length,args.reference)
+    main(args.input_variants_csv,args.input_coverage_csv,args.basecalls_csv,args.outgroup_csv,args.length,args.reference)
