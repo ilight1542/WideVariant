@@ -97,8 +97,8 @@ def combine_reads_across_contigs(sample_names,contig_names):
     for sample in sample_names:
         input_files_R1=[f'sample_{sample}_contig_{c}_R1.fq' for c in contig_names]
         input_files_R2=[f'sample_{sample}_contig_{c}_R2.fq' for c in contig_names]
-        command_R1 = f"cat {' '.join(input_files_R1)} > {sample}_R1.fq"
-        command_R2 = f"cat {' '.join(input_files_R2)} > {sample}_R2.fq"
+        command_R1 = f"cat {' '.join(input_files_R1)} > {sample}_R1.fastq"
+        command_R2 = f"cat {' '.join(input_files_R2)} > {sample}_R2.fastq"
         # Execute the shell command
         subprocess.run(command_R1, shell=True)
         subprocess.run(command_R2, shell=True)
