@@ -93,11 +93,7 @@ def generate_reads_per_contig_necessary_for_coverages(input_coverage_csv,lengths
 def generate_reads_from_fasta(fasta_name, length, num_reads):
     subprocess.run([f"wgsim -N {num_reads} -R 0 -1 {length} -2 {length} {fasta_name}.fasta {fasta_name}_R1.fq {fasta_name}_R2.fq"],shell=True)
 
-def combine_reads_across_contigs(coverage_csv):
-    parsed_covg=pd.read_csv(coverage_csv,header=0,index_col=0)
-    parsed_covg=parsed_covg[parsed_covg.columns[parsed_covg.columns != 'Covg total']]
-    sample_names=parsed_covg.index
-    contig_names=parsed_covg.columns
+def combine_reads_across_contigs(sample_names,contig_names):
     for sample in sample_names:
         input_files_R1=[f'sample_{sample}_contig_{c}_R1.fq' for c in contig_names]
         input_files_R2=[f'sample_{sample}_contig_{c}_R2.fq' for c in contig_names]
