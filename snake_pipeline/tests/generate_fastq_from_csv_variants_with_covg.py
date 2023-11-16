@@ -57,6 +57,7 @@ def generate_mutated_fastas(variants_boolean_csv,refgenome,basecalls_csv=None):
     parsed_variants=pd.read_csv(variants_boolean_csv,header=0,index_col=0)
     if basecalls_csv:
         basecalls = pd.read_csv(variants_boolean_csv,header=0,index_col=0).values
+    else: basecalls = None
     contig_names, _, _, contig_seqs = parse_ref(refgenome)
     c_name_to_c_seqs=dict(zip(contig_names,contig_seqs))
     contig_pos=[x.split('_') for x in parsed_variants.columns]
@@ -65,30 +66,29 @@ def generate_mutated_fastas(variants_boolean_csv,refgenome,basecalls_csv=None):
         sample_variants_bool = np.array(sample_variants)
         for variant_position in np.where(sample_variants_bool)[0]:
             c_name,c_seq_idx=contig_pos[variant_position]
-            ref = c_name_to_c_seqs[c_name][c_seq_idx]
+            ref = c_name_to_c_seqs[c_name][int(c_seq_idx)]
             if basecalls == None:
                 alt = iter_variant(ref)
             else:
                 alt = basecalls[sample_index,variant_position]
-            c_name_to_c_seqs[c_name][c_seq_idx] = alt
+        c_name_to_c_seqs[c_name] = c_name_to_c_seqs[c_name][:int(c_seq_idx)] + alt + c_name_to_c_seqs[c_name][int(c_seq_idx)+1:]
         for c_name in c_name_to_c_seqs:
             seq=c_name_to_c_seqs[c_name]
-            seq_to_output = SeqRecord.SeqRecord(Seq(seq), id={c_name}, description=f'Mutated contig_{c_name}')
-            fasta_name=generate_fasta_name(samples[sample_index], c_name)
-        SeqIO.write(seq_to_output, f'{fasta_name}.fasta', "fasta")
+            seq_to_output = SeqRecord.SeqRecord(Seq.Seq(seq), id=f'{c_name}', description=f'Mutated contig_{c_name}')
+            fasta_name=generate_fasta_name(sample_index, c_name)
+            SeqIO.write(seq_to_output, f'{fasta_name}.fasta', "fasta")
 
 def generate_reads_per_contig_necessary_for_coverages(input_coverage_csv,lengths,reference):
-    parsed_coverages=pd.read_csv(input_coverage_csv,header=1,index=True)
+    parsed_coverages=pd.read_csv(input_coverage_csv,header=0,index_col=0)
     coverages_for_sample_dict={}
     contig_names,contig_lengths,_,_=parse_ref(reference)
-    total_length_readpairs=lengths*2
-    for _,r in parsed_coverages.iterrows():
-        samplename=r.index
+    total_length_readpairs=int(lengths)*2
+    for samplename,r in parsed_coverages.iterrows():
         covg_total=r['Covg total']
-        reads_needed_per_contig=[ (r[c_name]*covg_total*c_length)/total_length_readpairs for c_name,c_length in zip(contig_names,contig_lengths) ]
+        reads_needed_per_contig=[ (float(r[c_name])*float(covg_total)*int(c_length))/total_length_readpairs for c_name,c_length in zip(contig_names,contig_lengths) ]
         for index,value in enumerate(reads_needed_per_contig):
             fasta_name=generate_fasta_name(samplename, contig_names[index])
-            coverages_for_sample_dict[f'{fasta_name}'] = value
+            coverages_for_sample_dict[f'{fasta_name}'] = int(value)
     return coverages_for_sample_dict
 
 def generate_reads_from_fasta(samplename, length, num_reads):
@@ -102,4 +102,4 @@ def main(input_variants_csv,input_coverage_csv,input_basecalls_csv,length,refere
         generate_reads_from_fasta(sample_contig_to_output, length, num_reads)
 
 if __name__ == '__main__':
-    main(input.input_variants_csv,input.input_coverage_csv,input.basecalls_csv,input.length,input.reference)
+    main(args.input_variants_csv,args.input_coverage_csv,args.basecalls_csv,args.length,args.reference)
