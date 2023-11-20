@@ -62,10 +62,10 @@ def generate_mutated_fastas(variants_boolean_csv,refgenome,basecalls_csv=None):
     if basecalls_csv:
         basecalls = pd.read_csv(variants_boolean_csv,header=0,index_col=0).values
     else: basecalls = None
+    contig_pos=[x.split('_') for x in parsed_variants.columns]
     for sample_index,sample_variants in parsed_variants.iterrows():
         contig_names, _, _, contig_seqs = parse_ref(refgenome)
         c_name_to_c_seqs=dict(zip(contig_names,contig_seqs))
-        contig_pos=[x.split('_') for x in parsed_variants.columns]
         sample_variants_bool = np.array(sample_variants)
         for variant_position in np.where(sample_variants_bool)[0]:
             c_name,c_seq_idx=contig_pos[variant_position]
@@ -74,7 +74,7 @@ def generate_mutated_fastas(variants_boolean_csv,refgenome,basecalls_csv=None):
                 alt = iter_variant(ref)
             else:
                 alt = basecalls[sample_index,variant_position]
-        c_name_to_c_seqs[c_name] = c_name_to_c_seqs[c_name][:int(c_seq_idx)] + alt + c_name_to_c_seqs[c_name][int(c_seq_idx)+1:]
+            c_name_to_c_seqs[c_name] = c_name_to_c_seqs[c_name][:int(c_seq_idx)] + alt + c_name_to_c_seqs[c_name][int(c_seq_idx)+1:]
         for c_name in c_name_to_c_seqs:
             seq=c_name_to_c_seqs[c_name]
             seq_to_output = SeqRecord.SeqRecord(Seq.Seq(seq), id=f'{c_name}', description=f'Mutated contig_{c_name}')
