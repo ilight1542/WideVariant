@@ -54,6 +54,10 @@ def generate_mutated_fastas(variants_boolean_csv,refgenome,basecalls_csv=None):
     """
     Parses variant positions in the variants boolean csv and outputs a new fasta file for each sample x contig for fasta generation
     """
+    if not os.path.isdir("tmp"): 
+        # if the demo_folder2 directory is  
+        # not present then create it. 
+        os.makedirs("tmp") 
     parsed_variants=pd.read_csv(variants_boolean_csv,header=0,index_col=0)
     if basecalls_csv:
         basecalls = pd.read_csv(variants_boolean_csv,header=0,index_col=0).values
@@ -75,7 +79,7 @@ def generate_mutated_fastas(variants_boolean_csv,refgenome,basecalls_csv=None):
             seq=c_name_to_c_seqs[c_name]
             seq_to_output = SeqRecord.SeqRecord(Seq.Seq(seq), id=f'{c_name}', description=f'Mutated contig_{c_name}')
             fasta_name=generate_fasta_name(sample_index, c_name)
-            SeqIO.write(seq_to_output, f'{fasta_name}.fasta', "fasta")
+            SeqIO.write(seq_to_output, f'tmp/{fasta_name}.fasta', "fasta")
 
 def generate_reads_per_contig_necessary_for_coverages(input_coverage_csv,lengths,reference):
     parsed_coverages=pd.read_csv(input_coverage_csv,header=0,index_col=0)
@@ -91,24 +95,25 @@ def generate_reads_per_contig_necessary_for_coverages(input_coverage_csv,lengths
     return coverages_for_sample_dict
 
 def generate_reads_from_fasta(fasta_name, length, num_reads):
-    subprocess.run([f"wgsim -N {num_reads} -e 0 -R 0 -1 {length} -2 {length} {fasta_name}.fasta {fasta_name}_R1.fq {fasta_name}_R2.fq"],shell=True)
+    subprocess.run([f"q -N {num_reads} -e 0 -R 0 -1 {length} -2 {length} tmp/{fasta_name}.fasta tmp/{fasta_name}_R1.fq tmp/{fasta_name}_R2.fq"],shell=True)
 
 def combine_reads_across_contigs(sample_names,contig_names):
     for sample in sample_names:
-        input_files_R1=[f'sample_{sample}_contig_{c}_R1.fq' for c in contig_names]
-        input_files_R2=[f'sample_{sample}_contig_{c}_R2.fq' for c in contig_names]
-        command_R1 = f"cat {' '.join(input_files_R1)} > {sample}_R1.fastq"
-        command_R2 = f"cat {' '.join(input_files_R2)} > {sample}_R2.fastq"
+        input_files_R1=[f'tmp/sample_{sample}_contig_{c}_R1.fq' for c in contig_names]
+        input_files_R2=[f'tmp/sample_{sample}_contig_{c}_R2.fq' for c in contig_names]
+        command_R1 = f"cat {' '.join(input_files_R1)} > final_fastq_files/{sample}_R1.fastq"
+        command_R2 = f"cat {' '.join(input_files_R2)} > final_fastq_files/{sample}_R2.fastq"
         # Execute the shell command
         subprocess.run(command_R1, shell=True)
         subprocess.run(command_R2, shell=True)
 
 def prepare_samples_csv(sample_names,reference,outgroups):
     cwd=os.getcwd()
+    reference_name=reference.split('/')[-1]
     with open('samples.csv','w') as f:
         f.write('Path,Sample,FileName,Reference,Group,Outgroup\n')
         for sample,outgroup in zip(sample_names,outgroups):
-            f.write(f'{cwd},{sample},{sample},{reference},1,{outgroup}\n')
+            f.write(f'{cwd}/final_fastq_files,{sample},{sample},{reference_name},1,{outgroup}\n')
 
 def get_sample_names_contig_names_outgroups(coverage_csv,outgroup_csv):
     parsed_covg=pd.read_csv(coverage_csv,header=0,index_col=0)
