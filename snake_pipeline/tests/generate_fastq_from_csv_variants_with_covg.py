@@ -98,6 +98,11 @@ def generate_reads_from_fasta(fasta_name, length, num_reads):
     subprocess.run([f"q -N {num_reads} -e 0 -R 0 -1 {length} -2 {length} tmp/{fasta_name}.fasta tmp/{fasta_name}_R1.fq tmp/{fasta_name}_R2.fq"],shell=True)
 
 def combine_reads_across_contigs(sample_names,contig_names):
+    if not os.path.isdir("final_fastq_files"): 
+        # if the demo_folder2 directory is  
+        # not present then create it. 
+        os.makedirs("final_fastq_files") 
+
     for sample in sample_names:
         input_files_R1=[f'tmp/sample_{sample}_contig_{c}_R1.fq' for c in contig_names]
         input_files_R2=[f'tmp/sample_{sample}_contig_{c}_R2.fq' for c in contig_names]
