@@ -62,10 +62,10 @@ def generate_mutated_fastas(variants_boolean_csv,refgenome,basecalls_csv=None):
     if basecalls_csv:
         basecalls = pd.read_csv(variants_boolean_csv,header=0,index_col=0).values
     else: basecalls = None
-    contig_names, _, _, contig_seqs = parse_ref(refgenome)
-    c_name_to_c_seqs=dict(zip(contig_names,contig_seqs))
-    contig_pos=[x.split('_') for x in parsed_variants.columns]
     for sample_index,sample_variants in parsed_variants.iterrows():
+        contig_names, _, _, contig_seqs = parse_ref(refgenome)
+        c_name_to_c_seqs=dict(zip(contig_names,contig_seqs))
+        contig_pos=[x.split('_') for x in parsed_variants.columns]
         sample_variants_bool = np.array(sample_variants)
         for variant_position in np.where(sample_variants_bool)[0]:
             c_name,c_seq_idx=contig_pos[variant_position]
@@ -111,10 +111,12 @@ def combine_reads_across_contigs(sample_names,contig_names):
         # Execute the shell command
         subprocess.run(command_R1, shell=True)
         subprocess.run(command_R2, shell=True)
+    subprocess.run('gzip final_fastq_files/*.fastq')
 
 def prepare_samples_csv(sample_names,reference,outgroups):
     cwd=os.getcwd()
-    reference_name=reference.split('/')[-1]
+    reference_full_path=f'{cwd}/{reference}'
+    reference_name=reference.split('/')[-2]
     with open('samples.csv','w') as f:
         f.write('Path,Sample,FileName,Reference,Group,Outgroup\n')
         for sample,outgroup in zip(sample_names,outgroups):
