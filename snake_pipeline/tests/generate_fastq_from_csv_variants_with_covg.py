@@ -111,8 +111,8 @@ def combine_reads_across_contigs(sample_names,contig_names):
         # Execute the shell command
         subprocess.run(command_cat_R1, shell=True)
         subprocess.run(command_cat_R2, shell=True)
-        subprocess.run('gzip final_fastq_files/{sample}_R1.fastq', shell=True)
-        subprocess.run('gzip final_fastq_files/{sample}_R2.fastq', shell=True)
+        subprocess.run(f'gzip final_fastq_files/{sample}_R1.fastq', shell=True)
+        subprocess.run(f'gzip final_fastq_files/{sample}_R2.fastq', shell=True)
 
 def prepare_samples_csv(sample_names,reference,outgroups):
     cwd=os.getcwd()
