@@ -106,12 +106,13 @@ def combine_reads_across_contigs(sample_names,contig_names):
     for sample in sample_names:
         input_files_R1=[f'tmp/sample_{sample}_contig_{c}_R1.fq' for c in contig_names]
         input_files_R2=[f'tmp/sample_{sample}_contig_{c}_R2.fq' for c in contig_names]
-        command_R1 = f"cat {' '.join(input_files_R1)} > final_fastq_files/{sample}_R1.fastq"
-        command_R2 = f"cat {' '.join(input_files_R2)} > final_fastq_files/{sample}_R2.fastq"
+        command_cat_R1 = f"cat {' '.join(input_files_R1)} > final_fastq_files/{sample}_R1.fastq"
+        command_cat_R2 = f"cat {' '.join(input_files_R2)} > final_fastq_files/{sample}_R2.fastq"
         # Execute the shell command
-        subprocess.run(command_R1, shell=True)
-        subprocess.run(command_R2, shell=True)
-    subprocess.run('gzip final_fastq_files/*.fastq')
+        subprocess.run(command_cat_R1, shell=True)
+        subprocess.run(command_cat_R2, shell=True)
+        subprocess.run('gzip final_fastq_files/{sample}_R1.fastq', shell=True)
+        subprocess.run('gzip final_fastq_files/{sample}_R2.fastq', shell=True)
 
 def prepare_samples_csv(sample_names,reference,outgroups):
     cwd=os.getcwd()
