@@ -103,7 +103,7 @@ def combine_reads_across_contigs(experiment_name,sample_names,contig_names):
         # if the demo_folder2 directory is  
         # not present then create it. 
         os.makedirs(f"{experiment_name}") 
-    for samplename in sample_names:
+    for sample in sample_names:
         input_files_R1=[f'tmp/{experiment_name}_sample_{sample}_contig_{c}_R1.fq' for c in contig_names]
         input_files_R2=[f'tmp/{experiment_name}_sample_{sample}_contig_{c}_R2.fq' for c in contig_names]
         command_cat_R1 = f"cat {' '.join(input_files_R1)} > {experiment_name}/{sample}_R1.fastq"
