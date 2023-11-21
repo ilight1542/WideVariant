@@ -6,6 +6,7 @@ import subprocess
 from Bio import SeqIO,SeqRecord,Seq
 
 parser = argparse.ArgumentParser(description='Generator for SNPs from a given CSV. Fields, -i')
+parser.add_argument('-n','--name', metavar='str', required=True, help='name of run/experiment')
 parser.add_argument('-i', '--input_variants_csv', metavar='csv', \
     required=True, help="variants boolean csv")
 parser.add_argument('-c', '--input_coverage_csv', metavar='csv', \
@@ -95,33 +96,50 @@ def generate_reads_per_contig_necessary_for_coverages(input_coverage_csv,lengths
     return coverages_for_sample_dict
 
 def generate_reads_from_fasta(fasta_name, length, num_reads):
-    subprocess.run([f"wgsim -N {num_reads} -e 0 -R 0 -1 {length} -2 {length} tmp/{fasta_name}.fasta tmp/{fasta_name}_R1.fq tmp/{fasta_name}_R2.fq"],shell=True)
+    subprocess.run([f"wgsim -N {num_reads} -r 0 -e 0 -R 0 -1 {length} -2 {length} tmp/{fasta_name}.fasta tmp/{fasta_name}_R1.fq tmp/{fasta_name}_R2.fq"],shell=True)
 
-def combine_reads_across_contigs(sample_names,contig_names):
-    if not os.path.isdir("final_fastq_files"): 
+def combine_reads_across_contigs(experiment_name,sample_names,contig_names):
+    if not os.path.isdir(f"{experiment_name}"): 
         # if the demo_folder2 directory is  
         # not present then create it. 
-        os.makedirs("final_fastq_files") 
-
+        os.makedirs(f"{experiment_name}") 
     for sample in sample_names:
-        input_files_R1=[f'tmp/sample_{sample}_contig_{c}_R1.fq' for c in contig_names]
-        input_files_R2=[f'tmp/sample_{sample}_contig_{c}_R2.fq' for c in contig_names]
-        command_cat_R1 = f"cat {' '.join(input_files_R1)} > final_fastq_files/{sample}_R1.fastq"
-        command_cat_R2 = f"cat {' '.join(input_files_R2)} > final_fastq_files/{sample}_R2.fastq"
+        input_files_R1=[f'tmp/{experiment_name}_sample_{sample}_contig_{c}_R1.fq' for c in contig_names]
+        input_files_R2=[f'tmp/{experiment_name}_sample_{sample}_contig_{c}_R2.fq' for c in contig_names]
+        command_cat_R1 = f"cat {' '.join(input_files_R1)} > {experiment_name}/{sample}_R1.fastq"
+        command_cat_R2 = f"cat {' '.join(input_files_R2)} > {experiment_name}/{sample}_R2.fastq"
         # Execute the shell command
         subprocess.run(command_cat_R1, shell=True)
         subprocess.run(command_cat_R2, shell=True)
-        subprocess.run(f'gzip final_fastq_files/{sample}_R1.fastq', shell=True)
-        subprocess.run(f'gzip final_fastq_files/{sample}_R2.fastq', shell=True)
+        subprocess.run(f'gzip {experiment_name}/{sample}_R1.fastq', shell=True)
+        subprocess.run(f'gzip {experiment_name}/{sample}_R2.fastq', shell=True)
 
-def prepare_samples_csv(sample_names,reference,outgroups):
+def prepare_test_run_widevariant_call(experiment_name,sample_names,reference,outgroups):
     cwd=os.getcwd()
     reference_full_path=f'{cwd}/{reference}'
     reference_name=reference.split('/')[-2]
-    with open('samples.csv','w') as f:
+    reference_upstream_path=reference_full_path.split(f'/{reference_name}')[0]
+    # create new samples.csv for this experiment in tests
+    with open(f'{experiment_name}_samples.csv','w') as f:
         f.write('Path,Sample,FileName,Reference,Group,Outgroup\n')
         for sample,outgroup in zip(sample_names,outgroups):
-            f.write(f'{cwd}/final_fastq_files,{sample},{sample},{reference_name},1,{outgroup}\n')
+            f.write(f'{cwd}/{experiment_name},{sample},{sample},{reference_name},1,{outgroup}\n')
+    # modify experiment_info.yaml 
+    lines_to_output=[]
+    with open('../experiment_info.yaml') as f:
+        for l in f:
+            l=l.strip()
+            if l.startswith('experiment_name'):
+                l = f"experiment_name: {experiment_name}"
+            if l.startswith('sample_table'):
+                l = f'sample_table: tests/{experiment_name}_samples.csv'
+            if l.startswith('ref_genome_directory'):
+                l = f'ref_genome_directory: {reference_upstream_path}'
+            lines_to_output.append(l)
+    with open('../experiment_info.yaml', 'w') as f:
+        for l in lines_to_output:
+            f.write(l)
+            f.write('\n')
 
 def get_sample_names_contig_names_outgroups(coverage_csv,outgroup_csv):
     parsed_covg=pd.read_csv(coverage_csv,header=0,index_col=0)
@@ -135,15 +153,15 @@ def get_sample_names_contig_names_outgroups(coverage_csv,outgroup_csv):
         outgroup_ids=parsed_outgroup['Outgroup']
     return sample_names,contig_names,outgroup_ids
 
-def main(input_variants_csv,input_coverage_csv,input_basecalls_csv,input_outgroup_csv,length,reference):
+def main(input_experiment_name,input_variants_csv,input_coverage_csv,input_basecalls_csv,input_outgroup_csv,length,reference):
     sample_names,contig_names,outgroup_ids = get_sample_names_contig_names_outgroups(input_coverage_csv,input_outgroup_csv)
     generate_mutated_fastas(input_variants_csv, reference,input_basecalls_csv)
     coverages_for_samples_dict = generate_reads_per_contig_necessary_for_coverages(input_coverage_csv,length,reference)
     for sample_contig_to_output in coverages_for_samples_dict:
         num_reads=coverages_for_samples_dict[sample_contig_to_output]
         generate_reads_from_fasta(sample_contig_to_output, length, num_reads)
-    combine_reads_across_contigs(sample_names,contig_names)
-    prepare_samples_csv(sample_names,reference,outgroup_ids)
+    combine_reads_across_contigs(input_experiment_name,sample_names,contig_names)
+    prepare_test_run_widevariant_call(input_experiment_name,sample_names,reference,outgroup_ids)
 
 if __name__ == '__main__':
-    main(args.input_variants_csv,args.input_coverage_csv,args.basecalls_csv,args.outgroup_csv,args.length,args.reference)
+    main(args.name,args.input_variants_csv,args.input_coverage_csv,args.basecalls_csv,args.outgroup_csv,args.length,args.reference)
