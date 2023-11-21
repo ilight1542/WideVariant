@@ -27,8 +27,8 @@ def iter_variant(ref):
     ref_idx=np.where(nts == ref)[0][0]
     return np.take(nts,ref_idx+1,mode='wrap')
 
-def generate_fasta_name(samplename, contig_name):
-    return f'sample_{samplename}_contig_{contig_name}'
+def generate_fasta_name(experiment_name, samplename, contig_name):
+    return f'{experiment_name}_sample_{samplename}_contig_{contig_name}'
 
 def parse_ref(reference):
     ref_genome = SeqIO.parse( reference, 'fasta' )
@@ -51,7 +51,7 @@ def parse_ref(reference):
 
     return [ contig_names, contig_lengths, genome_length, contig_seqs ]
 
-def generate_mutated_fastas(variants_boolean_csv,refgenome,basecalls_csv=None):
+def generate_mutated_fastas(experiment_name, variants_boolean_csv,refgenome,basecalls_csv=None):
     """
     Parses variant positions in the variants boolean csv and outputs a new fasta file for each sample x contig for fasta generation
     """
@@ -79,10 +79,10 @@ def generate_mutated_fastas(variants_boolean_csv,refgenome,basecalls_csv=None):
         for c_name in c_name_to_c_seqs:
             seq=c_name_to_c_seqs[c_name]
             seq_to_output = SeqRecord.SeqRecord(Seq.Seq(seq), id=f'{c_name}', description=f'Mutated contig_{c_name}')
-            fasta_name=generate_fasta_name(sample_index, c_name)
+            fasta_name=generate_fasta_name(experiment_name, sample_index, c_name)
             SeqIO.write(seq_to_output, f'tmp/{fasta_name}.fasta', "fasta")
 
-def generate_reads_per_contig_necessary_for_coverages(input_coverage_csv,lengths,reference):
+def generate_reads_per_contig_necessary_for_coverages(experiment_name, input_coverage_csv,lengths,reference):
     parsed_coverages=pd.read_csv(input_coverage_csv,header=0,index_col=0)
     coverages_for_sample_dict={}
     contig_names,contig_lengths,_,_=parse_ref(reference)
@@ -91,7 +91,7 @@ def generate_reads_per_contig_necessary_for_coverages(input_coverage_csv,lengths
         covg_total=r['Covg total']
         reads_needed_per_contig=[ (float(r[c_name])*float(covg_total)*int(c_length))/total_length_readpairs for c_name,c_length in zip(contig_names,contig_lengths) ]
         for index,value in enumerate(reads_needed_per_contig):
-            fasta_name=generate_fasta_name(samplename, contig_names[index])
+            fasta_name=generate_fasta_name(experiment_name, samplename, contig_names[index])
             coverages_for_sample_dict[f'{fasta_name}'] = int(value)
     return coverages_for_sample_dict
 
@@ -103,9 +103,10 @@ def combine_reads_across_contigs(experiment_name,sample_names,contig_names):
         # if the demo_folder2 directory is  
         # not present then create it. 
         os.makedirs(f"{experiment_name}") 
-    for sample in sample_names:
-        input_files_R1=[f'tmp/{experiment_name}_sample_{sample}_contig_{c}_R1.fq' for c in contig_names]
-        input_files_R2=[f'tmp/{experiment_name}_sample_{sample}_contig_{c}_R2.fq' for c in contig_names]
+    for samplename in sample_names:
+        fastq_name=generate_fasta_name(experiment_name, samplename, contig_name)        
+        input_files_R1=[f'tmp/{fastq_name}_R1.fq' for c in contig_names]
+        input_files_R2=[f'tmp/{fastq_name}_sample_{sample}_contig_{c}_R2.fq' for c in contig_names]
         command_cat_R1 = f"cat {' '.join(input_files_R1)} > {experiment_name}/{sample}_R1.fastq"
         command_cat_R2 = f"cat {' '.join(input_files_R2)} > {experiment_name}/{sample}_R2.fastq"
         # Execute the shell command
@@ -155,8 +156,8 @@ def get_sample_names_contig_names_outgroups(coverage_csv,outgroup_csv):
 
 def main(input_experiment_name,input_variants_csv,input_coverage_csv,input_basecalls_csv,input_outgroup_csv,length,reference):
     sample_names,contig_names,outgroup_ids = get_sample_names_contig_names_outgroups(input_coverage_csv,input_outgroup_csv)
-    generate_mutated_fastas(input_variants_csv, reference,input_basecalls_csv)
-    coverages_for_samples_dict = generate_reads_per_contig_necessary_for_coverages(input_coverage_csv,length,reference)
+    generate_mutated_fastas(input_experiment_name, input_variants_csv, reference,input_basecalls_csv)
+    coverages_for_samples_dict = generate_reads_per_contig_necessary_for_coverages(input_experiment_name, input_coverage_csv,length,reference)
     for sample_contig_to_output in coverages_for_samples_dict:
         num_reads=coverages_for_samples_dict[sample_contig_to_output]
         generate_reads_from_fasta(sample_contig_to_output, length, num_reads)
