@@ -17,19 +17,7 @@ import numpy as np
 import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
-parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
-                                description='''\
-                            Generates QC stats on the bowtie2 rule
-                               ''',
-                               epilog="Questions or comments? --> aholton@mit.edu")
-parser.add_argument("-s", dest="samples", help="csv file with samples",required=True,action='store')
-parser.add_argument("-r", dest="refGenome", help="name of reference genome as string",required=True,action='store')
-parser.add_argument("-m", dest="mappingstats", help="log file with bowtie2 mapping statistics", required = True, action="store")
-parser.add_argument("-o", dest="outfileString", help="name of outfile without file extension", required=True, action="store")
-parser.add_argument("-d", dest="currentDirectory", help="current directory of Snakefile", action="store", default=os.getcwd())
-args = parser.parse_args()
-
-def main(path_to_samples, path_to_mappingsstats, reference_genome, current_directory, out_file_string):
+def plot_bowtieqc(path_to_samples, path_to_mappingsstats, reference_genome, current_directory, out_file_string):
 
     cwd = current_directory
     home_dir = cwd.split("/")[-1]
@@ -131,10 +119,23 @@ def main(path_to_samples, path_to_mappingsstats, reference_genome, current_direc
     print("Done with bowtie2 QC")
 
 if __name__ == "__main__":
+        
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
+                                    description='''\
+                                Generates QC stats on the bowtie2 rule
+                                ''',
+                                epilog="Questions or comments? --> aholton@mit.edu")
+    parser.add_argument("-s", dest="samples", help="csv file with samples",required=True,action='store')
+    parser.add_argument("-r", dest="refGenome", help="name of reference genome as string",required=True,action='store')
+    parser.add_argument("-m", dest="mappingstats", help="log file with bowtie2 mapping statistics", required = True, action="store")
+    parser.add_argument("-o", dest="outfileString", help="name of outfile without file extension", required=True, action="store")
+    parser.add_argument("-d", dest="currentDirectory", help="current directory of Snakefile", action="store", default=os.getcwd())
+    args = parser.parse_args()
+
     path_to_samples=args.samples
     reference_genome=args.refGenome
     current_directory=args.currentDirectory
     out_file_string=args.outfileString
     path_to_mappingsstats=args.mappingstats
-    main(path_to_samples, path_to_mappingsstats, reference_genome, current_directory, out_file_string)
+    plot_bowtieqc(path_to_samples, path_to_mappingsstats, reference_genome, current_directory, out_file_string)
 

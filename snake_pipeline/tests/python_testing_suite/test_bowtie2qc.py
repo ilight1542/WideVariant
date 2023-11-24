@@ -4,9 +4,11 @@
 Additional testing step in snakemake pipeline, that runs tests on all outputs
 """
 
+import sys
 import unittest
 import os
-from ../scripts/etc/bowtie2qc import main
+sys.path.append('../../scripts/')
+from bowtie2qc import plot_bowtieqc
 
 ## set variables to outpaths
 path_to_samples = '../../samples.csv'
@@ -45,20 +47,21 @@ class TestMyFunction(unittest.TestCase):
     ## Check outputs for run without outgroup
     def test_no_outgroup(self):
         ## run script on samples
-        main(arguments_no_outgroup)
+        plot_bowtieqc(*arguments_no_outgroup)
         self.test_outputs()
 
     ## Check outputs when all samples are outgroup
     def test_all_outgroup(self):
         ## run script on samples
-        main(arguments_all_outgroup)
+        plot_bowtieqc(*arguments_all_outgroup)
         self.test_outputs()
 
     ## Check outputs for run when some files are missing after mapping
     def test_missing_bowtie_file_for_one_sample(self):
         ## run script on samples
-        main(arguments_missing_smpl)
+        plot_bowtieqc(*arguments_missing_smpl)
         self.test_outputs()
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(argv=['first-arg-is-ignored'], exit=False) ## when run in ipyhton or ijupyter it is needed to ignore return value from sys.argv (first argument), see https://medium.com/@vladbezden/using-python-unittest-in-ipython-or-jupyter-732448724e31unittest.main(argv=['first-arg-is-ignored'], exit=False) ## when run in ipyhton or ijupyter it is needed to ignore return value from sys.argv (first argument), see https://medium.com/@vladbezden/using-python-unittest-in-ipython-or-jupyter-732448724e31
+    ## unittest.main() ## when run as script
