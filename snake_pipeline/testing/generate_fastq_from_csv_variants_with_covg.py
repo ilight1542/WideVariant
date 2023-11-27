@@ -19,7 +19,7 @@ parser.add_argument('-l', '--length', metavar='length', \
 parser.add_argument('-b', '--basecalls_csv',metavar='csv',required=False,help='specific ATCG mutations for the variant bool positions csv', default=None)
 parser.add_argument('-o', '--outgroup_csv',metavar='csv',required=False,help='specific ATCG mutations for the variant bool positions csv', default=None)
 parser.add_argument('-s', '--save_tmp', required=False, help='Save temp file directory within tests (tmp)', action='store_true')
-parser.add_argument('-r', '--run_pipeline', required=False, help='Automatically invoke the snakemake pipeline on this test dataset', action='store_true')
+parser.add_argument('-R', '--run_pipeline', required=False, help='Automatically invoke the snakemake pipeline on this test dataset', action='store_true')
 
 args=parser.parse_args()
 
@@ -104,8 +104,8 @@ def combine_reads_across_contigs(experiment_name,sample_names,contig_names):
     for sample in sample_names:
         input_files_R1=[f'tmp/{experiment_name}_sample_{sample}_contig_{c}_R1.fq' for c in contig_names]
         input_files_R2=[f'tmp/{experiment_name}_sample_{sample}_contig_{c}_R2.fq' for c in contig_names]
-        command_cat_R1 = f"cat {' '.join(input_files_R1)} > test_data/input_data/{experiment_name}/{sample}_R1.fastq"
-        command_cat_R2 = f"cat {' '.join(input_files_R2)} > test_data/input_data/{experiment_name}/{sample}_R2.fastq"
+        command_cat_R1 = f"cat {' '.join(input_files_R1)} > test_data/input_data/{experiment_name}/{experiment_name}_{sample}_R1.fastq"
+        command_cat_R2 = f"cat {' '.join(input_files_R2)} > test_data/input_data/{experiment_name}/{experiment_name}_{sample}_R2.fastq"
         # Execute the shell command
         subprocess.run(command_cat_R1, shell=True)
         subprocess.run(command_cat_R2, shell=True)
