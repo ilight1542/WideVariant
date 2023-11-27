@@ -106,10 +106,14 @@ set-resources:
    - spades:time="12:00:00"
    # sumstats
    - sumstats:mem=10G
-   # prokka
-   - prokka:mem=64G
-   - prokka:cpus_per_task=16
-   - prokka:time="04:00:00"
+   # bakta
+   - bakta:mem=64G
+   - bakta:cpus_per_task=16
+   - bakta:time="04:00:00"
+   # roary
+   - roary:mem=64G
+   - roary:cpus_per_task=16
+   - roary:time="04:00:00"
    # infer_orthologs (group)
    - infer_orthologs:mem=8G
    - infer_orthologs:cpus_per_task=1

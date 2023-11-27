@@ -15,6 +15,7 @@ generate_raw_coverage_matrix: True
 # databases 
 krakenbracken_db: '/nexus/posix0/MPIIB-keylab/databases/kraken2_1_2'
 krakenbracken_db_readlength: 100
+bakta_database_directory: '/raven/ptmp/mfenk/tools/databases/bakta/bakta_v1_8_2_DB_v5_0/'
 
 ##########################################
 # do not modify the following parameters #

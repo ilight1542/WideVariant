@@ -1,5 +1,8 @@
 # Prepare filtered, clean FASTQ samples
 rule cutadapt:
+    input: 
+        fq1in = rules.make_data_links.output.fq1,
+        fq2in = rules.make_data_links.output.fq2,
     output:
         fq1o = "results/preprocessing/{sampleID}/R1_trim.fq.gz",
         fq2o = "results/preprocessing/{sampleID}/R2_trim.fq.gz",
@@ -10,11 +13,11 @@ rule cutadapt:
         # NEEDS TO BE OF FORMAT FILENAMER1, FILENAMER2, NOITHING ELSE
         "cutadapt -a CTGTCTCTTAT --cores=4 "
                 "-o {output.fq1o} "
-                "results/data/{sample}/R1.fq.gz "
+                "{input.fq1in} "
                 "1> {output.log} ;"
         "cutadapt -a CTGTCTCTTAT --cores=4 "
                 "-o {output.fq2o} "
-                "results/data/{sample}/R2.fq.gz "
+                "{input.fq2in} "
                 "1>> {output.log} ;"
 
 rule sickle:
