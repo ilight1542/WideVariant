@@ -19,7 +19,7 @@ parser.add_argument('-l', '--length', metavar='length', \
 parser.add_argument('-b', '--basecalls_csv',metavar='csv',required=False,help='specific ATCG mutations for the variant bool positions csv', default=None)
 parser.add_argument('-o', '--outgroup_csv',metavar='csv',required=False,help='specific ATCG mutations for the variant bool positions csv', default=None)
 parser.add_argument('-s', '--save_tmp', required=False, help='Save temp file directory within tests (tmp)', action='store_true')
-parser.add_argument('-r', '--run_pipeline',metavar='run_pipeline', required=False, help='Automatically invoke the snakemake pipeline on this test dataset', action='store_true')
+parser.add_argument('-r', '--run_pipeline', required=False, help='Automatically invoke the snakemake pipeline on this test dataset', action='store_true')
 
 args=parser.parse_args()
 
