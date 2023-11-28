@@ -41,23 +41,23 @@ def plot_bowtieqc(path_to_samples, path_to_mappingsstats, reference_genome, curr
     sample_id_to_percent_once = {}
     sample_id_to_overall      = {}
 
-    stats_file = open(cwd + "/" + out_file_string + ".txt")
-    for line in stats_file:
-        split_on_rule_name = line.split("bowtie2_")
-        split_on_ref = split_on_rule_name[1].split("_ref_")
-        sample_id = split_on_ref[0]
-        split_on_colon = split_on_ref[1].split(":")
-        stat_info = split_on_colon[1]
-        if "exactly" in stat_info:
-            info = stat_info.split()
-            number = info[0]
-            percent = info[1].replace("(", "").replace(")","").replace("%", "")
-            sample_id_to_number_once[sample_id] = number
-            sample_id_to_percent_once[sample_id] = percent
-        elif "overall" in stat_info:
-            info = stat_info.split()
-            percent = info[0].replace("%", "")  
-            sample_id_to_overall[sample_id] = percent
+    with open(cwd + "/" + out_file_string + ".txt") as stats_file:
+        for line in stats_file:
+            split_on_rule_name = line.split("bowtie2_")
+            split_on_ref = split_on_rule_name[1].split("_ref_")
+            sample_id = split_on_ref[0]
+            split_on_colon = split_on_ref[1].split(":")
+            stat_info = split_on_colon[1]
+            if "exactly" in stat_info:
+                info = stat_info.split()
+                number = info[0]
+                percent = info[1].replace("(", "").replace(")","").replace("%", "")
+                sample_id_to_number_once[sample_id] = number
+                sample_id_to_percent_once[sample_id] = percent
+            elif "overall" in stat_info:
+                info = stat_info.split()
+                percent = info[0].replace("%", "")  
+                sample_id_to_overall[sample_id] = percent
 
     for idx, row in alignment_stats.iterrows():
         sample_id_from_csv = row["Sample"]
