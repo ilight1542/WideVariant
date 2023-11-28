@@ -20,8 +20,6 @@ parser.add_argument('-l', '--length', metavar='length', \
 parser.add_argument('-b', '--basecalls_csv',metavar='csv',required=False,help='specific ATCG mutations for the variant bool positions csv', default=None)
 parser.add_argument('-o', '--outgroup_csv',metavar='csv',required=False,help='specific ATCG mutations for the variant bool positions csv', default=None)
 parser.add_argument('-s', '--save_tmp', required=False, help='Save temp file directory within tests (tmp)', action='store_true')
-parser.add_argument('-R', '--run_pipeline', required=False, help='Automatically invoke the snakemake pipeline on this test dataset', action='store_true')
-parser.add_argument('-N', '--nodes', required=False, help='Number of nodes to run pipeline with', default=1)
 
 args=parser.parse_args()
 
@@ -156,17 +154,7 @@ def get_sample_names_contig_names_outgroups(coverage_csv,outgroup_csv):
 def clean_tmp():
     shutil.rmtree('tmp')
 
-def execute_pipeline(experiment_name,nodes):
-    os.chdir('..')
-    if not os.path.isdir(f"testing/test_data/results/{experiment_name}"): 
-        os.makedirs(f"testing/test_data/results/{experiment_name}") 
-    snakemake_logfile = f'testing/test_data/results/{experiment_name}/test_snakemake_out.log'
-    conda_prefix='/'.join(sys.prefix.split('/')[:-1])
-    with open(snakemake_logfile, 'w') as file:
-        subprocess.run(f'snakemake --cores {nodes} --use-conda --conda-prefix {conda_prefix} --conda-frontend mamba --latency-wait 30 --keep-going --configfile ./experiment_info.yaml --rerun-triggers mtime',shell=True, stdout=file, text=True)
-    subprocess.run(f'mv results testing/test_data/results/{experiment_name}', shell=True)
-
-def main(input_experiment_name,input_variants_csv,input_coverage_csv,input_basecalls_csv,input_outgroup_csv,input_length,input_reference,input_save_tmp,input_run_pipeline,input_nodes):
+def main(input_experiment_name,input_variants_csv,input_coverage_csv,input_basecalls_csv,input_outgroup_csv,input_length,input_reference,input_save_tmp):
     sample_names,contig_names,outgroup_ids = get_sample_names_contig_names_outgroups(input_coverage_csv,input_outgroup_csv)
     generate_mutated_fastas(input_experiment_name, input_variants_csv, input_reference,input_basecalls_csv)
     coverages_for_samples_dict = generate_reads_per_contig_necessary_for_coverages(input_experiment_name, input_coverage_csv,input_length,input_reference)
@@ -176,9 +164,7 @@ def main(input_experiment_name,input_variants_csv,input_coverage_csv,input_basec
     combine_reads_across_contigs(input_experiment_name,sample_names,contig_names)
     prepare_test_run_widevariant_call(input_experiment_name,sample_names,input_reference,outgroup_ids)
     if not input_save_tmp:
-        print('clean_tmp() would run')
-    if input_run_pipeline:
-        execute_pipeline(input_experiment_name,input_nodes)
+        clean_tmp()
 
 if __name__ == '__main__':
-    main(args.name,args.input_variants_csv,args.input_coverage_csv,args.basecalls_csv,args.outgroup_csv,args.length,args.reference,args.save_tmp,args.run_pipeline,args.nodes)
+    main(args.name,args.input_variants_csv,args.input_coverage_csv,args.basecalls_csv,args.outgroup_csv,args.length,args.reference,args.save_tmp)
