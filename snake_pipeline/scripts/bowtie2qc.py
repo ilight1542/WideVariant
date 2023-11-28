@@ -78,6 +78,8 @@ def plot_bowtieqc(path_to_samples, path_to_mappingsstats, reference_genome, curr
     # for each stat, make a histogram across the samples
     number_samples = alignment_stats.shape[0]
     number_bins = math.ceil(math.sqrt(number_samples))
+    if number_bins < 1:
+        number_bins = 1
     # number aligned once histogram
     number_aligned_once = alignment_stats["Number Aligned Once"].tolist()
     number_aligned_once = [int(number) for number in number_aligned_once]
