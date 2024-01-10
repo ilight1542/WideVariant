@@ -4,10 +4,10 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - _libgcc_mutex=0.1=conda_forge
-  - _openmp_mutex=4.5=2_gnu
-  - libgcc-ng=13.1.0=he5830b7_0
-  - libgomp=13.1.0=he5830b7_0
-  - libzlib=1.2.13=hd590300_5
-  - sickle-trim=1.33=he4a0461_9
-  - zlib=1.2.13=hd590300_5
+  - _libgcc_mutex=0.1
+  - _openmp_mutex=4.5
+  - libgcc-ng=13.1.0
+  - libgomp=13.1.0
+  - libzlib=1.2.13
+  - sickle-trim=1.33
+  - zlib=1.2.13
