@@ -46,7 +46,6 @@ def genomestats(REFGENOMEFOLDER):
     '''
 
     refgenome = read_fasta(REFGENOMEFOLDER)
-    
     Genomelength = 0
     ChrStarts = []
     ScafNames = []
@@ -54,9 +53,6 @@ def genomestats(REFGENOMEFOLDER):
         ChrStarts.append(Genomelength) # chr1 starts at 0 in analysis.m
         Genomelength = Genomelength + len(record)
         ScafNames.append(record.id)
-    # close file
-    #refgenome.close() # biopy update SeqIO has no close attribute anymore.
-    # turn to np.arrys!
     ChrStarts = np.asarray(ChrStarts,dtype=int)
     Genomelength = np.asarray(Genomelength,dtype=int)
     ScafNames = np.asarray(ScafNames,dtype=object)
@@ -75,11 +71,11 @@ def p2chrpos(p, ChrStarts):
     '''
         
     # get chr and pos-on-chr
-    chromo = np.ones(len(p),dtype=int)
+    chromo = np.zeros(len(p),dtype=int)
     if len(ChrStarts) > 1:
         for i in ChrStarts[1:]:
-            chromo = chromo + (p > i) # when (p > i) evaluates 'true' lead to plus 1 in summation. > bcs ChrStarts start with 0...genomestats()
-        positions = p - ChrStarts[chromo-1] # [chr-1] -1 due to 0based index
+            chromo = chromo + (p >= i) # when (p > i) evaluates 'true' lead to plus 1 in summation. > bcs ChrStarts start with 0...genomestats()
+        positions = p - ChrStarts[chromo] # [chr-1] -1 due to 0based index
         chrpos = np.column_stack((chromo,positions))
     else:
         chrpos = np.column_stack((chromo,p))
