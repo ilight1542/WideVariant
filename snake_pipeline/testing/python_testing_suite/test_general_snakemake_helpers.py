@@ -19,7 +19,7 @@ test_genome_dir_full_gzipped='testing/test_data/gus_test_data/findable_genome/gz
 
 class TestMyFunction(unittest.TestCase):
     def test_read_fasta(self):
-        self.assertRaises(gus.read_fasta(test_genome_dir_not_findable))
+        self.assertRaises(ValueError,gus.read_fasta(test_genome_dir_not_findable))
         read_in_fasta = gus.read_fasta(test_genome_dir_full)
         read_in_fasta_gz = gus.read_fasta(test_genome_dir_full_gzipped)
         self.assertIsInstance(read_in_fasta, SeqIO.Seq)
