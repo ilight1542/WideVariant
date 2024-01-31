@@ -9,7 +9,7 @@ import os
 import glob
 import pandas as pd
 import numpy as np
-import SeqIO
+from Bio import SeqIO
 
 sys.path.append('./scripts/')
 import gus_helper_functions as gus
@@ -24,8 +24,8 @@ class TestMyFunction(unittest.TestCase):
             gus.read_fasta(test_genome_dir_not_findable)
         read_in_fasta = gus.read_fasta(test_genome_dir_full)
         read_in_fasta_gz = gus.read_fasta(test_genome_dir_full_gzipped)
-        self.assertIsInstance(read_in_fasta, SeqIO.Seq)
-        self.assertIsInstance(read_in_fasta_gz, SeqIO.Seq)
+        self.assertIsInstance(read_in_fasta, SeqIO.FastaIO.FastaIterator)
+        self.assertIsInstance(read_in_fasta_gz, SeqIO.FastaIO.FastaIterator)
 
     def test_genomestats(self):
         # test ouptut length is as expected
