@@ -27,27 +27,27 @@ class TestMyFunction(unittest.TestCase):
 
     def test_genomestats(self):
         # test ouptut length is as expected
-        self.assert(len(gus.genomestats(test_genome_dir_full)) == 4)
-        self.assert(len(gus.genomestats(test_genome_dir_full_gzipped)) == 4)
+        self.assertEqual(len(gus.genomestats(test_genome_dir_full)),4)
+        self.assertEqual(len(gus.genomestats(test_genome_dir_full_gzipped)),4)
         # test that starts are correct
         chrstarts_correct=[0,4]
-        self.assert(len(gus.genomestats(test_genome_dir_full)[1]) == np.array())
+        self.assertEqual(len(gus.genomestats(test_genome_dir_full)[1]),np.array())
         # test that total length of record is 8
-        self.assert(len(gus.genomestats(test_genome_dir_full)[1]) == 8)
+        self.assertEqual(len(gus.genomestats(test_genome_dir_full)[1]),8)
         # test that scaf names are good
         scafnames_correct=['test_contig_0','test_contig_1']
-        self.assert(gus.genomestats(test_genome_dir_full)[2]) == np.array(scafnames_correct))
+        self.assertEqual(gus.genomestats(test_genome_dir_full)[2]),np.array(scafnames_correct))
 
     def test_p2chrpos(self):
         p=np.array([0,1,2,3,4,5,6,7])
         chrstarts_for_p2chrpos_one_chroms=np.array([0])
         chrstarts_for_p2chrpos_two_chroms=np.array([0,4])
         # test only one contig
-        self.assert(gus.p2chrpos(p,chrstarts_for_p2chrpos_one_chroms)[:,1] == p)
+        self.assertEqual(gus.p2chrpos(p,chrstarts_for_p2chrpos_one_chroms)[:,1],p)
         # test contigs
-        self.assert(len(gus.p2chrpos(p,chrstarts_for_p2chrpos_two_chroms)[1,:]) == 4)
+        self.assertEqual(len(gus.p2chrpos(p,chrstarts_for_p2chrpos_two_chroms)[1,:]),4)
 
-if __name__ == '__main__':
+if __name__,'__main__':
     unittest.main() ## when run as script
 else:
     unittest.main(argv=['first-arg-is-ignored'], exit=False)
