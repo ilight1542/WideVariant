@@ -12,26 +12,40 @@ import pandas as pd
 sys.path.append('./scripts/')
 import gus_helper_functions as gus
 
+test_genome_dir_not_findable='testing/test_data/gus_test_data/non_findable_genome'
+test_genome_dir_full='testing/test_data/gus_test_data/findable_genome'
+test_genome_dir_full_gzipped='testing/test_data/gus_test_data/findable_genome/gzipped'
+
+
 class TestMyFunction(unittest.TestCase):
     def test_read_fasta(self):
-        self.assertRaises(gus.read_fasta('testing/test_data/gus_test_data/non_findable_genome'))
+        self.assertRaises(gus.read_fasta(test_genome_dir_not_findable))
+        read_in_fasta = gus.read_fasta(test_genome_dir_full)
+        read_in_fasta_gz = gus.read_fasta(test_genome_dir_full_gzipped)
         self.assertIsInstance(read_in_fasta, SeqIO.Seq)
+        self.assertIsInstance(read_in_fasta_gz, SeqIO.Seq)
 
     def test_genomestats(self):
-        pass
+        # test ouptut length is as expected
+        self.assert(len(gus.genomestats(test_genome_dir_full)) == 4)
+        self.assert(len(gus.genomestats(test_genome_dir_full_gzipped)) == 4)
+        # test that starts are correct
+        chrstarts_correct=[0,4]
+        self.assert(len(gus.genomestats(test_genome_dir_full)[1]) == np.array())
+        # test that total length of record is 8
+        self.assert(len(gus.genomestats(test_genome_dir_full)[1]) == 8)
+        # test that scaf names are good
+        scafnames_correct=['test_contig_0','test_contig_1']
+        self.assert(gus.genomestats(test_genome_dir_full)[2]) == np.array(scafnames_correct))
 
     def test_p2chrpos(self):
-        pass
-
-
-    def test_outputs(self):
-        # run a separate instance of test_outputs for each test dataset (and each refgenome within those test datasets)
-        args_list,plot_files_list,samples_size_list=self.parse_in_out_variables()
-        for args_for_test, expected_plot_files_for_test, expected_num_samples_for_test in zip(args_list,plot_files_list,samples_size_list):
-            [_,_,ref_genome,outdir,out_file_string] = args_for_test
-            experiment_name = outdir.split('/')[-1]
-            with self.subTest(msg=f'TESTING: {experiment_name}_{ref_genome}'):
-                self.execute_tests(args_for_test, expected_plot_files_for_test, expected_num_samples_for_test)
+        p=np.array([0,1,2,3,4,5,6,7])
+        chrstarts_for_p2chrpos_one_chroms=np.array([0])
+        chrstarts_for_p2chrpos_two_chroms=np.array([0,4])
+        # test only one contig
+        self.assert(gus.p2chrpos(p,chrstarts_for_p2chrpos_one_chroms)[:,1] == p)
+        # test contigs
+        self.assert(len(gus.p2chrpos(p,chrstarts_for_p2chrpos_two_chroms)[1,:]) == 4)
 
 if __name__ == '__main__':
     unittest.main() ## when run as script
