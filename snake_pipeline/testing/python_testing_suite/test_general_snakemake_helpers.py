@@ -8,13 +8,13 @@ import unittest
 import os
 import glob
 import pandas as pd
+import numpy as np
 
-sys.path.append('../../scripts/')
+sys.path.append('./scripts/')
 import gus_helper_functions as gus
-
-test_genome_dir_not_findable='testing/test_data/gus_test_data/non_findable_genome'
-test_genome_dir_full='testing/test_data/gus_test_data/findable_genome'
-test_genome_dir_full_gzipped='testing/test_data/gus_test_data/findable_genome/gzipped'
+test_genome_dir_not_findable='./testing/test_data/gus_test_data/non_findable_genome'
+test_genome_dir_full='./testing/test_data/gus_test_data/findable_genome'
+test_genome_dir_full_gzipped='./testing/test_data/gus_test_data/findable_genome/gzipped'
 
 
 class TestMyFunction(unittest.TestCase):
