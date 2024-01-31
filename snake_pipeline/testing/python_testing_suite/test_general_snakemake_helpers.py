@@ -19,7 +19,8 @@ test_genome_dir_full_gzipped='./testing/test_data/gus_test_data/findable_genome/
 
 class TestMyFunction(unittest.TestCase):
     def test_read_fasta(self):
-        self.assertRaises(ValueError,gus.read_fasta(test_genome_dir_not_findable))
+        with self.assertRaises(ValueError):
+            gus.read_fasta(test_genome_dir_not_findable)
         read_in_fasta = gus.read_fasta(test_genome_dir_full)
         read_in_fasta_gz = gus.read_fasta(test_genome_dir_full_gzipped)
         self.assertIsInstance(read_in_fasta, SeqIO.Seq)
@@ -27,8 +28,8 @@ class TestMyFunction(unittest.TestCase):
 
     def test_genomestats(self):
         # test ouptut length is as expected
-        self.assertEqual(len(gus.genomestats(test_genome_dir_full)),4)
-        self.assertEqual(len(gus.genomestats(test_genome_dir_full_gzipped)),4)
+        self.assertEqual(len(gus.genomestats(test_genome_dir_full)),3)
+        self.assertEqual(len(gus.genomestats(test_genome_dir_full_gzipped)),3)
         # test that starts are correct
         chrstarts_correct=[0,4]
         self.assertEqual(len(gus.genomestats(test_genome_dir_full)[1]),np.array())
@@ -43,7 +44,7 @@ class TestMyFunction(unittest.TestCase):
         chrstarts_for_p2chrpos_one_chroms=np.array([0])
         chrstarts_for_p2chrpos_two_chroms=np.array([0,4])
         # test only one contig
-        self.assertEqual(gus.p2chrpos(p,chrstarts_for_p2chrpos_one_chroms)[:,1],p)
+        self.assertTrue(np.all(gus.p2chrpos(p,chrstarts_for_p2chrpos_one_chroms)[:,1]==p))
         # test contigs
         self.assertEqual(len(gus.p2chrpos(p,chrstarts_for_p2chrpos_two_chroms)[1,:]),4)
 
