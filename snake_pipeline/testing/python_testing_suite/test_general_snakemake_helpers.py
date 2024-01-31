@@ -47,7 +47,7 @@ class TestMyFunction(unittest.TestCase):
         # test contigs
         self.assertEqual(len(gus.p2chrpos(p,chrstarts_for_p2chrpos_two_chroms)[1,:]),4)
 
-if __name__,'__main__':
+if __name__ == '__main__':
     unittest.main() ## when run as script
 else:
     unittest.main(argv=['first-arg-is-ignored'], exit=False)
