@@ -9,7 +9,7 @@ import os
 import glob
 import pandas as pd
 
-sys.path.append('./scripts/')
+sys.path.append('../../scripts/')
 import gus_helper_functions as gus
 
 test_genome_dir_not_findable='testing/test_data/gus_test_data/non_findable_genome'
