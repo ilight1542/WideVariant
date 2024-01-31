@@ -9,6 +9,7 @@ import os
 import glob
 import pandas as pd
 import numpy as np
+import SeqIO
 
 sys.path.append('./scripts/')
 import gus_helper_functions as gus
@@ -32,7 +33,7 @@ class TestMyFunction(unittest.TestCase):
         self.assertEqual(len(gus.genomestats(test_genome_dir_full_gzipped)),3)
         # test that starts are correct
         chrstarts_correct=[0,4]
-        self.assertEqual(len(gus.genomestats(test_genome_dir_full)[1]),np.array())
+        self.assertEqual(gus.genomestats(test_genome_dir_full)[0],np.array(chrstarts_correct))
         # test that total length of record is 8
         self.assertEqual(len(gus.genomestats(test_genome_dir_full)[1]),8)
         # test that scaf names are good
