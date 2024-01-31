@@ -253,7 +253,7 @@ def split_samplesCSV(PATH_ls,SAMPLE_ls,FILENAME_ls,REF_Genome_ls,GROUP_ls,OUTGRO
                     writer.writerow(row)
 
 def makelink(path,sample,filename,output_dir):
-"""
+    """
     Create symbolic links to FASTQ files for a given sample.
 
     Parameters:
