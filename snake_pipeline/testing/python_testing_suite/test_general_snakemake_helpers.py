@@ -36,7 +36,7 @@ class TestMyFunction(unittest.TestCase):
         self.assertEqual(len(gus.genomestats(test_genome_dir_full)[1]),8)
         # test that scaf names are good
         scafnames_correct=['test_contig_0','test_contig_1']
-        self.assertEqual(gus.genomestats(test_genome_dir_full)[2]),np.array(scafnames_correct))
+        self.assertEqual(gus.genomestats(test_genome_dir_full)[2]),np.array(scafnames_correct)
 
     def test_p2chrpos(self):
         p=np.array([0,1,2,3,4,5,6,7])
