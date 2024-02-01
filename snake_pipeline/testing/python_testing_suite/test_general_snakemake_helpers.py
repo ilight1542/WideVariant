@@ -36,7 +36,7 @@ class TestMyFunction(unittest.TestCase):
         self.assertEqual(gus.genomestats(test_genome_dir_full)[0][0],chrstarts_correct[0])
         self.assertEqual(gus.genomestats(test_genome_dir_full)[0][1],chrstarts_correct[1])
         # test that total length of record is 8
-        self.assertEqual(len(gus.genomestats(test_genome_dir_full)[1]),8)
+        self.assertEqual(gus.genomestats(test_genome_dir_full)[1][0],8)
         # test that scaf names are good
         scafnames_correct=['test_contig_0','test_contig_1']
         self.assertEqual(gus.genomestats(test_genome_dir_full)[2]),np.array(scafnames_correct)
@@ -50,7 +50,7 @@ class TestMyFunction(unittest.TestCase):
         # test only one contig
         self.assertTrue(np.all(gus.p2chrpos(p,chrstarts_for_p2chrpos_one_chroms)[:,1]==p))
         # test two ontigs
-        self.assertEqual(len(gus.p2chrpos(p,chrstarts_for_p2chrpos_two_chroms)),4)
+        self.assertEqual(len(gus.p2chrpos(p,chrstarts_for_p2chrpos_two_chroms)),8)
         self.assertEqual(np.sum(p2chrpos(p,chrstarts_for_p2chrpos_two_chroms)[:,0]==0),4)
         self.assertEqual(np.sum(p2chrpos(p,chrstarts_for_p2chrpos_two_chroms)[:,0]==1),4)
         # test three contigs
