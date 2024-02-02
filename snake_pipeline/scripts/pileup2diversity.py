@@ -13,7 +13,8 @@ import argparse
 import gus_helper_functions as ghf
 import pickle
 from scipy.stats import ttest_ind, fisher_exact,ttest_1samp
-from math import log10, floor
+from math import log10
+from gus_helper_functions import round_half_up, define_nt_order, generate_ref_to_int_converstion_dict, convert_chrpos_to_abspos, convert_ref_to_int
 
 #%% Version history
 #2022.02.08: Evan: Direct translation from pileup_to_diversity_matrix_snakemake.m
@@ -53,31 +54,6 @@ from math import log10, floor
 # corresponding to the start of a new chromsome.
 
 #%%
-def round_half_up(n, decimals=0):
-    multiplier = 10 ** decimals
-    return floor(n*multiplier + 0.5) / multiplier  
-
-def convert_chrpos_to_abspos(mpileup_chr, mpileup_pos, chr_starts, scaf_names):  
-    #convert position on chromosome to absolute position
-    if len(chr_starts) == 1:
-        position=int(mpileup_pos)
-    else:
-        if mpileup_chr not in scaf_names:
-            raise ValueError("Scaffold name in pileup file not found in reference")
-        position=int(chr_starts[np.where(mpileup_chr==scaf_names)]) + int(mpileup_pos)
-    return position
-
-def convert_ref_to_int(ref_str, nts_dict):
-    # get reference allele from pileup (usually A T C or G but sometimes a different symbol if nucleotide is ambiguous)
-    # convert to integer 
-    if ref_str in nts_dict.keys():
-        ref=nts_dict[ref_str] # convert to 0123
-        if ref >= 4:
-            ref = ref - 4
-    else:
-        ref=None # for cases where reference base is ambiguous
-    return ref
-
 def identify_end_of_reads(calls):
     ##-- identify end of reads 
     #find starts of reads ('^' in mpileup), ASCII value of '^' == 94
@@ -221,8 +197,8 @@ def pileup2diversity(input_pileup, path_to_ref,min_reads_on_strand=20):
     #Set parameters
     Phred_offset=33 #mpileup is told that the reads are in fastq format and 
                     #corrects so its always at Phred+33 when the mpileup comes out
-    nts='ATCGatcg'
-    nts_dict={nt: i for i, nt in enumerate(nts)}
+    nts=define_nt_order()
+    nts_dict=generate_ref_to_int_converstion_dict(nts)
     nts_ascii=[ord(nt) for nt in nts]
     num_fields=40
     indelregion=3 #region surrounding each p where indels recorded 

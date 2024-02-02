@@ -12,6 +12,11 @@ import glob
 import subprocess
 import gzip
 import sys
+from math import floor
+
+########################################
+## Samples csv functions
+########################################
 
 def read_samples_CSV(spls,quiet=False):
     smpl_csv_dict = {'Path': [],'Sample': [],'FileName': [],'Reference': [],'Group': [],'Outgroup': []}
@@ -99,6 +104,28 @@ def read_sample_info_CSV(path_to_sample_info_csv):
     
     return paths, sample, reference, filename
 
+########################################
+## Make data links functions
+########################################
+
+def makelink(path,sample,filename,output_dir):
+    #When sample is run on a single lane
+    #File name can be either a COMPLETE directory name or a file name in batch(called path in this fx)
+    [fwd_file, rev_file]=findfastqfile(path,sample, filename)
+    if not fwd_file.startswith('/') and not fwd_file.startswith('~/'):
+        fwd_file = os.getcwd() + '/' + fwd_file
+    if not rev_file.startswith('/') and not rev_file.startswith('~/'):
+        rev_file = os.getcwd() + '/' + rev_file
+    print(f"ln -s -T {fwd_file} {output_dir}/{sample}/R1.fq.gz")   
+    print(f"ln -s -T {rev_file} {output_dir}/{sample}/R2.fq.gz")
+    subprocess.run(f"ln -s -T {fwd_file} {output_dir}/{sample}/R1.fq.gz", shell=True)    
+    subprocess.run(f"ln -s -T {rev_file} {output_dir}/{sample}/R2.fq.gz", shell=True)    
+
+
+########################################
+## Fastq file functions
+########################################
+
 def findfastqfile(dr,ID,filename):
     fwd=[]
     rev=[]
@@ -167,20 +194,6 @@ def findfastqfile(dr,ID,filename):
         rev=rev+'.gz'
     return [fwd, rev]
 
-def makelink(path,sample,filename,output_dir):
-    #When sample is run on a single lane
-    #File name can be either a COMPLETE directory name or a file name in batch(called path in this fx)
-    [fwd_file, rev_file]=findfastqfile(path,sample, filename)
-    if not fwd_file.startswith('/') and not fwd_file.startswith('~/'):
-        fwd_file = os.getcwd() + '/' + fwd_file
-    if not rev_file.startswith('/') and not rev_file.startswith('~/'):
-        rev_file = os.getcwd() + '/' + rev_file
-    print(f"ln -s -T {fwd_file} {output_dir}/{sample}/R1.fq.gz")   
-    print(f"ln -s -T {rev_file} {output_dir}/{sample}/R2.fq.gz")
-    subprocess.run(f"ln -s -T {fwd_file} {output_dir}/{sample}/R1.fq.gz", shell=True)    
-    subprocess.run(f"ln -s -T {rev_file} {output_dir}/{sample}/R2.fq.gz", shell=True)    
-
-
 def cp_append_files(paths,sample,filename,output_dir):
     #When sample is run on multiple lanes with same barcode
     fwd_list=''
@@ -194,7 +207,10 @@ def cp_append_files(paths,sample,filename,output_dir):
         print(fwd_list)
     subprocess.run(f"zcat {fwd_list} | gzip > {output_dir}/{sample}/R1.fq.gz", shell=True)
     subprocess.run(f"zcat {rev_list} | gzip > {output_dir}/{sample}/R2.fq.gz", shell=True)
-    
+
+########################################
+## Chromosome functions
+########################################
 
 def read_fasta(REFGENOME_DIR): 
     '''Reads in fasta file. If directory is given, reads in dir/genome.fasta
@@ -267,6 +283,96 @@ def p2chrpos(p, ChrStarts):
     else:
         chrpos = np.column_stack((chromo,p))
     return chrpos
+
+def convert_chrpos_to_abspos(chromosome_id, nt_pos, genome_chr_starts, scaf_names):  
+    """
+    convert position on chromosome to absolute position
+    Args:
+    - chromosome_id (str): Identifier of the chromosome or scaffold of the position which should be converted.
+    - nt_pos (int): Position on the chromosome (0-based) which should be converted to absolute position.
+    - genome_chr_starts (list): List of starting positions of chromosomes/scaffolds in the genome.
+    - scaf_names (list): List of scaffold names in the reference genome.
+
+    Returns:
+    - int: Absolute genomic position corresponding to the input chromosome and position.
+
+    Raises:
+    - ValueError: If the chromosome_id is not found in the provided scaffold names.
+    """
+    
+    if len(genome_chr_starts) == 1:
+        position=int(nt_pos)
+    else:
+        if chromosome_id not in scaf_names:
+            raise ValueError("Scaffold name in pileup file not found in reference")
+        position=int(genome_chr_starts[np.where(chromosome_id==scaf_names)]) + int(nt_pos)
+    return position
+
+########################################
+## Nucleotide str converstion 
+########################################
+
+def define_nt_order():
+    """
+    Define order of nucleotides for converstion of string to integers 
+    """
+    return 'ATCGatcg'
+
+def generate_ref_to_int_converstion_dict(nts=define_nt_order()):
+    """
+    Generate a dictionary for converting nucleotide symbols to integer.
+
+    Parameters:
+    - nts (list, optional): List of nucleotide symbols in the desired order. Default is the order defined by `define_nt_order()`.
+
+    Returns:
+    - dict: A dictionary where keys are nucleotide symbols, and values are their corresponding integer indices.
+    """
+    return {nt: i for i, nt in enumerate(nts)}
+
+def convert_ref_to_int(ref_str, nts_dict=generate_ref_to_int_converstion_dict()):
+    """
+    This function takes a reference allele symbol, e.g. 'A', 'T', 'C', 'G', 'a', 't', 'c', 'g',
+    and converts it to its corresponding integer using a provided nucleotide dictionary.
+
+    Parameters:
+    - ref_str (str): Reference allele symbol to be converted.
+    - nts_dict (dict, optional): Dictionary mapping nucleotide symbols to their integer indices.
+                                 Default is the order defined by `generate_ref_to_int_converstion_dict()`.
+
+    Returns:
+    - int or None: The integer index corresponding to the reference allele symbol.
+                  Returns None for cases where the reference base is ambiguous.
+    """
+    if ref_str in nts_dict.keys():
+        ref=nts_dict[ref_str] # convert to 0123
+        if ref >= 4:
+            ref = ref - 4
+    else:
+        ref=None # for cases where reference base is ambiguous
+    return ref
+
+
+########################################
+## Miscellaneous functions
+########################################
+
+def round_half_up(n, decimals=0):
+    """
+    This function rounds a number to the specified number of decimals using the "round half up" method,
+    where .5 values are always rounded up (instead of to even, see 'bankers rounding')
+
+    Parameters:
+    - n (float): The number to be rounded.
+    - decimals (int, optional): The number of decimals to round to. Default is 0.
+
+    Returns:
+    - float: The rounded number.
+    """
+    multiplier = 10 ** decimals
+    return floor(n*multiplier + 0.5) / multiplier  
+
+
 
 #TODO: remove if not necessary
 

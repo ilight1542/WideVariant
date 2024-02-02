@@ -12,10 +12,7 @@ import sys
 import argparse
 import gus_helper_functions as ghf
 from math import floor
-
-def round_half_up(n, decimals=0):
-    multiplier = 10 ** decimals
-    return floor(n*multiplier + 0.5) / multiplier  
+from gus_helper_functions import round_half_up
 
 def vcf_to_quals_snakemake(path_to_vcf_file,output_path_to_quals,REFGENOMEDIRECTORY):
     '''Python version of vcf_to_quals_snakemake.py

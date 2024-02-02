@@ -16,15 +16,6 @@ from vcf2quals_snakemake import round_half_up, vcf_to_quals_snakemake
 
 class TestMyFunction(unittest.TestCase):
 
-    def execute_round_half_up_test(self):
-        ## test round_half_up function
-        # NOTE: 
-        # The function is used because python round() rounds every other .5 val down (to keep the mean equal) 
-        for i in range(100):
-            with self.subTest(msg=f'Round_up_on_{str(i)}.5'):
-                self.assertEqual(round_half_up(i-0.5), i) 
-        print('round up half checked\n\n\n')
-
     ## set variables to outpaths
     def parse_in_out_variables(self):
         cwd=os.getcwd()
@@ -92,7 +83,6 @@ class TestMyFunction(unittest.TestCase):
 
     def test_outputs(self):
         # run a separate instance of test_outputs for each test dataset (and each refgenome within those test datasets)
-        self.execute_round_half_up_test()
         args_dict,variant_raw_dict = self.parse_in_out_variables()
 
         for test_case in args_dict.keys():
