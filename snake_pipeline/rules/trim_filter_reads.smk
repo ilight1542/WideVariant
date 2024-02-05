@@ -10,11 +10,11 @@ rule cutadapt:
         # NEEDS TO BE OF FORMAT FILENAMER1, FILENAMER2, NOITHING ELSE
         "cutadapt -a CTGTCTCTTAT --cores=4 "
                 "-o {output.fq1o} "
-                "results/data/{sample}/R1.fq.gz "
+                "results/data/{wildcards.sampleID}/R1.fq.gz "
                 "1> {output.log} ;"
         "cutadapt -a CTGTCTCTTAT --cores=4 "
                 "-o {output.fq2o} "
-                "results/data/{sample}/R2.fq.gz "
+                "results/data/{wildcards.sampleID}/R2.fq.gz "
                 "1>> {output.log} ;"
 
 rule sickle:
