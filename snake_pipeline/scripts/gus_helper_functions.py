@@ -13,6 +13,10 @@ import subprocess
 import gzip
 import sys
 
+def get_nt_order():
+    order='ATCG'
+    return order
+
 def read_samples_CSV(spls,quiet=False):
     smpl_csv_dict = {'Path': [],'Sample': [],'FileName': [],'Reference': [],'Group': [],'Outgroup': []}
 
