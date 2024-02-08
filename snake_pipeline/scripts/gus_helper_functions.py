@@ -12,146 +12,11 @@ import glob
 import subprocess
 import gzip
 import sys
+from math import floor
 
-def round_half_up(n, decimals=0):
-    multiplier = 10 ** decimals
-    return floor(n*multiplier + 0.5) / multiplier   
-
-def read_fasta(REFGENOME_DIR): 
-    '''Reads in fasta file. If directory is given, reads in dir/genome.fasta
-    Args:
-        REFGENOME_DIR (str): Path to reference genome.
-
-    Returns: SeqIO object for reference genome.
-    '''
-    fasta_file = glob.glob(REFGENOME_DIR + '/genome.fasta')
-    if len(fasta_file) != 1:
-        fasta_file_gz = glob.glob(REFGENOME_DIR + '/genome.fasta.gz')
-        if len(fasta_file_gz) != 1:
-            raise ValueError('Either no genome.fasta(.gz) or more than 1 genome.fasta(.gz) file found in ' + REFGENOME_DIR)
-        else: # genome.fasta.gz
-            refgenome = SeqIO.parse(gzip.open(fasta_file_gz[0], "rt"),'fasta')
-    else: # genome.fasta
-        refgenome = SeqIO.parse(fasta_file[0],'fasta')
-    
-    return refgenome
-
-def genomestats(REFGENOMEFOLDER):
-    '''Parse genome to extract relevant stats
-
-    Args:
-        REFGENOMEFOLDER (str): Directory containing reference genome file.
-
-    Returns:
-        ChrStarts (arr): DESCRIPTION.
-        Genomelength (arr): DESCRIPTION.
-        ScafNames (arr): DESCRIPTION.
-
-    '''
-
-    refgenome = read_fasta(REFGENOMEFOLDER)
-    Genomelength = 0
-    ChrStarts = []
-    ScafNames = []
-    for record in refgenome:
-        ChrStarts.append(Genomelength) # chr1 starts at 0 in analysis.m
-        Genomelength = Genomelength + len(record)
-        ScafNames.append(record.id)
-    ChrStarts = np.asarray(ChrStarts,dtype=int)
-    Genomelength = np.asarray(Genomelength,dtype=int)
-    ScafNames = np.asarray(ScafNames,dtype=object)
-    return ChrStarts,Genomelength,ScafNames
-
-def p2chrpos(p, ChrStarts):
-    '''Convert 1col list of pos to 2col array with chromosome and pos on chromosome
-
-    Args:
-        p (array (1 x positions) ): 0-based index of candidate variant positions from Candidate Mutation Table (CMT).
-        ChrStarts (array (1 x scaffolds) ): start indices (0-based) of scaffolds in reference genome.
-
-    Returns:
-        chrpos (array): DESCRIPTION.
-
-    '''
-        
-    # get chr and pos-on-chr
-    chromo = np.zeros(len(p),dtype=int)
-    if len(ChrStarts) > 1:
-        for i in ChrStarts[1:]:
-            chromo = chromo + (p >= i) # when (p > i) evaluates 'true' lead to plus 1 in summation. > bcs ChrStarts start with 0...genomestats()
-        positions = p - ChrStarts[chromo] # [chr-1] -1 due to 0based index
-        chrpos = np.column_stack((chromo,positions))
-    else:
-        chrpos = np.column_stack((chromo,p))
-    return chrpos
-
-def findfastqfile(dr,ID,filename):
-    fwd=[]
-    rev=[]
-    potentialhits_forward=glob.glob(dr + '/' + filename +'/*1.fastq.gz')
-    potentialhits_reverse=glob.glob(dr + '/' + filename +'/*2.fastq.gz')
-    if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-        fwd=potentialhits_forward[0]
-        rev=potentialhits_reverse[0]
-    elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0: ## need or statement to further screen path if just one file was found i.e. for *R1_001.fastq.gz *R2_001.fastq.gz
-        potentialhits_forward=glob.glob(dr + '/' + filename +'/*1_001.fastq.gz')
-        potentialhits_reverse=glob.glob(dr + '/' + filename +'/*2_001.fastq.gz')
-        if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-            fwd=potentialhits_forward[0]
-            rev=potentialhits_reverse[0]
-        elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
-            potentialhits_forward=glob.glob(dr + '/' + filename +'*1.fastq.gz')
-            potentialhits_reverse=glob.glob(dr + '/' + filename +'*2.fastq.gz')
-            if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-                fwd=potentialhits_forward[0]
-                rev=potentialhits_reverse[0]
-            elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
-                potentialhits_forward=glob.glob(dr + '/' + filename +'*1_001.fastq.gz')
-                potentialhits_reverse=glob.glob(dr + '/' + filename +'*2_001.fastq.gz')
-                if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-                    fwd=potentialhits_forward[0]
-                    rev=potentialhits_reverse[0]
-                elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
-                    potentialhits_forward=glob.glob(dr + '/' + filename +'*1.fastq')
-                    potentialhits_reverse=glob.glob(dr + '/' + filename +'*2.fastq')
-                    if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-                        fwd=potentialhits_forward[0]
-                        rev=potentialhits_reverse[0]
-                    elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
-                        potentialhits_forward=glob.glob(dr + '/' + filename +'*1_001.fastq')
-                        potentialhits_reverse=glob.glob(dr + '/' + filename +'*2_001.fastq')
-                        if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-                            fwd=potentialhits_forward[0]
-                            rev=potentialhits_reverse[0]
-                    else:
-                        foldername=glob.glob(dr + '/' + filename + '*')
-                        if foldername and os.path.isdir(foldername[0]):
-                            foldername=foldername[0]
-                            potentialhits_forward=glob.glob(foldername + '/*' + filename + '*1*.fastq.gz')
-                            potentialhits_reverse=glob.glob(foldername + '/*' + filename + '*2*.fastq.gz')
-                            if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-                                fwd=potentialhits_forward[0]
-                                rev=potentialhits_reverse[0]
-                            elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
-                                print(foldername + '/*' + filename + '*2*.fastq.gz')
-                                potentialhits_forward=glob.glob(foldername +  '/*' + filename + '*1*.fastq')
-                                potentialhits_reverse=glob.glob(foldername + '/*' + filename + '*2*.fastq')
-                                if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
-                                    fwd=potentialhits_forward[0]
-                                    rev=potentialhits_reverse[0]
-    if not(fwd) or not(rev):
-        raise ValueError('Either no file or more than 1 file found in ' + dr + ' for ' + ID)
-    #TODO: add search pattern used to find fastqs for more useful error report
-    #TODO: add error differentiation for no file or more than one file  
-    
-    ##zip fastq files if they aren't already zipped
-    if fwd[-3:] != '.gz':
-        subprocess.run("gzip " + fwd, shell=True) 
-        fwd=fwd+'.gz'
-    if rev[-3:] != '.gz':
-        subprocess.run("gzip " + rev, shell=True)
-        rev=rev+'.gz'
-    return [fwd, rev]
+########################################
+## Samples csv functions
+########################################
 
 # BELOW MANIUPUALTE THE FILE SYSTEM, testing not carried out
 def read_samples_CSV(spls,quiet=False):
@@ -252,6 +117,11 @@ def split_samplesCSV(PATH_ls,SAMPLE_ls,FILENAME_ls,REF_Genome_ls,GROUP_ls,OUTGRO
                 for row in sample_info_csv:
                     writer.writerow(row)
 
+
+########################################
+## Make data links functions
+########################################
+
 def makelink(path,sample,filename,output_dir):
     """
     Create symbolic links to FASTQ files for a given sample.
@@ -285,9 +155,82 @@ def makelink(path,sample,filename,output_dir):
     print(f"ln -s -T {fwd_file} {output_dir}/{sample}/R1.fq.gz")   
     print(f"ln -s -T {rev_file} {output_dir}/{sample}/R2.fq.gz")
     subprocess.run(f"ln -s -T {fwd_file} {output_dir}/{sample}/R1.fq.gz", shell=True)    
-    subprocess.run(f"ln -s -T {rev_file} {output_dir}/{sample}/R2.fq.gz", shell=True)    
+    subprocess.run(f"ln -s -T {rev_file} {output_dir}/{sample}/R2.fq.gz", shell=True)  
 
 
+########################################
+## Fastq file functions
+########################################
+
+def findfastqfile(dr,ID,filename):
+    fwd=[]
+    rev=[]
+    potentialhits_forward=glob.glob(dr + '/' + filename +'/*1.fastq.gz')
+    potentialhits_reverse=glob.glob(dr + '/' + filename +'/*2.fastq.gz')
+    if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
+        fwd=potentialhits_forward[0]
+        rev=potentialhits_reverse[0]
+    elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0: ## need or statement to further screen path if just one file was found i.e. for *R1_001.fastq.gz *R2_001.fastq.gz
+        potentialhits_forward=glob.glob(dr + '/' + filename +'/*1_001.fastq.gz')
+        potentialhits_reverse=glob.glob(dr + '/' + filename +'/*2_001.fastq.gz')
+        if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
+            fwd=potentialhits_forward[0]
+            rev=potentialhits_reverse[0]
+        elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
+            potentialhits_forward=glob.glob(dr + '/' + filename +'*1.fastq.gz')
+            potentialhits_reverse=glob.glob(dr + '/' + filename +'*2.fastq.gz')
+            if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
+                fwd=potentialhits_forward[0]
+                rev=potentialhits_reverse[0]
+            elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
+                potentialhits_forward=glob.glob(dr + '/' + filename +'*1_001.fastq.gz')
+                potentialhits_reverse=glob.glob(dr + '/' + filename +'*2_001.fastq.gz')
+                if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
+                    fwd=potentialhits_forward[0]
+                    rev=potentialhits_reverse[0]
+                elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
+                    potentialhits_forward=glob.glob(dr + '/' + filename +'*1.fastq')
+                    potentialhits_reverse=glob.glob(dr + '/' + filename +'*2.fastq')
+                    if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
+                        fwd=potentialhits_forward[0]
+                        rev=potentialhits_reverse[0]
+                    elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
+                        potentialhits_forward=glob.glob(dr + '/' + filename +'*1_001.fastq')
+                        potentialhits_reverse=glob.glob(dr + '/' + filename +'*2_001.fastq')
+                        if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
+                            fwd=potentialhits_forward[0]
+                            rev=potentialhits_reverse[0]
+                    else:
+                        foldername=glob.glob(dr + '/' + filename + '*')
+                        if foldername and os.path.isdir(foldername[0]):
+                            foldername=foldername[0]
+                            potentialhits_forward=glob.glob(foldername + '/*' + filename + '*1*.fastq.gz')
+                            potentialhits_reverse=glob.glob(foldername + '/*' + filename + '*2*.fastq.gz')
+                            if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
+                                fwd=potentialhits_forward[0]
+                                rev=potentialhits_reverse[0]
+                            elif len(potentialhits_forward)==0 or len(potentialhits_reverse)==0:
+                                print(foldername + '/*' + filename + '*2*.fastq.gz')
+                                potentialhits_forward=glob.glob(foldername +  '/*' + filename + '*1*.fastq')
+                                potentialhits_reverse=glob.glob(foldername + '/*' + filename + '*2*.fastq')
+                                if len(potentialhits_forward)==1 and len(potentialhits_reverse)==1:
+                                    fwd=potentialhits_forward[0]
+                                    rev=potentialhits_reverse[0]
+    if not(fwd) or not(rev):
+        raise ValueError('Either no file or more than 1 file found in ' + dr + ' for ' + ID)
+    #TODO: add search pattern used to find fastqs for more useful error report
+    #TODO: add error differentiation for no file or more than one file  
+    
+    ##zip fastq files if they aren't already zipped
+    if fwd[-3:] != '.gz':
+        subprocess.run("gzip " + fwd, shell=True) 
+        fwd=fwd+'.gz'
+    if rev[-3:] != '.gz':
+        subprocess.run("gzip " + rev, shell=True)
+        rev=rev+'.gz'
+    return [fwd, rev]
+
+  
 def cp_append_files(paths,sample,filename,output_dir):
     #When sample is run on multiple lanes with same barcode
     fwd_list=''
@@ -301,4 +244,204 @@ def cp_append_files(paths,sample,filename,output_dir):
         print(fwd_list)
     subprocess.run(f"zcat {fwd_list} | gzip > {output_dir}/{sample}/R1.fq.gz", shell=True)
     subprocess.run(f"zcat {rev_list} | gzip > {output_dir}/{sample}/R2.fq.gz", shell=True)
+
+
+########################################
+## Chromosome functions
+########################################
+
+def read_fasta(REFGENOME_DIR): 
+    '''Reads in fasta file. If directory is given, reads in dir/genome.fasta
+    Args:
+        REFGENOME_DIR (str): Path to reference genome.
+
+    Returns: SeqIO object for reference genome.
+    '''
+    fasta_file = glob.glob(REFGENOME_DIR + '/genome.fasta')
+    if len(fasta_file) != 1:
+        fasta_file_gz = glob.glob(REFGENOME_DIR + '/genome.fasta.gz')
+        if len(fasta_file_gz) != 1:
+            raise ValueError('Either no genome.fasta(.gz) or more than 1 genome.fasta(.gz) file found in ' + REFGENOME_DIR)
+        else: # genome.fasta.gz
+            refgenome = SeqIO.parse(gzip.open(fasta_file_gz[0], "rt"),'fasta')
+    else: # genome.fasta
+        refgenome = SeqIO.parse(fasta_file[0],'fasta')
     
+    return refgenome
+
+def genomestats(REFGENOMEFOLDER):
+    '''Parse genome to extract relevant stats
+
+    Args:
+        REFGENOMEFOLDER (str): Directory containing reference genome file.
+
+    Returns:
+        ChrStarts (arr): DESCRIPTION.
+        Genomelength (arr): DESCRIPTION.
+        ScafNames (arr): DESCRIPTION.
+
+    '''
+
+    refgenome = read_fasta(REFGENOMEFOLDER)
+    Genomelength = 0
+    ChrStarts = []
+    ScafNames = []
+    for record in refgenome:
+        ChrStarts.append(Genomelength) # chr1 starts at 0 in analysis.m
+        Genomelength = Genomelength + len(record)
+        ScafNames.append(record.id)
+    ChrStarts = np.asarray(ChrStarts,dtype=int)
+    Genomelength = np.asarray(Genomelength,dtype=int)
+    ScafNames = np.asarray(ScafNames,dtype=object)
+    return ChrStarts,Genomelength,ScafNames
+
+  
+def p2chrpos(p, ChrStarts):
+    '''Convert 1col list of pos to 2col array with chromosome and pos on chromosome
+
+    Args:
+        p (array (1 x positions) ): 0-based index of candidate variant positions from Candidate Mutation Table (CMT).
+        ChrStarts (array (1 x scaffolds) ): start indices (0-based) of scaffolds in reference genome.
+
+    Returns:
+        chrpos (array): DESCRIPTION.
+
+    '''
+        
+    # get chr and pos-on-chr
+    chromo = np.zeros(len(p),dtype=int)
+    if len(ChrStarts) > 1:
+        for i in ChrStarts[1:]:
+            chromo = chromo + (p >= i) # when (p > i) evaluates 'true' lead to plus 1 in summation. > bcs ChrStarts start with 0...genomestats()
+        positions = p - ChrStarts[chromo] # [chr-1] -1 due to 0based index
+        chrpos = np.column_stack((chromo,positions))
+    else:
+        chrpos = np.column_stack((chromo,p))
+    return chrpos
+
+def convert_chrpos_to_abspos(chromosome_id, nt_pos, genome_chr_starts, scaf_names):  
+    """
+    convert position on chromosome to absolute position
+    Args:
+    - chromosome_id (str): Identifier of the chromosome or scaffold of the position which should be converted.
+    - nt_pos (int): Position on the chromosome (0-based) which should be converted to absolute position.
+    - genome_chr_starts (list): List of starting positions of chromosomes/scaffolds in the genome.
+    - scaf_names (list): List of scaffold names in the reference genome.
+
+    Returns:
+    - int: Absolute genomic position corresponding to the input chromosome and position.
+
+    Raises:
+    - ValueError: If the chromosome_id is not found in the provided scaffold names.
+    """
+    
+    if len(genome_chr_starts) == 1:
+        position=int(nt_pos)
+    else:
+        if chromosome_id not in scaf_names:
+            raise ValueError("Scaffold name in pileup file not found in reference")
+        position=int(genome_chr_starts[np.where(chromosome_id==scaf_names)]) + int(nt_pos)
+    return position
+
+########################################
+## Nucleotide str converstion 
+########################################
+
+def define_nt_order():
+    """
+    Define order of nucleotides for converstion of string to integers 
+    """
+    return 'ATCGatcg'
+
+def generate_ref_to_int_converstion_dict(nts=define_nt_order()):
+    """
+    Generate a dictionary for converting nucleotide symbols to integer.
+
+    Parameters:
+    - nts (list, optional): List of nucleotide symbols in the desired order. Default is the order defined by `define_nt_order()`.
+
+    Returns:
+    - dict: A dictionary where keys are nucleotide symbols, and values are their corresponding integer indices.
+    """
+    return {nt: i for i, nt in enumerate(nts)}
+
+def convert_ref_to_int(ref_str, nts_dict=generate_ref_to_int_converstion_dict()):
+    """
+    This function takes a reference allele symbol, e.g. 'A', 'T', 'C', 'G', 'a', 't', 'c', 'g',
+    and converts it to its corresponding integer using a provided nucleotide dictionary.
+
+    Parameters:
+    - ref_str (str): Reference allele symbol to be converted.
+    - nts_dict (dict, optional): Dictionary mapping nucleotide symbols to their integer indices.
+                                 Default is the order defined by `generate_ref_to_int_converstion_dict()`.
+
+    Returns:
+    - int or None: The integer index corresponding to the reference allele symbol.
+                  Returns None for cases where the reference base is ambiguous.
+    """
+    if ref_str in nts_dict.keys():
+        ref=nts_dict[ref_str] # convert to 0123
+        if ref >= 4:
+            ref = ref - 4
+    else:
+        ref=None # for cases where reference base is ambiguous
+    return ref
+
+
+########################################
+## Miscellaneous functions
+########################################
+
+def round_half_up(n, decimals=0):
+    """
+    This function rounds a number to the specified number of decimals using the "round half up" method,
+    where .5 values are always rounded up (instead of to even, see 'bankers rounding')
+
+    Parameters:
+    - n (float): The number to be rounded.
+    - decimals (int, optional): The number of decimals to round to. Default is 0.
+
+    Returns:
+    - float: The rounded number.
+    """
+    multiplier = 10 ** decimals
+    return floor(n*multiplier + 0.5) / multiplier  
+
+
+
+#TODO: remove if not necessary
+
+# def get_clade_wildcards(cladeID):
+#     is_clade = [int(i == cladeID) for i in GROUP_ls]
+#     sampleID_clade = list(compress(SAMPLE_ls,is_clade))
+#     reference_clade = list(compress(REF_Genome_ls,is_clade))
+#     outgroup_clade = list(compress(OUTGROUP_ls,is_clade))
+#     return sampleID_clade,reference_clade,outgroup_clade
+    
+# def get_sampleID_names(wildcards):  
+#     sampleID_clade,_,_ = get_clade_wildcards(wildcards.cladeID)
+#     return sampleID_clade
+
+# def get_outgroup_bool(wildcards):  
+#     _,_,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
+#     return outgroup_clade
+
+# def get_positions_prep(wildcards):
+#     sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
+#     mat_positions_prep=expand("Case/temp/{sampleID}_ref_{reference}_outgroup{outgroup}_positions.npz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
+#     return mat_positions_prep
+
+# def get_diversity(wildcards):
+#     sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
+#     diversity_mat = expand("Mapping/diversity/{sampleID}_ref_{reference}_outgroup{outgroup}.diversity.npz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
+#     return diversity_mat   
+
+# def get_quals(wildcards):
+#     sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
+#     quals_mat = expand("Mapping/quals/{sampleID}_ref_{reference}_outgroup{outgroup}.quals.npz",zip,sampleID=sampleID_clade, reference=reference_clade, outgroup=outgroup_clade)
+#     return quals_mat 
+
+# def get_ref_genome(wildcards):
+#     sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
+#     return reference_clade
+
