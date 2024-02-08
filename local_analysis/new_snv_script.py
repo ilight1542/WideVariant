@@ -82,6 +82,7 @@ timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H-%M-%S') # 
 
 
 #%% Dataset info
+cmt_file=''
 
 dataset_name = 'Escherichia_coli_P-11'
 data_file_cmt = 'data/group_1_candidate_mutation_table.pickle.gz'
@@ -101,8 +102,8 @@ os.system( "mkdir " + dir_output );
 # Import candidate mutation table data generated in Snakemake
 
 # Use this version for updated candidate mutation table matrices
-[quals,p,counts,in_outgroup,sampleNames,indel_counter] = \
-    snv.read_candidate_mutation_table_npz(cmtFile) 
+[quals,p,counts,in_outgroup,sample_names,indel_counter] = \
+    snv.read_candidate_mutation_table_npz(cmt_file) 
 
 
 # # Use this version for old candidate mutation table matrices

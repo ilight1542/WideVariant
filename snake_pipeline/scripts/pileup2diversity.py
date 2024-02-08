@@ -186,6 +186,7 @@ def calculate_additional_mapping_stats(read_support_allel_fwd_strand, read_suppo
             tmp_data[0]=round_half_up(-log10(p))
     return tmp_data
 
+  
 def pileup2diversity(input_pileup, path_to_ref,min_reads_on_strand=20):
     """Grabs relevant allele info from mpileupfile and stores as a nice array 
 

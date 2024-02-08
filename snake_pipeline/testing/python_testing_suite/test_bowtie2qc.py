@@ -12,10 +12,7 @@ import pandas as pd
 sys.path.append(f'../scripts/')
 from bowtie2qc import plot_bowtieqc
 
-
-
 class TestMyFunction(unittest.TestCase):
-
     ## set variables to outpaths
     def parse_in_out_variables(self):
         cwd=os.getcwd()
@@ -75,6 +72,7 @@ class TestMyFunction(unittest.TestCase):
             for args_for_test, expected_text_files_for_test, expected_plot_files_for_test, expected_num_samples_for_test in zip(args_dict[testcase],text_file_dict[testcase],plot_files_dict[testcase],samples_size_dict[testcase]):
                 self.execute_tests(args_for_test, expected_text_files_for_test, expected_plot_files_for_test, expected_num_samples_for_test)
 
+                
 if __name__ == '__main__':
     unittest.main() ## when run as script
 else:
