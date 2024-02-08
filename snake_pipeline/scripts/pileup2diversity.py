@@ -247,7 +247,7 @@ def parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,min_reads_on_stra
         if nt_count > 0:
             temp[nt]=nt_count
             temp[nt+8]=round_half_up(np.sum(bq[(current_nt_indices)])/nt_count)-Phred_offset
-            temp[nt+16]=round_half_up(np.sum(mq[(current_nt_indices)])/nt_count)-33
+            temp[nt+16]=round_half_up(np.sum(mq[(current_nt_indices)])/nt_count)-Phred_offset
             temp[nt+24]=round_half_up(np.sum(td[(current_nt_indices)])/nt_count)
     if sum(temp[0:4]) > min_reads_on_strand and sum(temp[4:8])> min_reads_on_strand and sum(y)*200>sum(x): # only calcualte p values of there are greater than 20 reads on each strand and MAF < .995
         temp=run_statistical_tests(simplecalls,temp,bq,mq,td,min_reads_on_strand,Phred_offset)
