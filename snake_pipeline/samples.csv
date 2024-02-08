@@ -1,8 +1,8 @@
 Path,Sample,FileName,Reference,Group,Outgroup
-tests/tutorial_files,P07_0263,mpg_L25635_Pool-KEY-P07-0263_S277,Sepidermidis_ASM609437v1,P07,0
-tests/tutorial_files,P07_0264,mpg_L25635_Pool-KEY-P07-0264_S194,Sepidermidis_ASM609437v1,P07,0
-tests/tutorial_files,P07_0265,mpg_L25635_Pool-KEY-P07-0265_S218,Sepidermidis_ASM609437v1,P07,0
-tests/tutorial_files,P07_0266,L24744_KeyLabPool_P07-0266_S208,Sepidermidis_ASM609437v1,P07,0
-tests/tutorial_files,P07_0269,mpg_L25635_Pool-KEY-P07-0269_S192,Sepidermidis_ASM609437v1,P07,0
-tests/tutorial_files,P07_0267,L24744_KeyLabPool_P07-0267_S230,Sepidermidis_ASM609437v1,P07,0
-tests/tutorial_files,P07_0268,L24744_KeyLabPool_P07-0268_S252,Sepidermidis_ASM609437v1,P07,0
+testing/tutorial_files,P07_0263,mpg_L25635_Pool-KEY-P07-0263_S277,Sepidermidis_ASM609437v1,P07,0
+testing/tutorial_files,P07_0264,mpg_L25635_Pool-KEY-P07-0264_S194,Sepidermidis_ASM609437v1,P07,0
+testing/tutorial_files,P07_0265,mpg_L25635_Pool-KEY-P07-0265_S218,Sepidermidis_ASM609437v1,P07,0
+testing/tutorial_files,P07_0266,L24744_KeyLabPool_P07-0266_S208,Sepidermidis_ASM609437v1,P07,0
+testing/tutorial_files,P07_0269,mpg_L25635_Pool-KEY-P07-0269_S192,Sepidermidis_ASM609437v1,P07,0
+testing/tutorial_files,P07_0267,L24744_KeyLabPool_P07-0267_S230,Sepidermidis_ASM609437v1,P07,0
+testing/tutorial_files,P07_0268,L24744_KeyLabPool_P07-0268_S252,Sepidermidis_ASM609437v1,P07,0

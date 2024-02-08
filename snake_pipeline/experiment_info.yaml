@@ -2,17 +2,17 @@
 # modify the following parameters, below #
 ##########################################
 # Basic pipeline options
-experiment_name: my_test_csv_update
+experiment_name: test
 run_in_screen: True
-sample_table: tests/my_test_csv_update_samples.csv
-ref_genome_directory: /Users/ad_loris/Documents/key_lab/widevariant_local_analysis/WideVariant/snake_pipeline/tests
+sample_table: 'samples.csv'
+ref_genome_directory: 'testing/tutorial_reference_genome'
 
 # Specific pipeline execution options
 pipeline_specifications: ["gen_cmt"]
 generate_normalized_coverage_matrix: False
 generate_raw_coverage_matrix: True
 
-# databases
+# databases 
 krakenbracken_db: '/nexus/posix0/MPIIB-keylab/databases/kraken2_1_2'
 krakenbracken_db_readlength: 100
 
