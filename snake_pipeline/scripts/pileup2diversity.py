@@ -52,11 +52,6 @@ from math import log10, floor
 # ChrStarts: is an array holding the indices in the position dimension
 # corresponding to the start of a new chromsome.
 
-#%%
-def round_half_up(n, decimals=0):
-    multiplier = 10 ** decimals
-    return floor(n*multiplier + 0.5) / multiplier   
-
 def pileup2diversity(input_pileup, path_to_ref,min_reads_on_strand=20):
     """Grabs relevant allele info from mpileupfile and stores as a nice array 
 
@@ -187,9 +182,9 @@ def pileup2diversity(input_pileup, path_to_ref,min_reads_on_strand=20):
                 nt_count=len(current_nt_indices)
                 if nt_count > 0:
                     temp[nt]=nt_count
-                    temp[nt+8]=round_half_up(np.sum(bq[(current_nt_indices)])/nt_count)-Phred_offset
-                    temp[nt+16]=round_half_up(np.sum(mq[(current_nt_indices)])/nt_count)-33
-                    temp[nt+24]=round_half_up(np.sum(td[(current_nt_indices)])/nt_count)
+                    temp[nt+8]=ghf.round_half_up(np.sum(bq[(current_nt_indices)])/nt_count)-Phred_offset
+                    temp[nt+16]=ghf.round_half_up(np.sum(mq[(current_nt_indices)])/nt_count)-33
+                    temp[nt+24]=ghf.round_half_up(np.sum(td[(current_nt_indices)])/nt_count)
             
             ## The following section is critical for metagenomic samples 
             # find major and nextmajor allele
@@ -220,26 +215,26 @@ def pileup2diversity(input_pileup, path_to_ref,min_reads_on_strand=20):
                     ## coverting values of 0 and nan for output as -1:
                 if bp == 0 or np.isnan(bp):
                     temp[33]=-1
-                else: temp[33]=round_half_up(-log10(bp)) 
+                else: temp[33]=ghf.round_half_up(-log10(bp)) 
 
                 if mp == 0 or np.isnan(mp):
                     temp[34]=-1
-                else: temp[34]=round_half_up(-log10(mp))
+                else: temp[34]=ghf.round_half_up(-log10(mp))
 
                 if fp == 0 or np.isnan(fp):
                     temp[35]=-1
-                else: temp[35]=round_half_up(-log10(fp))
+                else: temp[35]=ghf.round_half_up(-log10(fp))
                 
                 if rp == 0 or np.isnan(rp):
                     temp[36]=-1
-                else: temp[36]=round_half_up(-log10(rp))
+                else: temp[36]=ghf.round_half_up(-log10(rp))
                 
                 ## currently not broken but testing against matlab script fails since matlab script *is* broken.
                 p=fisher_exact(np.array([[temp[n1], temp[n2]],[temp[n1+4],temp[n2+4]]]), alternative='two-sided')[1] # fisher exact test for strand bias (contingency table = # of reads that are fwd/rev and support major/minor allele)
                 if p == 0:
                     temp[32]=-1
                 else:
-                    temp[32]=round_half_up(-log10(p))
+                    temp[32]=ghf.round_half_up(-log10(p))
             
             ## store the data
             #-1 is needed to turn 1-indexed positions to python 0-indexed

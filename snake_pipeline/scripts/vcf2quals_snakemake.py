@@ -13,10 +13,6 @@ import argparse
 import gus_helper_functions as ghf
 from math import floor
 
-def round_half_up(n, decimals=0):
-    multiplier = 10 ** decimals
-    return floor(n*multiplier + 0.5) / multiplier  
-
 def vcf_to_quals_snakemake(path_to_vcf_file,output_path_to_quals,REFGENOMEDIRECTORY):
     '''Python version of vcf_to_quals_snakemake.py
     Given a vcf file with one file per line, grabs FQ score for each positions. Ignores lines corresponding to indels
@@ -70,7 +66,7 @@ def vcf_to_quals_snakemake(path_to_vcf_file,output_path_to_quals,REFGENOMEDIRECT
                     #If already a position wiht a stronger FQ here, don;t include this
                     #More negative is stronger
                     if fq < quals[position-1]:
-                        quals[position-1]=int(round_half_up(fq))
+                        quals[position-1]=int(ghf.round_half_up(fq))
                             #python int(fq) will by default round down, round matches matlab behavior
                             #-1 important to convert position (1-indexed) to python index
         

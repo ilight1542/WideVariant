@@ -13,6 +13,10 @@ import subprocess
 import gzip
 import sys
 
+def round_half_up(n, decimals=0):
+    multiplier = 10 ** decimals
+    return floor(n*multiplier + 0.5) / multiplier   
+
 def read_fasta(REFGENOME_DIR): 
     '''Reads in fasta file. If directory is given, reads in dir/genome.fasta
     Args:
