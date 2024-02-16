@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 ---Gathers everything together for candidate_mutation_table---
-NOTE: Still reads in many *.mat files etc. Further purging of matlab necessary!
 Output:
 # path_candidate_mutation_table: where to write
 # candidate_mutation_table.mat, ex. results/candidate_mutation_table.mat
@@ -54,12 +53,8 @@ Output:
 # %%
 ''' load libraries '''
 import numpy as np
-import pickle
-import scipy.io as sio
 import os
 import sys, argparse
-import gzip
-from scipy import sparse
 from pathlib import Path
 
 
@@ -86,24 +81,13 @@ parser.add_argument("-c", dest="cov_mat_raw", help="Output raw coverage matrix a
 parser.add_argument("-n", dest="cov_mat_norm",
                     help="Output double normalized coverage matrix as sparse csr gzip numpy object (*.npz)",
                     action='store', default='')
-parser.add_argument("-t", dest="dim", help="Specify the number of statistics (default 8)", type=int, default=8)
+parser.add_argument("-t", dest="counts_range", help="Specify the size of counts matrix (default 8)", type=int, default=8)
 args = parser.parse_args()
 
 # %%
 '''Functions'''
-
-
-def main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_file, path_to_list_of_quals_files,
-         path_to_list_of_diversity_files, path_to_candidate_mutation_table, path_to_cov_mat_raw, path_to_cov_mat_norm,
-         flag_cov_raw, flag_cov_norm, dim):
+def process_sample_names(path_to_sample_names_file):
     pwd = os.getcwd()
-
-    # p: positions on genome that are candidate SNPs
-    print('Processing candidate SNP positions...')
-    infile=np.load(path_to_p_file) # from previous step, should include variable called p
-    p=infile['p'].flatten()
-    print('Total number of positions: ' + str(len(p)))
-
     # SampleNames: list of names of all samples
     print('Processing sample names...')
     fname = pwd + '/' + path_to_sample_names_file
@@ -111,16 +95,29 @@ def main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_fil
         SampleNames = f.read().splitlines()
     numSamples = len(SampleNames)  # save number of samples
     print('Total number of samples: ' + str(numSamples))
+    return SampleNames, numSamples
 
+def process_positions(path_to_pos_file):
+    pwd = os.getcwd()
+    # p: positions on genome that are candidate SNPs
+    print('Processing candidate SNP positions...')
+    infile=np.load(path_to_p_file) # from previous step, should include variable called p
+    p=infile['p'].flatten()
+    print('Total number of positions: ' + str(len(p)))
+    return p
+    
+def process_outgroup_boolean_file(path_to_outgroup_boolean_file):
+    pwd = os.getcwd()
     ## in_outgroup: booleans for whether or not each sample is in the outgroup
     print('Processing outgroup booleans...')
-
     fname = pwd + '/' + path_to_outgroup_boolean_file
     with open(fname, 'r') as f:
         in_outgroup_str = f.read().splitlines()
-    
     in_outgroup = np.asarray([s == '1' for s in in_outgroup_str], dtype=bool).reshape(1, len(in_outgroup_str))
+    return in_outgroup
 
+def process_quals(path_to_list_of_quals_files, numSamples, p):
+    pwd = os.getcwd()
     ## Quals: quality score (relating to sample purity) at each position for all samples
     print('Gathering quality scores at each candidate position...')
     # Import list of directories for where to quals for each sample
@@ -135,10 +132,50 @@ def main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_fil
         infile=np.load(paths_to_quals_files[i]) # from previous step, should include variable called p
         quals=infile['quals'].flatten()
         Quals[:, i] = quals[p - 1]  # -1 convert position to index
+    return Quals
 
+def calculate_coverage_distribution(all_coverage_per_bp, numSamples, max_coverage_to_consider=200):
+    ## get coverage stats
+    coverage_stats = np.zeros((numSamples,3),dtype='uint')
+    ## coverage_stats[0]: median coverage across all sites
+    ## coverage_stats[1]: mean coverage across all sites
+    ## coverage_stats[2]: standard deviation of coverage across all sites
+    
+    #initialize coverage_distribution
+    max_cov = np.max(all_coverage_per_bp)
+    # truncate coverage at a high threshold
+    if max_cov > max_coverage_to_consider:
+        max_cov = max_coverage_to_consider
+    coverage_distribution = np.zeros((numSamples,max_cov+1),dtype='uint')
+    ## coverage_stats[0]: number of sites with no coverage
+    ## coverage_stats[n]: number of sites with coverage n
+    
+    for index in range(numSamples):
+        unique,counts_for_dict=np.unique(all_coverage_per_bp[:, index], return_counts=True)
+        counts_stack=np.column_stack((unique,counts_for_dict))
+        
+        for n in range(counts_stack.shape[0]):
+            cov = counts_stack[n,0]
+            num = counts_stack[n,1]
+            if cov < max_coverage_to_consider:
+                coverage_distribution[index,cov] = num
+            else:
+                # combine coverage greater than high threshold
+                coverage_distribution[index,max_coverage_to_consider] += num #add to final value               
+        
+        median_coverage = np.median(all_coverage_per_bp[:, index])
+        mean_coverage = np.mean(all_coverage_per_bp[:, index])
+        std_coverage = np.std(all_coverage_per_bp[:, index])
+        coverage_stats[index,0] = median_coverage
+        coverage_stats[index,1] = mean_coverage
+        coverage_stats[index,2] = std_coverage
+        
+    return coverage_stats, coverage_distribution
+
+def process_counts(path_to_list_of_diversity_files, numSamples, p, flag_cov_raw, flag_cov_norm, counts_range=8):
+    pwd = os.getcwd()
     ## counts: counts for each base from forward and reverse reads at each candidate position for all samples
     print('Gathering counts data at each candidate position...\n')
-
     # Import list of directories for where to diversity file for each sample
     fname = pwd + '/' + path_to_list_of_diversity_files
     with open(fname, 'r') as f:
@@ -153,7 +190,8 @@ def main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_fil
     counts = np.zeros((dim, len(p), numSamples), dtype='uint')  # initialize
     all_coverage_per_bp = np.zeros((GenomeLength, numSamples), dtype='uint')
     indel_counter = np.zeros((2, len(p), numSamples), dtype='uint')
-
+    array_cov_norm = None
+    array_cov_norm_scaled = None
 
     for i in range(numSamples):
         print('Loading counts matrix for sample: ' + str(i))
@@ -161,16 +199,14 @@ def main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_fil
         infile=np.load(paths_to_diversity_files[i]) 
         data=infile['data']
         counts[:, :, i] = data[p - 1, 0:dim].T  # -1 convert position to index
-
-        if flag_cov_raw:
-            np.sum(data[:, 0:dim], axis=1, out=all_coverage_per_bp[:, i])
-
         indel_counter[:, :, i] = data[p - 1, 38:40].T  # Num reads supporting indels and reads supporting deletions
         # -1 convert position to index
+        if flag_cov_raw:
+            np.sum(data[:, 0:dim], axis=1, out=all_coverage_per_bp[:, i])
+            [coverage_stats, coverage_distribution] = calculate_coverage_distribution(all_coverage_per_bp, numSamples)
 
-
+    
     # Normalize coverage by sample and then position; ignore /0 ; turn resulting inf to 0
-
     if flag_cov_norm:
         with np.errstate(divide='ignore', invalid='ignore'):
             # 1st normalization
@@ -187,43 +223,21 @@ def main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_fil
 
             # Scale and convert to int to save space
             array_cov_norm_scaled = (np.round(array_cov_norm, 3) * 1000).astype('int64')
+            
+        
+    return counts, indel_counter, coverage_stats, coverage_distribution, all_coverage_per_bp, array_cov_norm_scaled
 
-    ## get coverage stats
-    ## NOTE: Indexes 0-10: sites with coverage 1, 2, 3,... 
-    ## NOTE: Index 11: median coverage across all sites
-    ## NOTE: Index 12: mean coverage across all sites
-    ## NOTE: Index 13: standard deviation of coverage across all sites
-    coverage_stats=np.zeros((numSamples,14),dtype='uint') 
-    for index in range(numSamples):
-        unique,counts_for_dict=np.unique(all_coverage_per_bp[:, index], return_counts=True)
-        counts_dict=dict(zip(unique,counts_for_dict))
-        ## find mean and median, create bins 0-10 four outputting
-        counts_for_output=[0]*11
-        total_covg=0
-        total_pos=0
-        for val in counts_dict:
-            if val <= 10:
-                counts_for_output[val]=counts_dict[val]
-            else:
-                counts_for_output[10]+=counts_dict[val]
-            total_pos+=counts_dict[val]
-            total_covg+=val*counts_dict[val]
-        mean_covg=total_covg/total_pos
-        median_val=total_pos/2
-        count_to_median=0
-        index_for_median=0
-        while count_to_median < median_val:
-            count_to_median+=counts_for_dict[index_for_median]
-            index_for_median+=1
-        median=index_for_median-1
-        ## save into coverage_stats
-        coverage_stats[index,0:11]=counts_for_output
-        coverage_stats[index,11]=median
-        coverage_stats[index,12]=mean_covg
-        coverage_stats[index,13]=np.std(all_coverage_per_bp[index])
+
+def build_CMT(path_to_pos_file,path_to_sample_names_file,path_to_outgroup_boolean_file,path_to_list_of_diversity_files, path_to_candidate_mutation_table, path_to_cov_mat_raw, path_to_cov_mat_norm,flag_cov_raw, flag_cov_norm, dim):
+
+    # Generate data
+    SampleNames, numSamples = process_sample_names(path_to_sample_names_file)
+    p = process_positions(path_to_pos_file)
+    in_outgroup = process_outgroup_boolean_file(path_to_outgroup_boolean_file)
+    Quals = process_quals(path_to_list_of_quals_files, numSamples, p)
+    [counts, indel_counter, coverage_stats, coverage_distribution, all_coverage_per_bp, array_cov_norm_scaled] = process_counts(path_to_list_of_diversity_files, numSamples, p, flag_cov_raw, flag_cov_norm, counts_range=8)     
 
     # Reshape & save matrices
-
     Quals = Quals.transpose() #quals: num_samples x num_pos
     p = p.transpose() #p: num_pos
     counts = counts.swapaxes(0,2) #counts: num_samples x num_pos x 8
@@ -285,6 +299,6 @@ if __name__ == "__main__":
         flag_cov_norm = False
     else:
         flag_cov_norm = True
-    main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_file, path_to_list_of_quals_files,
+    build_CMT(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_file, path_to_list_of_quals_files,
          path_to_list_of_diversity_files, path_to_candidate_mutation_table, path_to_cov_mat_raw, path_to_cov_mat_norm,
          flag_cov_raw, flag_cov_norm,dim)
