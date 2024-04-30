@@ -41,8 +41,8 @@ from math import log10, floor
 # [36] Pftd is the p value for the tail distantces on the reverse strand
 # being the same for the two  different types of calls (ttest)
 # [37] E is number of calls at ends of a read
-# [38] I is number of reads supporting insertions in the +/- (indelregion) bp region
-# [39] D is number of reads supporting deletions in the +/- (indelregion) bp region
+# [38] I is number of reads supporting insertions in the +/- (indel_region) bp region
+# [39] D is number of reads supporting deletions in the +/- (indel_region) bp region
 
 # ChrStarts: is an array holding the indices in the position dimension
 # corresponding to the start of a new chromsome.
@@ -81,7 +81,7 @@ def clean_calls_from_start_and_end(calls):
     calls[endsk]=-1
     return calls
 
-def parse_indels_into_data(calls,data,indel_region):
+def parse_indels_into_data(calls,data,indel_region,genome_length):
     """
     Find indels and calls from reads supporting indels.
 
@@ -89,7 +89,7 @@ def parse_indels_into_data(calls,data,indel_region):
         calls (ndarray): Array of called bases.
         data (ndarray): Data structure for recording indel information.
         position (int): Current position in the genome.
-        indelregion (int): Size of the indel region.
+        indel_region (int): Size of the indel region.
         genome_length (int): Length of the genome.
 
     Returns:
@@ -105,28 +105,31 @@ def parse_indels_into_data(calls,data,indel_region):
         if forward_looking_index_for_indel_size > 1:
             indel_ascii=list(calls[k+1:k+forward_looking_index_for_indel_size])
             indelsize=int(''.join(map(chr,indel_ascii)))
-            indeld=forward_looking_index_for_indel_size-1
+            indeld=forward_looking_index_for_indel_size-1 # distance ahead of current call index where indel base call info is stored
         else:
             indelsize=int(chr(calls[k+1]))
             indeld=1
-        #record that indel was found in +/- indelregion nearby
+        #record that indel was found in +/- indel_region nearby
         #indexing is slightly different here from matlab version
+        indel_region_start=position-indel_region-1
+        del_region_end=position+indelsize+indel_region-1
+        ins_region_end=position+indel_region-1
         if calls[k]==45: #deletion
-            if (position-indelregion-1 >= 0) and (position+indelsize+indelregion-1 < genome_length): # if in middle of contig
+            if (indel_region_start >= 0) and (del_region_end < genome_length): # if in middle of contig
                 #must store directly into data as it affects lines earlier and later
-                data[position-indelregion-1:position+indelsize+indelregion-1,39]+=1
-            elif position-indelregion >= 0: # if at end of contig
-                data[position-indelregion-1:,39]+=1
+                data[indel_region_start:del_region_end,39]+=1
+            elif position-indel_region >= 0: # if at end of contig
+                data[indel_region_start:,39]+=1
             else: # if at beginning of contig
-                data[:position+indelsize+indelregion-1,39]+=1
+                data[:del_region_end,39]+=1
         else: #insertion
             #insertion isn't indexed on the chromosome, no need for complex stuff
-            if (position-indelregion-1 >= 0) and (position+indelregion-1 < genome_length): # if in middle of contig
-                data[position-indelregion-1:position+indelregion-1,38]+=1
-            elif position-indelregion >= 0: # if at end of contig
-                data[position-indelregion-1:,38]+=1
+            if (indel_region_start >= 0) and (ins_region_end < genome_length): # if in middle of contig
+                data[indel_region_start:ins_region_end,38]+=1
+            elif position-indel_region >= 0: # if at end of contig
+                data[indel_region_start:,38]+=1
             else: # if at beginning of contig
-                data[:position+indelregion-1,38]+=1 # indelsize->indelregion 2022.10.24 Evan and Arolyn
+                data[:ins_region_end,38]+=1 # indelsize->indel_region 2022.10.24 Evan and Arolyn
 
         #mask indel info from calls
         calls[k:(k+1+indeld+indelsize)] = -1 #don't remove base that precedes an indel
@@ -151,6 +154,7 @@ def parse_calls_into_simplecalls(calls,ref):
     #corresponds to its position in bq, mq, td
     #count how many of each nt and average scores
     #replace reference matches (.,) with their actual calls
+    nts_ascii = generate_nts_ascii()
     if ref != None: # when reference allele is not ambiguous
         calls[np.where(calls==46)[0]]=nts_ascii[ref] #'.'
         calls[np.where(calls==44)[0]]=nts_ascii[ref+4] #','
@@ -181,6 +185,8 @@ def run_statistical_tests(simplecalls,temp,bq,mq,td,min_reads_on_strand,Phred_of
     """
     ## The following section is critical for metagenomic samples 
     # find major and nextmajor allele
+    nts_ascii = generate_nts_ascii()
+
     allele_index_summed_calls=[(x,temp[x]+temp[x+4]) for x in range(4)] # add T and t calls, C and c calls, etc. keep index of major allele as first index in tuple
     allele_index_summed_calls.sort(key=lambda x: x[1]) ## sort by number of calls for a given base
     n1 = allele_index_summed_calls[-1][0] # major allele (most calls) (returns actual index of base in nts)
@@ -224,7 +230,7 @@ def run_statistical_tests(simplecalls,temp,bq,mq,td,min_reads_on_strand,Phred_of
     else: temp[32]=round_half_up(-log10(p))
     return temp
 
-def parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,min_reads_on_strand,Phred_offset=33):
+def parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,min_reads_on_strand,Phred_offset):
     """
     Parse simplecalls into temp data structure for recording read support, basequality values, mapping quality values, and tail distance values for this position for each read possible (ATCG and atcg)
 
@@ -241,6 +247,7 @@ def parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,min_reads_on_stra
         ndarray: Updated temp array with values recorded on indicies 0-31 (inclusive) added.
 
     """
+    nts_ascii = generate_nts_ascii()
     for nt in range(8):
         current_nt_indices=np.where(simplecalls == nts_ascii[nt])[0]
         nt_count=len(current_nt_indices)
@@ -253,7 +260,7 @@ def parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,min_reads_on_stra
         temp=run_statistical_tests(simplecalls,temp,bq,mq,td,min_reads_on_strand,Phred_offset)
     return temp
 
-def parse_entry_in_mpileupup(line,data):
+def parse_entry_in_mpileupup(line,data,indel_region,genome_length,chr_starts,Phred_offset):
     lineinfo = line.strip().split('\t')
     
     #holds info for each position before storing in data
@@ -292,7 +299,7 @@ def parse_entry_in_mpileupup(line,data):
     calls = clean_calls_from_start_and_end(calls)
     
     # parse indels
-    calls,data = parse_indels_into_data(calls,data,indelregion)
+    calls,data = parse_indels_into_data(calls,data,indel_region,genome_length)
 
     simplecalls = parse_calls_into_simplecalls(calls,ref)
     temp = parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,min_reads_on_strand,Phred_offset)
@@ -302,7 +309,7 @@ def parse_entry_in_mpileupup(line,data):
     data[position-1,:38]=temp[:38]
     return data
 
-def mpileup_to_diversity(input_pileup,min_reads_on_strand,Phred_offset,indelregion):
+def mpileup_to_diversity(input_pileup,min_reads_on_strand,indel_region,Phred_offset):
     """
     Convert an mpileup file to a diversity data structure.
 
@@ -323,18 +330,20 @@ def mpileup_to_diversity(input_pileup,min_reads_on_strand,Phred_offset,indelregi
     print(f"Reading input file: {input_pileup}")
     with open(input_pileup) as mpileup:
         for i,line in enumerate(mpileup):
-            data = parse_entry_in_mpileupup(line,data)
+            data = parse_entry_in_mpileupup(line,data,indel_region,genome_length,chr_starts,Phred_offset)
     return data
 
-def main(input_pileup, path_to_ref,min_reads_on_strand=20,Phred_offset=33,indelregion=3):
+def main(input_pileup, path_to_ref,min_reads_on_strand=20,indel_region=3):
     """Grabs relevant allele info from mpileupfile and stores as an array 
 
     Args:
         input_pileup (str): Path to input pileup file.
         path_to_ref (str): Path to reference genome file
-        
+        min_reads_on_strand: default=20: Minimum number of reads on a strand in order to run statistical tests for detecting bias in heterozygous called sites
+        indel_region: default=3: Number of bases upstream/downstream of an indel to mark as having an indel-supporting read nearby
     """
-    data = mpileup_to_diversity(input_pileup,min_reads_on_strand,Phred_offset,indelregion)
+    Phred_offset=33
+    data = mpileup_to_diversity(input_pileup,min_reads_on_strand,indel_region,Phred_offset)
     #calc coverage
     coverage=np.sum(data[:,0:8], axis = 1)
 
