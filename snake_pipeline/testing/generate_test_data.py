@@ -70,12 +70,13 @@ def generate_mutated_fastas(experiment_name, variants_boolean_csv,refgenome,base
         sample_variants_bool = np.array(sample_variants)
         for variant_position in np.where(sample_variants_bool)[0]:
             c_name,c_seq_idx=contig_pos[variant_position]
-            ref = c_name_to_c_seqs[c_name][int(c_seq_idx)]
+            c_seq_idx = int(c_seq_idx) - 1 ## -1 for 0-based correction
+            ref = c_name_to_c_seqs[c_name][c_seq_idx]
             if basecalls == None:
                 alt = iter_variant(ref)
             else:
                 alt = basecalls[sample_index,variant_position]
-            c_name_to_c_seqs[c_name] = c_name_to_c_seqs[c_name][:int(c_seq_idx)] + alt + c_name_to_c_seqs[c_name][int(c_seq_idx)+1:]
+            c_name_to_c_seqs[c_name] = c_name_to_c_seqs[c_name][:c_seq_idx] + alt + c_name_to_c_seqs[c_name][c_seq_idx+1:]
         for c_name in c_name_to_c_seqs:
             seq=c_name_to_c_seqs[c_name]
             seq_to_output = SeqRecord.SeqRecord(Seq.Seq(seq), id=f'{c_name}', description=f'Mutated contig_{c_name}')
