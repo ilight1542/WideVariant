@@ -67,7 +67,7 @@ class TestMyFunction(unittest.TestCase):
             with self.subTest(msg=f'{smpl}_{reference_name}__expected_num_bases'):
                 self.assertEqual(quals_length, genome_length) ## note for each sample we read 2 lines!
             ## check where smpl has variant and whether variant has qual score 
-            for location, variant in var_raw_dict.items():
+            for location, variant in var_raw_dict[smpl].items():
                 if variant == 1:
                     contig_var, pos = location.split('_')
                     pos_in_genome = 0
