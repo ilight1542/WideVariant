@@ -4,7 +4,7 @@ rule variants2positions:
         variants = "results/1-mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.strain.variant.vcf.gz",
     params:
         refGenomeDir = REF_GENOME_DIRECTORY+"/{reference}/",
-        outgroup_tag = 0, # boolean (0==ingroup or 1==outgroup)
+        outgroup_tag = "{outgroup}", # boolean (0==ingroup or 1==outgroup)
         maxFQ = -30,
     output:
         positions = "results/2-case/temp/{sampleID}_ref_{reference}_outgroup{outgroup}_positions.npz",
