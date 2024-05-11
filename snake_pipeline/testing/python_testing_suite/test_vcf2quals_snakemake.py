@@ -12,6 +12,7 @@ from Bio import SeqIO
 import numpy as np
 
 sys.path.append('../scripts/')
+import gus_helper_functions as ghf
 from vcf2quals_snakemake import round_half_up, vcf_to_quals_snakemake
 
 class TestMyFunction(unittest.TestCase):
@@ -28,12 +29,13 @@ class TestMyFunction(unittest.TestCase):
             var_raw_dicts[experiment_name] = {}
             arguments_for_testing[experiment_name] = []
             with open(f'{testcase}/0-used_input_data/variant_file.csv', 'r') as fid: 
-                for lineid, line in enumerate(fid):
+                header = fid.readline().strip().split(',')[1:] ## read header without sample column
+                for line in fid:
                     line = line.strip().split(',')
-                    if lineid == 0:
-                        header = line
-                    else:
-                        var_raw_dicts[experiment_name][line[0]] = {location: int(variant) for location, variant in zip(header[1:], line[1:])}
+                    smplname = line[0]
+                    smplname_long = f'{experiment_name}_{smplname}'
+                    variants_in_sample = line[1:]
+                    var_raw_dicts[experiment_name][smplname_long] = {location: int(variant) for location, variant in zip(header, variants_in_sample)}
             samplecsv = pd.read_csv(f'{testcase}/0-used_input_data/samples.csv')
             for sid, sample_row in samplecsv.iterrows():
                 sampleid = sample_row["Sample"]
@@ -48,37 +50,38 @@ class TestMyFunction(unittest.TestCase):
     def execute_vcf2quals_test(self,arguments_for_testing,var_raw_dict,test_case):
         
         for single_arg_test in arguments_for_testing:
-            path_to_vcf_files, path_to_quals_file, reference_path = single_arg_test
+            _, path_to_quals_file, reference_path = single_arg_test
             vcf_to_quals_snakemake(*single_arg_test)
         
             reference_name = reference_path.split('/')[-1]
             ## get length of genome
-            contig_length_dict = {}
-            with open(f'{reference_path}/genome.fasta', 'r') as fasta:
-                for record in SeqIO.parse(fasta, 'fasta'):
-                    contig_length_dict[record.id] = len(record)
-            genome_length = sum(contig_length_dict.values())
+            [chr_starts,genome_length,scafnames] = ghf.genomestats(reference_path)
+
             ## get sample name
             smpl = path_to_quals_file.split('/')[-1].split('_ref')[0]
-            ## read in quals file
-            quals = np.load(path_to_quals_file)['quals']
+            
+            ## check if quals file present 
+            with self.subTest(msg=f'vcf2quals_{test_case}__npz_file_exists'):
+                self.assertTrue(os.path.exists(path_to_quals_file))
+            quals_file = np.load(path_to_quals_file)
+            quals_file_attribute = quals_file.files
+            ## check if quals file has attribute
+            with self.subTest(msg=f'vcf2quals_{test_case}__expected_npz_file_attribute'):
+                self.assertTrue('quals' in quals_file_attribute)
+            quals = quals_file['quals']
             ## check if quals file is length of reference
             quals_length = np.shape(quals)[0]
-            with self.subTest(msg=f'{smpl}_{reference_name}__expected_num_bases'):
+            with self.subTest(msg=f'vcf2quals_{test_case}_{smpl}_{reference_name}__expected_num_bases'):
                 self.assertEqual(quals_length, genome_length) ## note for each sample we read 2 lines!
             ## check where smpl has variant and whether variant has qual score 
-            for location, variant in var_raw_dict[smpl].items():
-                if variant == 1:
+
+            for location, is_variable_pos in var_raw_dict[smpl].items():
+                if is_variable_pos:
                     contig_var, pos = location.split('_')
-                    pos_in_genome = 0
-                    for contig_genome, contig_length in genome_length.items():
-                        if contig_genome != contig_var:
-                            pos_in_genome+=contig_length
-                        else:
-                            break
-                    var_pos_genome = pos_in_genome+int(pos)-1 ## get variant position within genome
-                    with self.subTest(msg=f'{smpl}_{reference_name}_{location}__expected_qual_score'):
-                        self.assertTrue((quals[var_pos_genome] == [0])[0])
+                    contig_id = np.where(scafnames == contig_var)[0][0] + 1
+                    var_pos_genome = ghf.chrpos2index(np.array( ([contig_id, int(pos)], ) ), chr_starts) ## get variant position within genome
+                    with self.subTest(msg=f'vcf2quals_{test_case}_{smpl}_{reference_name}_{location}__expected_qual_score'):
+                        self.assertTrue(quals[var_pos_genome].flatten()[0] < 0)
         print(f'vcf2quals checked on {test_case}\n\n\n')
 
     def test_outputs(self):
