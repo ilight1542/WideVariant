@@ -13,31 +13,9 @@ import gzip
 import gus_helper_functions as ghf
 
 #%%
-def chrpos2index(chrpos,chr_starts):
-    '''Python version of chrpos2index.m
-
-    Args:
-        chrpos (arr): px2 array of position and chromsome idx.
-        chr_starts (arr): Vector of chromosome starts (begins at 0).
-
-    Returns:
-        p (arr): Vector of position indexes.
-
-    '''
-    if np.size(chrpos,0) < np.size(chrpos,1):
-        chrpos=chrpos.T
-        print('Reversed orientation of chrpos')
-        
-    if len(chr_starts) == 1:
-        p=chrpos[:,1]
-    else:
-        p=chr_starts[chrpos[:,0]-1]+chrpos[:,1]
-
-    return p
 
 def generate_positions_snakemake(positions_files_list, REFGENOMEDIRECTORY):
-    '''Python version of generate_positions_snakemake.m
-    
+    '''
     Args:
         paths_to_input_p_files (list): List of input positions files.
         REFGENOMEDIRECTORY (str): Path to reference genome.
@@ -56,12 +34,9 @@ def generate_positions_snakemake(positions_files_list, REFGENOMEDIRECTORY):
         #load in positions array for sample
         tmp=np.load(os.getcwd() + '/' + path.rstrip('\n'))
         positions=tmp['Positions']
-        
-        if len(positions)>2:
-            x=chrpos2index(positions,chr_starts)
-            
+        if (np.shape(positions)[0]>0) & (np.shape(positions)[1]==2):
+            x=ghf.chrpos2index(positions,chr_starts)
             timesvariant[x]=timesvariant[x]+1
-    
     
     #Keep positions that vary from the reference in at least one sample but
     #that don't vary from the reference in ALL samples
@@ -121,7 +96,5 @@ if __name__ == '__main__':
     parser.add_argument('-b', type=str, help='Outgroup boolean', required=True)
     
     args = parser.parse_args()
-    
-    print()
 
     combine_positions(args.i,args.o,args.b,args.r)

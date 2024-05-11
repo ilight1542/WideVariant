@@ -245,6 +245,30 @@ def genomestats(REFGENOMEFOLDER):
     ScafNames = np.asarray(ScafNames,dtype=object)
     return ChrStarts,Genomelength,ScafNames
 
+def chrpos2index(chrpos,chr_starts):
+    '''
+    Args:
+        chrpos (arr): px2 array of chromsome idx and position on chromosome.
+        chr_starts (arr): Vector of chromosome starts (begins at 0).
+
+    Returns:
+        p (arr): Vector of position indexes.
+
+    '''
+    if (np.size(chrpos,1) != 2) & (np.size(chrpos,0) == 2):
+        chrpos=chrpos.T
+        print('Reversed orientation of chrpos')
+    elif (np.size(chrpos,1) != 2) & (np.size(chrpos,0) != 2):
+        print('Wrong input format given. Provide np.array with shape (p, 2)')
+        return 
+    
+    if len(chr_starts) == 1:
+        p=chrpos[:,1]
+    else:
+        p=chr_starts[chrpos[:,0]-1]+chrpos[:,1]
+
+    return p
+
 def p2chrpos(p, ChrStarts):
     '''Convert 1col list of pos to 2col array with chromosome and pos on chromosome
 
