@@ -5,6 +5,36 @@
 ## To run this script, run `bash run_python_tests.sh` in the `testing/` directory
 
 ####################
+## FUNCTIONS
+####################
+
+## function to invoke test, capture the std out and err and print last three lines (if test was ok)
+run_test() {
+    local test_script_basename=$1
+    local path_to_log=$2
+    local timestamp=$3
+
+    ## run test
+    {
+        python3 python_testing_suite/${test_script_basename}.py 
+    } >> "${path_to_log}/${timestamp}_${test_script_basename}.log" 2>&1
+
+    ####
+    ## Error reporting
+    ## echo last three lines of logfile (time and if test was ok!)
+    unittest_report=$(grep -A2 -E "Ran .* test in .*s" "${path_to_log}/${timestamp}_${test_script_basename}.log")
+    echo "$unittest_report"
+
+    ## Check if error occured which was not spotted by unittest
+    if ( grep -i -E 'error|fail|traceback' ${path_to_log}/${timestamp}_${test_script_basename}.log | \
+            grep -v 'File exists' | \
+            grep -vq 'Falling back to greedy solver' ) ; then     
+    
+        echo "An Error occured during testing. Please check the log file (${path_to_log}/${timestamp}_${test_script_basename}.log) for more information "; 
+    fi
+}
+
+####################
 ## Activate Conda
 ####################
 
@@ -20,16 +50,40 @@ else
 fi
 
 ####################
+## Set global variables
+####################
+
+log_file_path='test_data/logs/testing'
+timestamp=$(date +"%Y_%m_%d_%H_%M")
+
+####################
 ## Run tests
 ####################
 
+echo
+echo ${timestamp}
+echo "Start testing..."
+mkdir -p ${log_file_path}
+
 echo -e "\n\n\n######################"
-echo "Running boqtie2 QC tests..."
+echo "Running bowtie2 QC tests..."
 echo -e "######################\n"
 
-python3 python_testing_suite/test_bowtie2qc.py 
+script_basename='test_bowtie2qc'
+
+run_test ${script_basename} ${log_file_path} ${timestamp}
+echo -e "${script_basename} done\n"
 
 echo -e "\n\n\n######################"
 echo "Running vcf2quals tests..."
 echo -e "######################\n"
-python3 python_testing_suite/test_vcf2quals_snakemake.py 
+
+script_basename='test_vcf2quals_snakemake'
+
+run_test ${script_basename} ${log_file_path} ${timestamp}
+echo -e "${script_basename} done\n"
+
+
+echo "Tests done"
+echo "If some errors have been reported, please check the log files ${log_file_path} and look for 'ERROR', 'FAILED' and 'Traceback'"
+echo

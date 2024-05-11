@@ -29,6 +29,7 @@ run_snakemake() {
     cd ../
     
     rm -rf results/
+    rm -rf logs/*
     
     snakemake \
         --cores 1 \
@@ -62,6 +63,21 @@ move_and_link_data() {
     ln -s $(pwd)/test_data/sample_csvs/${experiment_name}.csv test_data/results/${experiment_name}/0-used_input_data/samples.csv
 }
 
+check_for_errors_in_log() {
+    local logfile=$1
+    
+    ## search in case insensitive manner (-i), with regex (-E), exclude certain patterns (-v) and just report if true (-q)
+    ## "File exists" warning comes from ln if soft link is already present
+    ## "Falling back to greedy solver" warning from snakemake for scheduling
+    if ( grep -i -E 'error|fail|traceback' ${logfile} | \
+            grep -v 'File exists' | \
+            grep -vq 'Falling back to greedy solver' ) ; then     
+
+        echo "An Error occured during data generation. Please check the log file (${logfile}) for more information "; 
+    fi
+
+}
+
 ####################
 ## Activate Conda
 ####################
@@ -85,10 +101,18 @@ fi
 generate_test_data_pythonscript='python_testing_suite/generate_test_data.py'
 genome='Smallgenome/genome.fasta'
 read_length=75
+log_file_path='test_data/logs/data_generation'
+timestamp=$(date +"%Y_%m_%d_%H_%M")
 
 ####################
 ## Test cases
 ####################
+
+echo
+echo ${timestamp}
+echo "Start generating test data..."
+
+mkdir -p ${log_file_path}
 
 ####
 # Default: ground_truth (no outgroup sample) 
@@ -97,9 +121,14 @@ variant_file='data_generation/variants_raw.csv'
 coverage_file='data_generation/coverage.csv'
 outgroup_ids='data_generation/outgroup_ids.csv'
 
-generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length}
-run_snakemake 
-move_and_link_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome}
+{
+    generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length}
+    run_snakemake 
+    move_and_link_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome}
+} >> "${log_file_path}/${timestamp}_${experiment_name}.log" 2>&1
+
+check_for_errors_in_log "${log_file_path}/${timestamp}_${experiment_name}.log"
+echo -e "${experiment_name} done\n"
 
 ####
 # Single sample input (CURRENTLY BREAKS SOME SNAKEMAKE RULES) 
@@ -108,9 +137,14 @@ variant_file='data_generation/variants_raw_single_sample.csv'
 coverage_file='data_generation/coverage_single_sample.csv'
 outgroup_ids='data_generation/outgroup_ids_single_sample.csv'
 
-generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length}
-run_snakemake 
-move_and_link_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome}
+{
+    generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length}
+    run_snakemake 
+    move_and_link_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome}
+} >> "${log_file_path}/${timestamp}_${experiment_name}.log" 2>&1
+
+check_for_errors_in_log "${log_file_path}/${timestamp}_${experiment_name}.log"
+echo -e "${experiment_name} done\n"
 
 ####
 # Single outgroup sample (first in csv) 
@@ -119,9 +153,15 @@ variant_file='data_generation/variants_raw.csv'
 coverage_file='data_generation/coverage.csv'
 outgroup_ids='data_generation/outgroup_ids_first_outgroup.csv'
 
-generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length}
-run_snakemake 
-move_and_link_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome}
+{
+    generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length}
+    run_snakemake 
+    move_and_link_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome}
+} >> "${log_file_path}/${timestamp}_${experiment_name}.log" 2>&1
+
+check_for_errors_in_log "${log_file_path}/${timestamp}_${experiment_name}.log"
+echo -e "${experiment_name} done\n"
+
 
 ####
 # Single outgroup sample (last in csv) 
@@ -130,9 +170,15 @@ variant_file='data_generation/variants_raw.csv'
 coverage_file='data_generation/coverage.csv'
 outgroup_ids='data_generation/outgroup_ids_last_outgroup.csv'
 
-generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length}
-run_snakemake 
-move_and_link_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome}
+{
+    generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length}
+    run_snakemake 
+    move_and_link_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome}
+} >> "${log_file_path}/${timestamp}_${experiment_name}.log" 2>&1
+
+check_for_errors_in_log "${log_file_path}/${timestamp}_${experiment_name}.log"
+echo -e "${experiment_name} done\n"
+
 
 ####
 # Single ingroup sample 
@@ -141,9 +187,15 @@ variant_file='data_generation/variants_raw.csv'
 coverage_file='data_generation/coverage.csv'
 outgroup_ids='data_generation/outgroup_ids_one_ingroup.csv'
 
-generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length}
-run_snakemake 
-move_and_link_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome}
+{
+    generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length}
+    run_snakemake 
+    move_and_link_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome}
+} >> "${log_file_path}/${timestamp}_${experiment_name}.log" 2>&1
+
+check_for_errors_in_log "${log_file_path}/${timestamp}_${experiment_name}.log"
+echo -e "${experiment_name} done\n"
+
 
 ####
 # 2 input samples, one outgroup sample one ingroup sample 
@@ -152,13 +204,21 @@ variant_file='data_generation/variants_raw_two_samples.csv'
 coverage_file='data_generation/coverage_two_samples.csv'
 outgroup_ids='data_generation/outgroup_ids_two_samples_one_outgroup_one_ingroup.csv'
 
-generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length}
-run_snakemake 
-move_and_link_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome}
+{
+    generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length}
+    run_snakemake 
+    move_and_link_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome}
+} >> "${log_file_path}/${timestamp}_${experiment_name}.log" 2>&1
+
+check_for_errors_in_log "${log_file_path}/${timestamp}_${experiment_name}.log"
+echo -e "${experiment_name} done\n"
+
 
 ####
 # Multiple outgroups samples
 
 
 
-
+echo "Data generation done"
+echo "If some errors have been reported, please check the log files ${log_file_path} and look for 'ERROR', 'FAILED' and 'Traceback'"
+echo
