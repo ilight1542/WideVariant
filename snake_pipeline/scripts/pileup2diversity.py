@@ -40,7 +40,7 @@ from math import log10, floor
 # being the same for the two different types of calls (ttest)
 # [36] Pftd is the p value for the tail distantces on the reverse strand
 # being the same for the two  different types of calls (ttest)
-# [37] E is number of calls at ends of a read
+# [37] E is number of calls at start or ends of a read
 # [38] I is number of reads supporting insertions in the +/- (indel_region) bp region
 # [39] D is number of reads supporting deletions in the +/- (indel_region) bp region
 
@@ -49,10 +49,33 @@ from math import log10, floor
 
 #%%
 def round_half_up(n, decimals=0):
+    """
+    Round a number to the nearest integer using half-up rounding.
+
+    This function rounds the input number `n` to the nearest integer using half-up rounding. 
+    Half-up rounding means that if the fraction part is exactly 0.5, it rounds up to the next integer.
+
+    Args:
+        n (float): The number to be rounded.
+        decimals (int, optional): The number of decimal places to round to (default is 0).
+
+    Returns:
+        float: The rounded number.
+
+    """
     multiplier = 10 ** decimals
     return floor(n*multiplier + 0.5) / multiplier   
 
 def generate_nts_ascii():
+    """
+    Generate ASCII representations of nucleotides.
+
+    This function generates ASCII representations of nucleotides by combining uppercase and lowercase nucleotides from the get_nt_order function in the ghf module.
+
+    Returns:
+        list: A list of ASCII representations of nucleotides.
+
+    """
     nts=ghf.get_nt_order()+ghf.get_nt_order().lower()
     nts_ascii=[ord(nt) for nt in nts]
     return nts_ascii
@@ -77,11 +100,11 @@ def clean_calls_from_start_and_end(calls):
     
     #find ends of reads ('$' in mpileup)
     endsk=np.where(calls==36)[0]
-    temp[37]=len(startsk) + len(endsk)
+    num_reads_start_end=len(startsk) + len(endsk)
     calls[endsk]=-1
-    return calls
+    return calls,num_reads_start_end
 
-def parse_indels_into_data(calls,data,indel_region,genome_length):
+def parse_indels_into_data(calls,position,data,indel_region,genome_length):
     """
     Find indels and calls from reads supporting indels.
 
@@ -135,13 +158,16 @@ def parse_indels_into_data(calls,data,indel_region,genome_length):
         calls[k:(k+1+indeld+indelsize)] = -1 #don't remove base that precedes an indel
         return calls,data
 
-def parse_calls_into_simplecalls(calls,ref):
+def parse_calls_into_simplecalls(calls,ref_idx,nts_ascii,line,line_id):
     """
     Parse the calls into simple calls and replace reference matches.
 
     Args:
         calls (ndarray): Array of called bases.
-        ref (int or None): Reference allele index (in nts order from gus.get_nt_order() ). None if the reference allele is ambiguous.
+        ref_idx (int or None): Reference allele index (in nts order from gus.get_nt_order() ). None if the reference allele is ambiguous.
+        nts_ascii (list): List of ASCII representations of nucleotides.
+        line (str): line from mpileup file
+        line_id (int): 0-based line number from mpileup file
 
     Returns:
         ndarray: Array of simple calls with reference matches replaced and non-call info removed (eg indel or start/end of read marker)
@@ -154,19 +180,19 @@ def parse_calls_into_simplecalls(calls,ref):
     #corresponds to its position in bq, mq, td
     #count how many of each nt and average scores
     #replace reference matches (.,) with their actual calls
-    nts_ascii = generate_nts_ascii()
-    if ref != None: # when reference allele is not ambiguous
-        calls[np.where(calls==46)[0]]=nts_ascii[ref] #'.'
-        calls[np.where(calls==44)[0]]=nts_ascii[ref+4] #','
+
+    if ref_idx != None: # when reference allele is not ambiguous
+        calls[np.where(calls==46)[0]]=nts_ascii[ref_idx] #'.'
+        calls[np.where(calls==44)[0]]=nts_ascii[ref_idx] #','
     else: # added 2022.09.23 by Arolyn: for cases where reference allele is ambiguous, confirm there are no ,'s or .'s
         if np.any(calls==46) | np.any(calls==44):
-            raise ValueError(f'Error! Calls at this position allegedly match reference allele even though reference allele was ambiguous. Line from mpileup: {line}')
+            raise ValueError(f'Error! Calls at this position allegedly match reference allele even though reference allele was ambiguous. Line {str(line_id+1)} from mpileup: {line}')
     
     #index reads for finding scores
     simplecalls=calls[np.where(calls>0)]
     return simplecalls
 
-def run_statistical_tests(simplecalls,temp,bq,mq,td,min_reads_on_strand,Phred_offset=33):
+def run_statistical_tests(simplecalls,temp,bq,mq,td,nts_ascii,Phred_offset=33):
     """
     Run statistical tests on sequencing data for metagenomic samples. (only if MAF <0.995 and each strand has > min_reads_on_strand)
 
@@ -176,7 +202,7 @@ def run_statistical_tests(simplecalls,temp,bq,mq,td,min_reads_on_strand,Phred_of
         bq (ndarray): Base qualities for each read.
         mq (ndarray): Mapping qualities for each read.
         td (ndarray): Tail distances from forward and reverse reads.
-        min_reads_on_strand (int): Minimum number of reads required on a strand.
+        nts_ascii (list): List of ASCII representations of nucleotides.
         Phred_offset (int): Phred quality score offset.
 
     Returns:
@@ -185,7 +211,6 @@ def run_statistical_tests(simplecalls,temp,bq,mq,td,min_reads_on_strand,Phred_of
     """
     ## The following section is critical for metagenomic samples 
     # find major and nextmajor allele
-    nts_ascii = generate_nts_ascii()
 
     allele_index_summed_calls=[(x,temp[x]+temp[x+4]) for x in range(4)] # add T and t calls, C and c calls, etc. keep index of major allele as first index in tuple
     allele_index_summed_calls.sort(key=lambda x: x[1]) ## sort by number of calls for a given base
@@ -207,21 +232,21 @@ def run_statistical_tests(simplecalls,temp,bq,mq,td,min_reads_on_strand,Phred_of
     reverse_pval=ttest_ind(rttests_x,rttests_y)[1]
     # record pval of above t-tests as -log10
     # coverting values of 0 and nan for output as -1 (test failed):
-    if bp == 0 or np.isnan(bp):
+    if bq_pval == 0 or np.isnan(bq_pval):
         temp[33]=-1
-    else: temp[33]=round_half_up(-log10(bp)) 
+    else: temp[33]=round_half_up(-log10(bq_pval)) 
 
-    if mp == 0 or np.isnan(mp):
+    if mq_pval == 0 or np.isnan(mq_pval):
         temp[34]=-1
-    else: temp[34]=round_half_up(-log10(mp))
+    else: temp[34]=round_half_up(-log10(mq_pval))
 
-    if fp == 0 or np.isnan(fp):
+    if forward_pval == 0 or np.isnan(forward_pval):
         temp[35]=-1
-    else: temp[35]=round_half_up(-log10(fp))
+    else: temp[35]=round_half_up(-log10(forward_pval))
     
-    if rp == 0 or np.isnan(rp):
+    if reverse_pval == 0 or np.isnan(reverse_pval):
         temp[36]=-1
-    else: temp[36]=round_half_up(-log10(rp))
+    else: temp[36]=round_half_up(-log10(reverse_pval))
     
     ## currently not broken but testing against matlab script fails since matlab script *is* broken.
     p=fisher_exact(np.array([[temp[n1], temp[n2]],[temp[n1+4],temp[n2+4]]]), alternative='two-sided')[1] # fisher exact test for strand bias (contingency table = # of reads that are fwd/rev and support major/minor allele)
@@ -230,7 +255,7 @@ def run_statistical_tests(simplecalls,temp,bq,mq,td,min_reads_on_strand,Phred_of
     else: temp[32]=round_half_up(-log10(p))
     return temp
 
-def parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,min_reads_on_strand,Phred_offset):
+def parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,nts_ascii,min_reads_on_strand,Phred_offset):
     """
     Parse simplecalls into temp data structure for recording read support, basequality values, mapping quality values, and tail distance values for this position for each read possible (ATCG and atcg)
 
@@ -240,6 +265,7 @@ def parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,min_reads_on_stra
         bq (ndarray): Base qualities for each read.
         mq (ndarray): Mapping qualities for each read.
         td (ndarray): Tail distances from forward and reverse reads.
+        nts_ascii (list): List of ASCII representations of nucleotides.
         min_reads_on_strand (int): Minimum number of reads required on a strand.
         Phred_offset (int): Phred quality score offset.
 
@@ -247,7 +273,7 @@ def parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,min_reads_on_stra
         ndarray: Updated temp array with values recorded on indicies 0-31 (inclusive) added.
 
     """
-    nts_ascii = generate_nts_ascii()
+
     for nt in range(8):
         current_nt_indices=np.where(simplecalls == nts_ascii[nt])[0]
         nt_count=len(current_nt_indices)
@@ -260,32 +286,28 @@ def parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,min_reads_on_stra
         temp=run_statistical_tests(simplecalls,temp,bq,mq,td,min_reads_on_strand,Phred_offset)
     return temp
 
-def parse_entry_in_mpileupup(line,data,indel_region,genome_length,chr_starts,Phred_offset):
+def parse_entry_in_mpileupup(line,line_id,data,chr_starts,genome_length,scaf_names,nts_ascii,indel_region,min_reads_on_strand,Phred_offset,num_fields_diversity_arr):
     lineinfo = line.strip().split('\t')
     
     #holds info for each position before storing in data
-    temp = np.zeros((num_fields),dtype=int)
+    temp = np.zeros((num_fields_diversity_arr),dtype=int)
     
     chromo = lineinfo[0]
-    #position (absolute)
-    if len(chr_starts) == 1:
-        position=int(lineinfo[1])
-    else:
-        if chromo not in scaf_names:
-            raise ValueError("Scaffold name in pileup file not found in reference")
-        position=int(chr_starts[np.where(chromo==scaf_names)]) + int(lineinfo[1])
-        #chr_starts starts at 0
-    
+    chr_idx = np.where(chromo == scaf_names)[0][0] +1 ## +1 as chrpos2index uses 1-indexed chromosomes
+    position_on_chr = int(lineinfo[1]) #1-indexed
+    chr_pos_array = np.array( ([chr_idx, position_on_chr], ) ) ## 2D-np array required!
+    position = ghf.chrpos2index(chr_pos_array, chr_starts)
+
     #ref allele
     ref_str = lineinfo[2]; # reference allele from pileup (usually A T C or G but sometimes a different symbol if nucleotide is ambiguous)
     nts=ghf.get_nt_order()
     nts_dict={nt: i for i, nt in enumerate(nts)}
     if ref_str in nts_dict.keys():
-        ref=nts_dict[ref_str] # convert to 0123
-        if ref >= 4:
-            ref = ref - 4
+        ref_idx=nts_dict[ref_str] # convert to 0123
+        if ref_idx >= 4:
+            ref_idx = ref_idx - 4
     else:
-        ref=None # for cases where reference base is ambiguous
+        ref_idx=None # for cases where reference base is ambiguous
     
     #calls info
     calls=np.fromstring(lineinfo[4], dtype=np.int8) #to ASCII
@@ -296,25 +318,30 @@ def parse_entry_in_mpileupup(line,data,indel_region,genome_length,chr_starts,Phr
     td=np.fromstring(lineinfo[7], dtype=int, sep=',') # distance from tail, comma sep
     
     # find start and end reads supporting call, mask for downstream processing
-    calls = clean_calls_from_start_and_end(calls)
+    calls,temp[37] = clean_calls_from_start_and_end(calls)
     
     # parse indels
-    calls,data = parse_indels_into_data(calls,data,indel_region,genome_length)
+    calls,data = parse_indels_into_data(calls,position,data,indel_region,genome_length)
 
-    simplecalls = parse_calls_into_simplecalls(calls,ref)
-    temp = parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,min_reads_on_strand,Phred_offset)
+    simplecalls = parse_calls_into_simplecalls(calls,ref_idx,nts_ascii,line,line_id)
+    temp = parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,nts_ascii,min_reads_on_strand,Phred_offset)
     
     ## store the data
     #-1 is needed to turn 1-indexed positions to python 0-indexed
     data[position-1,:38]=temp[:38]
     return data
 
-def mpileup_to_diversity(input_pileup,min_reads_on_strand,indel_region,Phred_offset):
+def mpileup_to_diversity(input_pileup,path_to_ref,min_reads_on_strand,indel_region,Phred_offset,num_fields_diversity_arr):
     """
     Convert an mpileup file to a diversity data structure.
 
     Args:
         input_pileup (str): Path to the input mpileup file.
+        path_to_ref (str): Path to the reference genome file.
+        min_reads_on_strand (int): Minimum number of reads on a strand in order to run statistical tests for detecting bias in heterozygous called sites
+        indel_region (int): Number of bases upstream/downstream of an indel to mark as having an indel-supporting read nearby
+        Phred_offset (int): Phred quality score offset.
+        num_fields_diversity_arr (int): Number of fields in the diversity data structure.
 
     Returns:
         ndarray: A data structure containing diversity information.
@@ -322,28 +349,31 @@ def mpileup_to_diversity(input_pileup,min_reads_on_strand,indel_region,Phred_off
     """
     #####
     [chr_starts,genome_length,scaf_names] = ghf.genomestats(path_to_ref)
+    ## generate list of nts as ascii_idx
+    nts_ascii = generate_nts_ascii()
     
     #init
-    data = np.zeros((genome_length,40),dtype=int) #format for each base in genome: [ #A, #T, #C, #G, #a, #t, #c, #g,...other statistics...]
+    data = np.zeros((genome_length,num_fields_diversity_arr),dtype=int) #format for each base in genome: [ #A, #T, #C, #G, #a, #t, #c, #g,...other statistics...]
 
     #Read in mpileup file
     print(f"Reading input file: {input_pileup}")
     with open(input_pileup) as mpileup:
-        for i,line in enumerate(mpileup):
-            data = parse_entry_in_mpileupup(line,data,indel_region,genome_length,chr_starts,Phred_offset)
+        for line_id, line in enumerate(mpileup):
+            data = parse_entry_in_mpileupup(line,line_id,data,chr_starts,genome_length,scaf_names,nts_ascii,indel_region,min_reads_on_strand,Phred_offset,num_fields_diversity_arr)
     return data
 
-def main(input_pileup, path_to_ref,min_reads_on_strand=20,indel_region=3):
+def main(input_pileup, path_to_ref,phred_offset=33,num_fields_diversity_arr=40,min_reads_on_strand=20,indel_region=3):
     """Grabs relevant allele info from mpileupfile and stores as an array 
 
     Args:
         input_pileup (str): Path to input pileup file.
         path_to_ref (str): Path to reference genome file
+        phred_offset (int): Phred quality score offset.
         min_reads_on_strand: default=20: Minimum number of reads on a strand in order to run statistical tests for detecting bias in heterozygous called sites
         indel_region: default=3: Number of bases upstream/downstream of an indel to mark as having an indel-supporting read nearby
     """
-    Phred_offset=33
-    data = mpileup_to_diversity(input_pileup,min_reads_on_strand,indel_region,Phred_offset)
+    
+    data = mpileup_to_diversity(input_pileup,path_to_ref,min_reads_on_strand,indel_region,phred_offset,num_fields_diversity_arr)
     #calc coverage
     coverage=np.sum(data[:,0:8], axis = 1)
 
@@ -361,10 +391,11 @@ if __name__ == "__main__":
     parser.add_argument('-r', dest='ref', type=str, help='Path to reference genome',required=True)
     parser.add_argument('-o', dest='output', type=str, help='Path to output diversity file', required=True)
     parser.add_argument('-c', dest='coverage', type=str, help='Path to coverage file', required=True)
+    parser.add_argument('-p', dest='phred_offset', type=int, help='Phred offset of sequencing data', required=False, default=33)
     
     args = parser.parse_args()
     
-    diversity_arr, coverage_arr = main(args.input,args.ref)
+    diversity_arr, coverage_arr = main(args.input,args.ref,args.phred_offset)
     
     np.savez_compressed(args.output, data = diversity_arr.astype(int))
     if args.coverage:
