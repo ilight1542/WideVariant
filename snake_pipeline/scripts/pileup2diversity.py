@@ -121,15 +121,15 @@ def get_indel_size(calls,k):
             ,and the number of chars in calls used to define the size (which would be 2 since 11 takes up 2 string positions in the pileup calls entry)
     """
     forward_looking_index_for_indel_size = 1
-        while calls[k + forward_looking_index_for_indel_size] >=48 and calls[k + forward_looking_index_for_indel_size] <58: ## multiple digit indel
-            forward_looking_index_for_indel_size+=1
-        if forward_looking_index_for_indel_size > 1:
-            indel_ascii=list(calls[k+1:k+forward_looking_index_for_indel_size])
-            indelsize=int(''.join(map(chr,indel_ascii)))
-            indeld=forward_looking_index_for_indel_size-1 # distance ahead of current call index where indel base call info is stored
-        else:
-            indelsize=int(chr(calls[k+1]))
-            indeld=1
+    while calls[k + forward_looking_index_for_indel_size] >=48 and calls[k + forward_looking_index_for_indel_size] <58: ## multiple digit indel
+        forward_looking_index_for_indel_size+=1
+    if forward_looking_index_for_indel_size > 1:
+        indel_ascii=list(calls[k+1:k+forward_looking_index_for_indel_size])
+        indelsize=int(''.join(map(chr,indel_ascii)))
+        indeld=forward_looking_index_for_indel_size-1 # distance ahead of current call index where indel base call info is stored
+    else:
+        indelsize=int(chr(calls[k+1]))
+        indeld=1
     return indelsize,indeld
 
 def parse_indels_into_data(calls,position,data,indel_region,genome_length):
