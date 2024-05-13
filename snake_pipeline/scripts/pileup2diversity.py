@@ -152,11 +152,11 @@ def parse_indels_into_data(calls,position,data,indel_region,genome_length):
     for k in indelk:
         # get number of bases and indexing info for calls of indel
         indelsize,indeld=get_indel_size(calls,k)
-        #record that indel was found in +/- indel_region nearby
-        #indexing is slightly different here from matlab version
-        indel_region_start=position-indel_region-1
-        del_region_end=position+indelsize+indel_region-1
-        ins_region_end=position+indel_region-1
+        # Mark indel region bases before and after indel
+        # record that indel support was found in +/- indel_region nearby
+        indel_region_start=position-indel_region+1 # indel starts after current position, so pos 100, with indel support between 100 and 101, gets 98,99 and 100 updated
+        del_region_end=position+indelsize+indel_region+1 # indel starts after current position, so pos 100, with indel support between 100 and 101, 101,102,103 updated (plus size of del)
+        ins_region_end=position+indel_region+1 # indel starts after current position, so pos 100, with indel support between 100 and 101, 101,102,103 updated (plus size of del)
         if calls[k]==45: #deletion
             if (indel_region_start >= 0) and (del_region_end < genome_length): # if in middle of contig
                 #must store directly into data as it affects lines earlier and later
@@ -176,7 +176,7 @@ def parse_indels_into_data(calls,position,data,indel_region,genome_length):
 
         #mask indel info from calls
         calls[k:(k+1+indeld+indelsize)] = -1 #don't remove base that precedes an indel
-        return calls,data
+    return calls,data
 
 def parse_calls_into_simplecalls(calls,ref_idx,nts_ascii,line,line_id):
     """
