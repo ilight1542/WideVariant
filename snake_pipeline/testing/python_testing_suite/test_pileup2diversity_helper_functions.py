@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 from Bio import SeqIO
 
-sys.path.append('../../scripts/')
+sys.path.append('./scripts/')
 import gus_helper_functions as ghf
 import pileup2diversity as p2dh
 
