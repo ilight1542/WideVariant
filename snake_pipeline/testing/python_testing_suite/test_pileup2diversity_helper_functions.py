@@ -54,17 +54,17 @@ class TestMyFunction(unittest.TestCase):
         calls_10bp_indel=np.fromstring('.+10AAAAAAAAAA',dtype=np.int8)
        
         # TEST CASE: single bp insertion 
-        indelsize,indeld=get_indel_size(calls_1bp_indel,0)
+        indelsize,indeld=p2dh.get_indel_size(calls_1bp_indel,0)
         self.assertEqual(indelsize,1) # total length is 1
         self.assertEqual(indeld,1) # 1 array spots to say 1
         
         # TEST CASE: 2 bp insertion 
-        indelsize,indeld=get_indel_size(calls_2bp_indel,0)
+        indelsize,indeld=p2dh.get_indel_size(calls_2bp_indel,0)
         self.assertEqual(indelsize,2) # total length is 2
         self.assertEqual(indeld,1) # 1 array spots to say 2
 
         # TEST CASE: 10 bp insertion 
-        indelsize,indeld=get_indel_size(calls_10bp_indel,0)
+        indelsize,indeld=p2dh.get_indel_size(calls_10bp_indel,0)
         self.assertEqual(indelsize,10) # total length is 10
         self.assertEqual(indeld,2) # 2 array spots to say 10
 
