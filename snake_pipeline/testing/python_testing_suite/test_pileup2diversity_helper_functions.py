@@ -48,6 +48,25 @@ class TestMyFunction(unittest.TestCase):
         self.assertTrue( np.array_equal(p2dh.clean_calls_from_start_and_end(mixed_start_end_mid.copy())[0], mixed_start_end_mid_exp_arr) ) ## check if all start and end chars have been flagged and normal reads retained 
         self.assertEqual( p2dh.clean_calls_from_start_and_end(mixed_start_end_mid.copy())[1], 8) ## all are either end or start reads
 
+    def test_get_indel_size(self):
+        calls_1bp_indel=np.fromstring('.+1A',dtype=np.int8)
+        calls_2bp_indel=np.fromstring('.+2AA',dtype=np.int8)
+        calls_10bp_indel=np.fromstring('.+10AAAAAAAAAA',dtype=np.int8)
+       
+        # TEST CASE: single bp insertion 
+        indelsize,indeld=get_indel_size(calls_1bp_indel,0)
+        self.assertEqual(indelsize,1) # total length is 1
+        self.assertEqual(indeld,1) # 1 array spots to say 1
+        
+        # TEST CASE: 2 bp insertion 
+        indelsize,indeld=get_indel_size(calls_2bp_indel,0)
+        self.assertEqual(indelsize,2) # total length is 2
+        self.assertEqual(indeld,1) # 1 array spots to say 2
+
+        # TEST CASE: 10 bp insertion 
+        indelsize,indeld=get_indel_size(calls_10bp_indel,0)
+        self.assertEqual(indelsize,10) # total length is 10
+        self.assertEqual(indeld,2) # 2 array spots to say 10
 
     def test_parse_indels_into_data(self):
         #TODO finish implementation (checking updating of both calls and data after parse_indels_into_data runs)
@@ -55,26 +74,110 @@ class TestMyFunction(unittest.TestCase):
         # indel near start (overlapping based on indelregion to mark +/- #positions as being in indel proximity)
         # indel at end of contig
         ## generate dataframe to update
+        indel_region=3
         test_data=np.zeros((10,40),dtype=int) # 10bp genome length
         
         ## different types of indel entries for calls
+        # all with 8 read support
         no_start_or_end=np.fromstring('....,,,,', dtype=np.int8)
         all_insertions=np.fromstring('.+1A.+1A.+1A.+1A.+1A.+1A.+1A.+1A', dtype=np.int8)
         two_base_insertion=np.fromstring('.+2AA.+2AA.+2AA.+2AA.+2AA.+2AA.+2AA.+2AA', dtype=np.int8)
         all_deletions=np.fromstring('.-1A.-1A.-1A.-1A.-1A.-1A.-1A.-1A', dtype=np.int8)
         two_base_deletions=np.fromstring('.-2AA.-2AA.-2AA.-2AA.-2AA.-2AA.-2AA.-2AA', dtype=np.int8)
 
-        ## build sets of calls:
-        calls_no_indels=np.array([no_start_or_end]*10)
-        calls_insertion_start=
-        calls_deletion_start=
-        calls_twobp_insertion_middle=
+        # TEST CASE: no indel case
+        test_data=np.zeros((10,40),dtype=int) # 10bp genome length
+        no_indel_calls_out,no_indel_data_out=p2dh.parse_indels_into_data(calls_no_indels,0,test_data,indel_region,test_data.shape[0])
+       
+        self.assertEqual(no_indel_calls_out,no_start_or_end) # check no updates to calls
+        self.assertEqual(no_indel_data_out,test_data) # check no updates to data
 
-        # TODO: check calls get updated as -1 correctly for strings that arent ./,/ATCG
 
-        self.assertEqual(p2dh.parse_indels_into_data(calls_no_indels,test_data),8)
-        self.assertEqual(p2dh.parse_indels_into_data(all_end),8)
-        self.assertEqual(p2dh.parse_indels_into_data(mixed_start_end),8)
+        # TEST CASE: 1bp insertions at start  of chrom
+        test_data=np.zeros((10,40),dtype=int) # 10bp genome length
+        calls_out,data_out=p2dh.parse_indels_into_data(all_insertions,0,test_data,indel_region,test_data.shape[0])
+     
+        self.assertNotEqual(calls_out,no_start_or_end) # check calls: is updated at all
+        self.assertFalse(np.any((calls_out==43))) # check calls: all + chars are gone
+        self.assertFalse(np.any((calls_out==45))) # check calls: all - chars are gone
+        self.assertEqual(np.sum((calls_out==-1)),8*3) # check calls: correct number of -1 adjusted (3x8 (+1A) )
+
+        self.assertNotEqual(data_out,test_data) # check data: is updated at all
+        self.assertEqual(data_out[0,38],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3, so 3bp up and down)
+        self.assertEqual(data_out[1,38],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3, so 3bp up and down)
+        self.assertEqual(data_out[2,38],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3, so 3bp up and down)
+        self.assertEqual(data_out[3,38],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3, so 3bp up and down)
+
+
+        # TEST CASE: 2bp insertions at start of chrom, all should be same as above since only deletions adjust region of data to update
+        test_data=np.zeros((10,40),dtype=int) # 10bp genome length
+        calls_out,data_out=p2dh.parse_indels_into_data(two_base_insertion,0,test_data,indel_region,test_data.shape[0])
+     
+        self.assertNotEqual(calls_out,no_start_or_end) # check calls: is updated at all
+        self.assertFalse(np.any((calls_out==43))) # check calls: all + chars are gone
+        self.assertFalse(np.any((calls_out==45))) # check calls: all - chars are gone
+        self.assertEqual(np.sum((calls_out==-1)),8*4) # check calls: correct number of -1 adjusted (4x8 (+2AA) )
+
+        self.assertNotEqual(data_out,test_data) # check data: is updated at all
+        self.assertEqual(data_out[0,38],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3, so 3bp up and down)
+        self.assertEqual(data_out[1,38],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3, so 3bp up and down)
+        self.assertEqual(data_out[2,38],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3, so 3bp up and down)
+        self.assertEqual(data_out[3,38],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3, so 3bp up and down)
+        self.assertEqual(data_out[4,38],0) # check data: gets correct number of read support to associate as with the indel (outside indel region)
+
+
+        # TEST CASE: 1bp insertions at end of chrom
+        test_data=np.zeros((10,40),dtype=int) # 10bp genome length
+        calls_out,data_out=p2dh.parse_indels_into_data(all_insertions,9,test_data,indel_region,test_data.shape[0])
+        
+        self.assertNotEqual(data_out,test_data) # check data: is updated at all
+        self.assertEqual(data_out[9,38],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3, so 3bp up and down)
+        self.assertEqual(data_out[8,38],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3, so 3bp up and down)
+        self.assertEqual(data_out[7,38],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3, so 3bp up and down)
+        self.assertEqual(data_out[6,38],0) # check data: gets correct number of read support to associate as with the indel (indel region = 3, so 3bp up and down)
+
+
+        # TEST CASE: 1bp deletion at start of chrom
+        test_data=np.zeros((10,40),dtype=int) # 10bp genome length
+        calls_out,data_out=p2dh.parse_indels_into_data(all_deletions,0,test_data,indel_region,test_data.shape[0])
+     
+        self.assertNotEqual(calls_out,no_start_or_end) # check calls: is updated at all
+        self.assertFalse(np.any((calls_out==43))) # check calls: all + chars are gone
+        self.assertFalse(np.any((calls_out==45))) # check calls: all - chars are gone
+        self.assertEqual(np.sum((calls_out==-1)),8*3) # check calls: correct number of -1 adjusted (3x8 (-1A) )
+
+        self.assertNotEqual(data_out,test_data) # check data: is updated at all
+        self.assertEqual(data_out[0,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 1bp deletion size, so 4bp up and down)
+        self.assertEqual(data_out[1,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 1bp deletion size, so 4bp up and down)
+        self.assertEqual(data_out[2,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 1bp deletion size, so 4bp up and down)
+        self.assertEqual(data_out[3,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 1bp deletion size, so 4bp up and down)
+        self.assertEqual(data_out[4,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 1bp deletion size, so 4bp up and down)
+        self.assertEqual(data_out[5,39],0) # check data: gets correct number of read support to associate as with the indel (outside indel region)
+
+
+        # TEST CASE: 2bp deletion start of chrom
+        test_data=np.zeros((10,40),dtype=int) # 10bp genome length
+        calls_out,data_out=p2dh.parse_indels_into_data(two_base_deletions,0,test_data,indel_region,test_data.shape[0])
+
+        self.assertNotEqual(data_out,test_data) # check data: is updated at all
+        self.assertEqual(data_out[0,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 2bp deletion size, so 5bp up and down)
+        self.assertEqual(data_out[1,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 2bp deletion size, so 5bp up and down)
+        self.assertEqual(data_out[2,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 2bp deletion size, so 5bp up and down)
+        self.assertEqual(data_out[3,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 2bp deletion size, so 5bp up and down)
+        self.assertEqual(data_out[4,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 2bp deletion size, so 5bp up and down)
+        self.assertEqual(data_out[5,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 2bp deletion size, so 5bp up and down)
+        self.assertEqual(data_out[6,39],0) # check data: gets correct number of read support to associate as with the indel (outside indel region)
+
+
+        # TEST CASE: 1bp deletion at end of chrom
+        test_data=np.zeros((10,40),dtype=int) # 10bp genome length
+        calls_out,data_out=p2dh.parse_indels_into_data(all_insertions,9,test_data,indel_region,test_data.shape[0])
+        
+        self.assertNotEqual(data_out,test_data) # check data: is updated at all
+        self.assertEqual(data_out[9,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 1bp deletion size, so 4bp up and down)
+        self.assertEqual(data_out[8,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 1bp deletion size, so 4bp up and down)
+        self.assertEqual(data_out[7,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 1bp deletion size, so 4bp up and down)
+        self.assertEqual(data_out[6,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 1bp deletion size, so 4bp up and down)
 
     def test_parse_calls_into_simplecalls(self):
         #TODO check if it works, possibly add more edge cases
