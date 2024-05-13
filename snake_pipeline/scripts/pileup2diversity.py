@@ -104,12 +104,40 @@ def clean_calls_from_start_and_end(calls):
     calls[endsk]=-1
     return calls,num_reads_start_end
 
+def get_indel_size(calls,k):
+    """
+    Find the total size of a call for a given indel, and the width of the declaration of the indel size from calls.
+
+    Args:
+        calls (ndarray): Array of called bases for a given position and sample
+        k: index of calls which supports an indel 
+            info on indel call follow directly after in format: +11ATTCATTCATT 
+                + = insertion beginning directly after this position
+                11 = of 11bp
+                ATTCATTCATT = this read has an insertion of ATTCATTCATT 
+        
+    Returns:
+        Tuple[int, int]: Tuple containing the size of the indel (defined as 11 in the example above),
+            ,and the number of chars in calls used to define the size (which would be 2 since 11 takes up 2 string positions in the pileup calls entry)
+    """
+    forward_looking_index_for_indel_size = 1
+        while calls[k + forward_looking_index_for_indel_size] >=48 and calls[k + forward_looking_index_for_indel_size] <58: ## multiple digit indel
+            forward_looking_index_for_indel_size+=1
+        if forward_looking_index_for_indel_size > 1:
+            indel_ascii=list(calls[k+1:k+forward_looking_index_for_indel_size])
+            indelsize=int(''.join(map(chr,indel_ascii)))
+            indeld=forward_looking_index_for_indel_size-1 # distance ahead of current call index where indel base call info is stored
+        else:
+            indelsize=int(chr(calls[k+1]))
+            indeld=1
+    return indelsize,indeld
+
 def parse_indels_into_data(calls,position,data,indel_region,genome_length):
     """
     Find indels and calls from reads supporting indels.
 
     Args:
-        calls (ndarray): Array of called bases.
+        calls (ndarray): Array of called bases for a given position and sample.
         data (ndarray): Data structure for recording indel information.
         position (int): Current position in the genome.
         indel_region (int): Size of the indel region.
@@ -122,16 +150,8 @@ def parse_indels_into_data(calls,position,data,indel_region,genome_length):
     #find reads supporting indels in calls ('+-')
     indelk = np.where((calls==43) | (calls==45))[0]
     for k in indelk:
-        forward_looking_index_for_indel_size = 1
-        while calls[k + forward_looking_index_for_indel_size] >=48 and calls[k + forward_looking_index_for_indel_size] <58: ## multiple digit indel
-            forward_looking_index_for_indel_size+=1
-        if forward_looking_index_for_indel_size > 1:
-            indel_ascii=list(calls[k+1:k+forward_looking_index_for_indel_size])
-            indelsize=int(''.join(map(chr,indel_ascii)))
-            indeld=forward_looking_index_for_indel_size-1 # distance ahead of current call index where indel base call info is stored
-        else:
-            indelsize=int(chr(calls[k+1]))
-            indeld=1
+        # get number of bases and indexing info for calls of indel
+        indelsize,indeld=get_indel_size(calls,k)
         #record that indel was found in +/- indel_region nearby
         #indexing is slightly different here from matlab version
         indel_region_start=position-indel_region-1
