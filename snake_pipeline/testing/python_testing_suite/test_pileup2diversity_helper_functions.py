@@ -146,11 +146,11 @@ class TestMyFunction(unittest.TestCase):
         self.assertEqual(np.sum((calls_out==-1)),8*3) # check calls: correct number of -1 adjusted (3x8 (-1A) )
 
         self.assertFalse(np.all(data_out==test_data)) # check data: is updated at all
-        self.assertEqual(data_out[0,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 1bp deletion size, so 4bp up and down)
-        self.assertEqual(data_out[1,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 1bp deletion size, so 4bp up and down)
-        self.assertEqual(data_out[2,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 1bp deletion size, so 4bp up and down)
-        self.assertEqual(data_out[3,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 1bp deletion size, so 4bp up and down)
-        self.assertEqual(data_out[4,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 1bp deletion size, so 4bp up and down)
+        self.assertEqual(data_out[0,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 1bp deletion size, so 4bp up and 3 down)
+        self.assertEqual(data_out[1,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 1bp deletion size, so 4bp up and 3 down)
+        self.assertEqual(data_out[2,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 1bp deletion size, so 4bp up and 3 down)
+        self.assertEqual(data_out[3,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 1bp deletion size, so 4bp up and 3 down)
+        self.assertEqual(data_out[4,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 1bp deletion size, so 4bp up and 3 down)
         self.assertEqual(data_out[5,39],0) # check data: gets correct number of read support to associate as with the indel (outside indel region)
 
 
@@ -159,12 +159,12 @@ class TestMyFunction(unittest.TestCase):
         calls_out,data_out=p2dh.parse_indels_into_data(two_base_deletions.copy(),0,test_data.copy(),indel_region,test_data.shape[0])
 
         self.assertFalse(np.all(data_out==test_data)) # check data: is updated at all
-        self.assertEqual(data_out[0,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 2bp deletion size, so 5bp up and down)
-        self.assertEqual(data_out[1,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 2bp deletion size, so 5bp up and down)
-        self.assertEqual(data_out[2,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 2bp deletion size, so 5bp up and down)
-        self.assertEqual(data_out[3,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 2bp deletion size, so 5bp up and down)
-        self.assertEqual(data_out[4,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 2bp deletion size, so 5bp up and down)
-        self.assertEqual(data_out[5,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 2bp deletion size, so 5bp up and down)
+        self.assertEqual(data_out[0,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 2bp deletion size, so 5bp up and 3 down)
+        self.assertEqual(data_out[1,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 2bp deletion size, so 5bp up and 3 down)
+        self.assertEqual(data_out[2,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 2bp deletion size, so 5bp up and 3 down)
+        self.assertEqual(data_out[3,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 2bp deletion size, so 5bp up and 3 down)
+        self.assertEqual(data_out[4,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 2bp deletion size, so 5bp up and 3 down)
+        self.assertEqual(data_out[5,39],8) # check data: gets correct number of read support to associate as with the indel (indel region = 3 + 2bp deletion size, so 5bp up and 3 down)
         self.assertEqual(data_out[6,39],0) # check data: gets correct number of read support to associate as with the indel (outside indel region)
 
 
