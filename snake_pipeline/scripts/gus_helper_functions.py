@@ -35,9 +35,6 @@ def read_samples_CSV(spls,quiet=False):
 
     Description:
         This function reads sample information from a CSV file and returns the values from specific columns.
-        The function assumes the CSV file has a specific format and column order.
-        The function checks if the first line of the file is a header line and verifies the column order based on it.
-        If the header line is missing or the column order is incorrect, warnings or error messages are displayed.
         The function builds lists for each column using the provided header-to-column mapping.
         Finally, the function returns a list containing the values from the specified columns.
 
@@ -48,29 +45,13 @@ def read_samples_CSV(spls,quiet=False):
 
     with open(spls, 'r') as fid: 
         for line_id, line in enumerate(fid):
-            # check if first line is header. Note: Even when header is not found code continues (w/ warning).
             if line_id == 0:
-                if line.startswith('Path,Sample,'):
-                    hdr_colnames = line.strip('\n').split(',')
-                    hdr_to_col_id = {hdr: id for id, hdr in enumerate(hdr_colnames)}
-                    if not quiet:
-                        print("Passed CSV header check")
-                    continue
-                else:
-                    Warning("\n\nCSV did NOT pass header check!")
-                    if len(line.strip('\n').split(',')) == len(smpl_csv_dict.keys()):
-                        Warning('Assumes column order to be: Path,Sample,FileName,Reference,Group,Outgroup\n\n')
-                        hdr_to_col_id = {hdr: id for id, hdr in enumerate(smpl_csv_dict.keys())}
-                    else:
-                        print('\n\nSample csv is not formatted correctly.')
-                        print('Snakemake will not start!\n\n')
-                        sys.exit(1)
-            
+                hdr_colnames = line.strip('\n').split(',')
+                hdr_to_col_id = {hdr: id for id, hdr in enumerate(hdr_colnames)}            
             line = line.strip('\n').split(',')
             # build lists
             for key, id in hdr_to_col_id.items():
                 smpl_csv_dict[key].append(line[id])
-        
     return [smpl_csv_dict[key] for key in smpl_csv_dict.keys()]
 
 
@@ -374,7 +355,8 @@ def define_nt_order():
     """
     Define order of nucleotides for converstion of string to integers 
     """
-    return 'ATCGatcg'
+    full_nt_order=get_nt_order()+get_nt_order().lower()
+    return full_nt_order
 
 def generate_ref_to_int_converstion_dict(nts=define_nt_order()):
     """

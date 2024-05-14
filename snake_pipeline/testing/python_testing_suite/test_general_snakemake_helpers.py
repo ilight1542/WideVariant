@@ -27,6 +27,39 @@ class TestMyFunction(unittest.TestCase):
         self.assertIsInstance(read_in_fasta, SeqIO.FastaIO.FastaIterator)
         self.assertIsInstance(read_in_fasta_gz, SeqIO.FastaIO.FastaIterator)
 
+    def test_nt_order(self):
+        self.assertEqual(len(gus.get_nt_order()),4)
+
+    def test_chrpos2index(self):
+        #TODO: add full testing
+        #TODO: test error raising
+        #TODO: test >2 contigs behaves correctly
+        #TODO: test 1 contig behaves correctly
+        print('no tests currently implemented')
+        pass
+
+    def test_convert_chrpos_to_abspos(self):
+        #TODO: add full testing
+        #TODO: test error raising
+        #TODO: test >2 contigs behaves correctly
+        #TODO: test 1 contig behaves correctly
+        print('no tests currently implemented')
+        pass
+
+    def test_round_half_up(self):
+        self.assertEqual(gus.round_half_up(1),1)
+        self.assertEqual(gus.round_half_up(0),0)
+        self.assertEqual(gus.round_half_up(-1),-1)
+        self.assertEqual(gus.round_half_up(-1.5),-1) # next highest integer (from 0.5 cutoff)
+        self.assertEqual(gus.round_half_up(10.5),11)
+        self.assertEqual(gus.round_half_up(11.5),12)
+        self.assertEqual(gus.round_half_up(12.5),13)
+        self.assertEqual(gus.round_half_up(13.5),14)
+        self.assertEqual(gus.round_half_up(14.5),15)
+        self.assertEqual(gus.round_half_up(10.49),10)
+        self.assertEqual(gus.round_half_up(10.49,1),10.5)
+
+
     def test_genomestats(self):
         # test ouptut length is as expected
         self.assertEqual(len(gus.genomestats(test_genome_dir_full)),3)
