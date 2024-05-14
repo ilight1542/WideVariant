@@ -329,11 +329,11 @@ def convert_chrpos_to_abspos(chromosome_id, nt_pos, genome_chr_starts, scaf_name
     Args:
     - chromosome_id (str): Identifier of the chromosome or scaffold of the position which should be converted.
     - nt_pos (int): Position on the chromosome (0-based) which should be converted to absolute position.
-    - genome_chr_starts (list): List of starting positions of chromosomes/scaffolds in the genome.
-    - scaf_names (list): List of scaffold names in the reference genome.
+    - genome_chr_starts (array): Array of starting positions of chromosomes/scaffolds in the genome.
+    - scaf_names (array): Array of scaffold names in the reference genome.
 
     Returns:
-    - int: Absolute genomic position corresponding to the input chromosome and position.
+    - int: Absolute genomic position corresponding to the input chromosome and position (0-based).
 
     Raises:
     - ValueError: If the chromosome_id is not found in the provided scaffold names.
@@ -344,7 +344,11 @@ def convert_chrpos_to_abspos(chromosome_id, nt_pos, genome_chr_starts, scaf_name
     else:
         if chromosome_id not in scaf_names:
             raise ValueError("Scaffold name in pileup file not found in reference")
-        position=int(genome_chr_starts[np.where(chromosome_id==scaf_names)]) + int(nt_pos)
+        index_of_chrom=np.where(scaf_names==chromosome_id)[0]
+        position=int(genome_chr_starts[index_of_chrom]) + int(nt_pos)
+        if index_of_chrom + 1 < len(scaf_names):
+            if position >= genome_chr_starts[index_of_chrom+1]:
+                raise ValueError(f"Position {nt_pos} given for chrom {chromosome_id} lies outside the end of the chromosome.")
     return position
 
 ########################################
