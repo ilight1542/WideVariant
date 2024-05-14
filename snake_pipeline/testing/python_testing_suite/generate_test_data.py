@@ -70,12 +70,13 @@ def generate_mutated_fastas(experiment_name, variants_boolean_csv,refgenome,base
         sample_variants_bool = np.array(sample_variants)
         for variant_position in np.where(sample_variants_bool)[0]:
             c_name,c_seq_idx=contig_pos[variant_position]
-            ref = c_name_to_c_seqs[c_name][int(c_seq_idx)]
+            c_seq_idx=int(c_seq_idx)-1 ## adjust for 0-indexing
+            ref = c_name_to_c_seqs[c_name][c_seq_idx]
             if basecalls == None:
                 alt = iter_variant(ref)
             else:
                 alt = basecalls[sample_index,variant_position]
-            c_name_to_c_seqs[c_name] = c_name_to_c_seqs[c_name][:int(c_seq_idx)] + alt + c_name_to_c_seqs[c_name][int(c_seq_idx)+1:]
+            c_name_to_c_seqs[c_name] = c_name_to_c_seqs[c_name][:c_seq_idx] + alt + c_name_to_c_seqs[c_name][c_seq_idx+1:]
         for c_name in c_name_to_c_seqs:
             seq=c_name_to_c_seqs[c_name]
             seq_to_output = SeqRecord.SeqRecord(Seq.Seq(seq), id=f'{c_name}', description=f'Mutated contig_{c_name}')
@@ -118,6 +119,8 @@ def prepare_test_run_widevariant_call(experiment_name,sample_names,reference,out
     reference_name=reference.split('/')[-2]
     reference_upstream_path=reference_full_path.split(f'/{reference_name}')[0]
     # create new samples.csv for this experiment in tests
+    if not os.path.isdir(f"test_data/sample_csvs"):
+        os.makedirs(f"test_data/sample_csvs")
     with open(f'test_data/sample_csvs/{experiment_name}.csv','w') as f:
         f.write('Path,Sample,FileName,Reference,Group,Outgroup\n')
         for sample,outgroup in zip(sample_names,outgroups):

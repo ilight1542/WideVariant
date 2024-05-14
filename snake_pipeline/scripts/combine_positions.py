@@ -13,28 +13,6 @@ import gzip
 import gus_helper_functions as ghf
 
 #%%
-def chrpos2index(chrpos,chr_starts):
-    '''Python version of chrpos2index.m
-
-    Args:
-        chrpos (arr): px2 array of position and chromsome idx.
-        chr_starts (arr): Vector of chromosome starts (begins at 0).
-
-    Returns:
-        p (arr): Vector of position indexes.
-
-    '''
-    if np.size(chrpos,0) < np.size(chrpos,1):
-        chrpos=chrpos.T
-        print('Reversed orientation of chrpos')
-        
-    if len(chr_starts) == 1:
-        p=chrpos[:,1]
-    else:
-        p=chr_starts[chrpos[:,0]-1]+chrpos[:,1]
-
-    return p
-
 def generate_positions_snakemake(positions_files_list, REFGENOMEDIRECTORY):
     '''Python version of generate_positions_snakemake.m
     
@@ -58,7 +36,7 @@ def generate_positions_snakemake(positions_files_list, REFGENOMEDIRECTORY):
         positions=tmp['Positions']
         
         if len(positions)>=1:
-            x=chrpos2index(positions,chr_starts)
+            x=ghf.chrpos2index(positions,chr_starts)
             
             timesvariant[x]=timesvariant[x]+1
     

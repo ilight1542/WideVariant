@@ -35,8 +35,8 @@ def plot_bowtieqc(path_to_samples, path_to_mappingsstats, reference_genome, curr
     alignment_stats["Percent Overall Alignment"] = ""
 
     # grab relevant info from log files 
-    os.system(f"grep exactly {path_to_mappingsstats}/bowtie2_*_ref_{reference_genome}.txt > {cwd}/{out_file_string}.txt")
-    os.system(f"grep overall {path_to_mappingsstats}/bowtie2_*_ref_{reference_genome}.txt >> {cwd}/{out_file_string}.txt") 
+    os.system(f'grep -H "exactly" {path_to_mappingsstats}/bowtie2_*_ref_{reference_genome}.txt > {cwd}/{out_file_string}.txt')
+    os.system(f'grep -H "overall" {path_to_mappingsstats}/bowtie2_*_ref_{reference_genome}.txt >> {cwd}/{out_file_string}.txt') 
     sample_id_to_number_once  = {}        
     sample_id_to_percent_once = {}
     sample_id_to_overall      = {}

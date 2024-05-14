@@ -9,38 +9,45 @@ import os
 import glob
 import pandas as pd
 
-sys.path.append('./scripts/')
+sys.path.append(f'../scripts/')
 from bowtie2qc import plot_bowtieqc
 
 class TestMyFunction(unittest.TestCase):
     ## set variables to outpaths
     def parse_in_out_variables(self):
         cwd=os.getcwd()
-        path_to_samples_csv = glob.glob(f'{cwd}/testing/test_data/sample_csvs/*_samples.csv')
-        experiment_names=[path.split('/')[-1].replace('_samples.csv', '') for path in path_to_samples_csv]
-        outdirs=[f'testing/test_data/results/{experiment}' for experiment in experiment_names]
-        arguments_for_testing=[]
-        expected_plot_files_list=[]
-        expected_num_samples_list=[]
-        for outdir,samples_csv in zip(outdirs,path_to_samples_csv):
-            parsed_samples_csv=pd.read_csv(samples_csv, sep=',',header=0)
-            ref_genomes=parsed_samples_csv['Reference'].unique()
+        testcase_dirs = glob.glob(f'{cwd}/test_data/results/*')
+        arguments_for_testing_dict = {}
+        expected_plot_files_dict = {}
+        expected_num_samples_dict = {}
+        expected_text_file_dict = {}
+        for testcase_dir in testcase_dirs:
+            experiment_name = testcase_dir.split('/')[-1]
+            arguments_for_testing_dict[experiment_name] = []
+            expected_plot_files_dict[experiment_name] = []
+            expected_num_samples_dict[experiment_name] = []
+            expected_text_file_dict[experiment_name] = []
+            outdir=f'{testcase_dir}/1-mapping/bowtie2_qc'
+            samples_csv_path=f'{testcase_dir}/0-used_input_data/samples.csv'
+            samples_csv=pd.read_csv(f'{testcase_dir}/0-used_input_data/samples.csv', sep=',',header=0)
+            ref_genomes=samples_csv['Reference'].unique()
             for ref_genome in ref_genomes:
-                expected_num_samples = len(parsed_samples_csv[parsed_samples_csv['Reference'] == ref_genome])
-                expected_num_samples_list.append(expected_num_samples)
-                expected_plot_files=[f'{outdir}/1-mapping/bowtie2_qc/alignment_stats_ref_{ref_genome}_number_aligned_once_histogram.png',
-                                    f'{outdir}/1-mapping/bowtie2_qc/alignment_stats_ref_{ref_genome}_percent_aligned_once_histogram.png',
-                                    f'{outdir}/1-mapping/bowtie2_qc/alignment_stats_ref_{ref_genome}_overall_alignment_histogram.png']
-                mapping_file_string=f'{outdir}/1-mapping/bowtie2/'
+                expected_num_samples = len(samples_csv[samples_csv['Reference'] == ref_genome])
+                expected_num_samples_dict[experiment_name].append(expected_num_samples)
+                expected_plot_files=[f'{outdir}/alignment_stats_ref_{ref_genome}_number_aligned_once_histogram.png',
+                                    f'{outdir}/alignment_stats_ref_{ref_genome}_percent_aligned_once_histogram.png',
+                                    f'{outdir}/alignment_stats_ref_{ref_genome}_overall_alignment_histogram.png']
+                mapping_file_string=f'{testcase_dir}/1-mapping/bowtie2/'
                 out_file_string=f'alignment_stats_ref_{ref_genome}'
-                arguments_for_testing.append([samples_csv,mapping_file_string,ref_genome,outdir,out_file_string])
-                expected_plot_files_list.append(expected_plot_files)
-        return arguments_for_testing,expected_plot_files_list,expected_num_samples_list
+                expected_text_file=f'{outdir}/{out_file_string}.txt'
+                arguments_for_testing_dict[experiment_name].append([samples_csv_path,mapping_file_string,ref_genome,outdir,out_file_string])
+                expected_plot_files_dict[experiment_name].append(expected_plot_files)
+                expected_text_file_dict[experiment_name].append(expected_text_file)
+        return arguments_for_testing_dict,expected_text_file_dict,expected_plot_files_dict,expected_num_samples_dict
 
-    def execute_tests(self,arguments_for_testing,expected_plot_files,expected_num_samples):
-        [_,_,ref_genome,outdir,out_file_string] = arguments_for_testing
-        expected_text_file=f'{outdir}/{out_file_string}.txt'
-        experiment_name = outdir.split('/')[-1]
+    def execute_tests(self,arguments_for_testing,expected_text_file,expected_plot_files,expected_num_samples):
+        [_,_,ref_genome,outdir,_] = arguments_for_testing
+        experiment_name = outdir.split('/')[-3]
         ## run plotting to compare
         plot_bowtieqc(*arguments_for_testing)
         ## check if mapping stats grep file exists 
@@ -60,15 +67,15 @@ class TestMyFunction(unittest.TestCase):
 
     def test_outputs(self):
         # run a separate instance of test_outputs for each test dataset (and each refgenome within those test datasets)
-        args_list,plot_files_list,samples_size_list=self.parse_in_out_variables()
-        for args_for_test, expected_plot_files_for_test, expected_num_samples_for_test in zip(args_list,plot_files_list,samples_size_list):
-            [_,_,ref_genome,outdir,out_file_string] = args_for_test
-            experiment_name = outdir.split('/')[-1]
-            with self.subTest(msg=f'TESTING: {experiment_name}_{ref_genome}'):
-                self.execute_tests(args_for_test, expected_plot_files_for_test, expected_num_samples_for_test)
+        args_dict,text_file_dict,plot_files_dict,samples_size_dict=self.parse_in_out_variables()
+        for testcase in args_dict.keys():
+            for args_for_test, expected_text_files_for_test, expected_plot_files_for_test, expected_num_samples_for_test in zip(args_dict[testcase],text_file_dict[testcase],plot_files_dict[testcase],samples_size_dict[testcase]):
+                self.execute_tests(args_for_test, expected_text_files_for_test, expected_plot_files_for_test, expected_num_samples_for_test)
 
+                
 if __name__ == '__main__':
     unittest.main() ## when run as script
 else:
     unittest.main(argv=['first-arg-is-ignored'], exit=False)
     ## when run in ipyhton or ijupyter it is needed to ignore return value from sys.argv (first argument), see https://medium.com/@vladbezden/using-python-unittest-in-ipython-or-jupyter-732448724e31unittest.main(argv=['first-arg-is-ignored'], exit=False) ## when run in ipyhton or ijupyter it is needed to ignore return value from sys.argv (first argument), see https://medium.com/@vladbezden/using-python-unittest-in-ipython-or-jupyter-732448724e31
+
