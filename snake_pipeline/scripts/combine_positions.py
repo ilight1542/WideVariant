@@ -14,8 +14,7 @@ import gus_helper_functions as ghf
 
 #%%
 def generate_positions_snakemake(positions_files_list, REFGENOMEDIRECTORY):
-    '''Python version of generate_positions_snakemake.m
-    
+    '''
     Args:
         paths_to_input_p_files (list): List of input positions files.
         REFGENOMEDIRECTORY (str): Path to reference genome.
@@ -34,12 +33,9 @@ def generate_positions_snakemake(positions_files_list, REFGENOMEDIRECTORY):
         #load in positions array for sample
         tmp=np.load(os.getcwd() + '/' + path.rstrip('\n'))
         positions=tmp['Positions']
-        
-        if len(positions)>=1:
+        if (np.shape(positions)[0]>0) & (np.shape(positions)[1]==2):
             x=ghf.chrpos2index(positions,chr_starts)
-            
             timesvariant[x]=timesvariant[x]+1
-    
     
     #Keep positions that vary from the reference in at least one sample but
     #that don't vary from the reference in ALL samples
@@ -99,7 +95,5 @@ if __name__ == '__main__':
     parser.add_argument('-b', type=str, help='Outgroup boolean', required=True)
     
     args = parser.parse_args()
-    
-    print()
 
     combine_positions(args.i,args.o,args.b,args.r)

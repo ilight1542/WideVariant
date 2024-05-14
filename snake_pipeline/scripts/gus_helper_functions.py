@@ -299,7 +299,7 @@ def chrpos2index(chrpos,chr_starts):
         p=chr_starts[chrpos[:,0]-1]+chrpos[:,1]
 
     return p
-    
+
 def p2chrpos(p, ChrStarts):
     '''Convert 1col list of pos to 2col array with chromosome and pos on chromosome
 

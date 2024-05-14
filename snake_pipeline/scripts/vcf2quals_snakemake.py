@@ -10,10 +10,39 @@ import os
 import gzip
 import sys
 import argparse
+from Bio.Data import IUPACData
 import gus_helper_functions as ghf
 from math import floor
 from gus_helper_functions import round_half_up, convert_chrpos_to_abspos
 
+
+def get_fq_score_of_simple_call(vcf_ref, vcf_alt, vcf_info, remove_ambigous_call = True):
+    ## only consider simple calls from vcf (alt is present; no multiple calls in alt, ref&alt same length; ref=1nt)
+    unambiguous_nts = ['A', 'T', 'C', 'G']
+    alt_not_multiallelic = ("," not in vcf_alt)
+    alt_ref_same_length = (len(vcf_alt) == len(vcf_ref))
+    ref_1nt = (len(vcf_ref)==1)
+    if remove_ambigous_call:
+        ambiguous_nts = [nt for nt in IUPACData.ambiguous_dna_values.keys() if nt not in unambiguous_nts]
+        ref_unambiguous = all([ref not in ambiguous_nts for ref in vcf_ref])
+        alt_unambiguous = all([alt not in ambiguous_nts for alt in vcf_alt])
+        keep_pos = (ref_unambiguous & alt_unambiguous)
+    else:
+        keep_pos = True
+    if (vcf_alt) and alt_not_multiallelic and alt_ref_same_length and ref_1nt and keep_pos:
+        #find and parse quality score
+        vcf_info_l = vcf_info.split(';')
+        entrywithFQ_idx=[x for x in vcf_info_l if x.startswith('FQ')]
+        if (entrywithFQ_idx == []) or len(entrywithFQ_idx) > 1: ## non ore more than one entry identified
+            print('No or more than 1 FQ entries are found in provided vcf')
+            print(f'The vcf info field was: {vcf_info}')
+            sys.exit(0)
+        else:
+            entrywithFQ_str = entrywithFQ_idx[0]
+            fq=entrywithFQ_str[entrywithFQ_str.index("=")+1:]
+            return float(fq)
+    else:
+        return np.nan
 
 def vcf_to_quals_snakemake(path_to_vcf_file,output_path_to_quals,REFGENOMEDIRECTORY):
     '''Python version of vcf_to_quals_snakemake.py
@@ -34,37 +63,32 @@ def vcf_to_quals_snakemake(path_to_vcf_file,output_path_to_quals,REFGENOMEDIRECT
     quals = np.zeros((genome_length,1), dtype=int)
     
     print(f"Loaded: {path_to_vcf_file}")
-    file = gzip.open(path_to_vcf_file,'rt') #load in file
     
-    with gzip.open(file, 'rt') as fid:
-        for line in file:
+    with gzip.open(path_to_vcf_file, 'rt') as fid:
+        for line in fid:
             if not line.startswith("#"):
                 lineinfo = line.strip().split('\t')
                 
-                #Note: not coding the loading bar in the matlab script
-                
-                chromo=lineinfo[0]
-                position_on_chr=int(lineinfo[1]) #1-indexed
-                
-                position=convert_chrpos_to_abspos(chromo, position_on_chr, chr_starts, scaf_names)
-                    
-                alt=lineinfo[4]
-                ref=lineinfo[3]
+                ## convert to position in genome from chromosome and position on chromosome
+                chromo = lineinfo[0]
+                chr_idx = np.where(chromo == scaf_names)[0][0] +1 ## +1 as chrpos2index uses 1-indexed chromosomes
+                position_on_chr = int(lineinfo[1]) #1-indexed
+                chr_pos_array = np.array( ([chr_idx, position_on_chr], ) ) ## 2D-np array required!
+                position = ghf.chrpos2index(chr_pos_array, chr_starts)
+                #position = ghf.convert_chrpos_to_abspos(chromo, position_on_chr, chr_starts, scaf_names)
+
+                ## extract quality score if an alternative allele called
+                ref_nt=lineinfo[3]
+                alt_nt=lineinfo[4]
                 
                 #only consider for simple calls (not indel, not ambiguous)
-                if (alt) and ("," not in alt) and (len(alt) == len(ref)) and (len(ref)==1):
-                    #find and parse quality score
-                    xtinfo = lineinfo[7].split(';')
-                    entrywithFQ=[x for x in xtinfo if x.startswith('FQ')]
-                    entrywithFQ_str = entrywithFQ[0]
-                    fq=float(entrywithFQ_str[entrywithFQ_str.index("=")+1:])
-                    
-                    #If already a position wiht a stronger FQ here, don;t include this
-                    #More negative is stronger
-                    if fq < quals[position-1]:
-                        quals[position-1]=int(ghf.round_half_up(fq))
-                            #python int(fq) will by default round down, round matches matlab behavior
-                            #-1 important to convert position (1-indexed) to python index
+                info_col = lineinfo[7]
+                #only consider for simple calls (not indel, not ambiguous)
+                fq_score = get_fq_score_of_simple_call(ref_nt, alt_nt, info_col)
+                #If already a position wiht a stronger FQ here, don;t include this
+                #More negative is stronger
+                if fq_score < quals[position-1]:
+                    quals[position-1]= int(round_half_up(fq_score)) #python int(fq) will by default round down, round matches matlab behavior; -1 important to convert position (1-indexed) to python index
         
     #save
     outpath = os.getcwd() + '/' + output_path_to_quals

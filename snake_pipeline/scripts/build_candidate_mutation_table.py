@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 ---Gathers everything together for candidate_mutation_table---
-NOTE: Still reads in many *.mat files etc. Further purging of matlab necessary!
 Output:
 # path_candidate_mutation_table: where to write
 # candidate_mutation_table.mat, ex. results/candidate_mutation_table.mat
@@ -54,176 +53,155 @@ Output:
 # %%
 ''' load libraries '''
 import numpy as np
-import pickle
-import scipy.io as sio
 import os
 import sys, argparse
-import gzip
-from scipy import sparse
 from pathlib import Path
 
 
-''' positional and optional argument parser'''
-
-parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
-                                 description='''\
-                            Gathers everything together for candidate_mutation_table.
-                            Optional: Builds coverage matrix (optional w/ double-standardized matrix)
-                               ''',
-                                 epilog="Questions or comments? --> fkey@mit.edu")
-parser.add_argument("-p", dest="allpositions", help="All positions p file (.npz)", required=True, action='store')
-parser.add_argument("-s", dest="sampleNames", help="File with sample names", required=True, action='store')
-parser.add_argument("-g", dest="outgroupBool", help="String outgroup bool", required=True, action='store')
-parser.add_argument("-q", dest="qualfiles", help="String qual matrix paths", required=True, action='store')
-parser.add_argument("-d", dest="divfiles", help="String diversity paths", required=True, action='store')
-parser.add_argument("-o", dest="candidate_mutation_table",
-                    help="Output candidate mutation table. Py pickle structure (*.pickle.gz)", required=True,
-                    action='store')
-# parser.add_argument("-c", dest="get_cov", help="Set flag to build raw coverage matrix as sparse csr gzip numpy object (dirname+cov_raw_sparsecsr_mat.npz)",action="store_true", default=False)
-# parser.add_argument("-n", dest="get_dbl_norm_cov", help="Set flag to build double normalized coverage matrix as sparse csr gzip numpy object (dirname+cov_norm_sparsecsr_mat.npz)",action="store_true", default=False)
-parser.add_argument("-c", dest="cov_mat_raw", help="Output raw coverage matrix as sparse csr gzip numpy object (*.npz)",
-                    action='store', default='')
-parser.add_argument("-n", dest="cov_mat_norm",
-                    help="Output double normalized coverage matrix as sparse csr gzip numpy object (*.npz)",
-                    action='store', default='')
-parser.add_argument("-t", dest="dim", help="Specify the number of statistics (default 8)", type=int, default=8)
-args = parser.parse_args()
-
 # %%
 '''Functions'''
-
-
-def main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_file, path_to_list_of_quals_files,
-         path_to_list_of_diversity_files, path_to_candidate_mutation_table, path_to_cov_mat_raw, path_to_cov_mat_norm,
-         flag_cov_raw, flag_cov_norm, dim):
-    pwd = os.getcwd()
-
-    # p: positions on genome that are candidate SNPs
-    print('Processing candidate SNP positions...')
-    infile=np.load(path_to_p_file) # from previous step, should include variable called p
-    p=infile['p'].flatten()
-    print('Total number of positions: ' + str(len(p)))
-
+def process_sample_names(path_to_sample_names_file):
     # SampleNames: list of names of all samples
     print('Processing sample names...')
-    fname = pwd + '/' + path_to_sample_names_file
-    with open(fname, 'r') as f:
+    with open(path_to_sample_names_file, 'r') as f:
         SampleNames = f.read().splitlines()
     numSamples = len(SampleNames)  # save number of samples
     print('Total number of samples: ' + str(numSamples))
+    return SampleNames, numSamples
 
+def process_positions(path_to_pos_file):
+    # p: positions on genome that are candidate SNPs
+    print('Processing candidate SNP positions...')
+    infile=np.load(path_to_pos_file) # from previous step, should include variable called p
+    p=infile['p'].flatten()
+    print('Total number of positions: ' + str(len(p)))
+    return p
+    
+def process_outgroup_boolean_file(path_to_outgroup_boolean_file):
     ## in_outgroup: booleans for whether or not each sample is in the outgroup
     print('Processing outgroup booleans...')
-
-    fname = pwd + '/' + path_to_outgroup_boolean_file
-    with open(fname, 'r') as f:
+    with open(path_to_outgroup_boolean_file, 'r') as f:
         in_outgroup_str = f.read().splitlines()
-    
     in_outgroup = np.asarray([s == '1' for s in in_outgroup_str], dtype=bool).reshape(1, len(in_outgroup_str))
+    return in_outgroup
 
+def process_quals(path_to_list_of_quals_files, numSamples, p):
     ## Quals: quality score (relating to sample purity) at each position for all samples
     print('Gathering quality scores at each candidate position...')
     # Import list of directories for where to quals for each sample
-    fname = pwd + '/' + path_to_list_of_quals_files
-    with open(fname, 'r') as f:
+    with open(path_to_list_of_quals_files, 'r') as f:
         paths_to_quals_files = f.read().splitlines()
     # Make Quals
-    Quals = np.zeros((len(p), numSamples), dtype='int')  # initialize
+    Quals = np.zeros((len(p), numSamples), dtype='int') # initialize
     for i in range(numSamples):
         print('Loading quals matrix for sample: ' + str(i))
         print('Filename: ' + paths_to_quals_files[i])
         infile=np.load(paths_to_quals_files[i]) # from previous step, should include variable called p
         quals=infile['quals'].flatten()
         Quals[:, i] = quals[p - 1]  # -1 convert position to index
+    return Quals
 
+def process_counts(path_to_list_of_diversity_files, numSamples, p, counts_mat_size=8):
     ## counts: counts for each base from forward and reverse reads at each candidate position for all samples
     print('Gathering counts data at each candidate position...\n')
-
     # Import list of directories for where to diversity file for each sample
-    fname = pwd + '/' + path_to_list_of_diversity_files
-    with open(fname, 'r') as f:
+    with open(path_to_list_of_diversity_files, 'r') as f:
         paths_to_diversity_files = f.read().splitlines()
     # Load in first diversity to get some stats
-    tempfile=np.load(paths_to_diversity_files[1]) 
+    tempfile=np.load(paths_to_diversity_files[0]) ## before: tempfile=np.load(paths_to_diversity_files[1])
     data=tempfile['data']
     size = np.shape(data)
     GenomeLength = size[0]
 
     # Make counts and coverage at the same time
-    counts = np.zeros((dim, len(p), numSamples), dtype='uint')  # initialize
+    counts = np.zeros((counts_mat_size, len(p), numSamples), dtype='uint')  # initialize
     all_coverage_per_bp = np.zeros((GenomeLength, numSamples), dtype='uint')
     indel_counter = np.zeros((2, len(p), numSamples), dtype='uint')
-
 
     for i in range(numSamples):
         print('Loading counts matrix for sample: ' + str(i))
         print('Filename: ' + paths_to_diversity_files[i])
         infile=np.load(paths_to_diversity_files[i]) 
         data=infile['data']
-        counts[:, :, i] = data[p - 1, 0:dim].T  # -1 convert position to index
-
-        if flag_cov_raw:
-            np.sum(data[:, 0:dim], axis=1, out=all_coverage_per_bp[:, i])
-
+        counts[:, :, i] = data[p - 1, 0:counts_mat_size].T  # -1 convert position to index
         indel_counter[:, :, i] = data[p - 1, 38:40].T  # Num reads supporting indels and reads supporting deletions
         # -1 convert position to index
+        np.sum(data[:, 0:counts_mat_size], axis=1, out=all_coverage_per_bp[:, i])
 
+    return counts, indel_counter, all_coverage_per_bp
 
-    # Normalize coverage by sample and then position; ignore /0 ; turn resulting inf to 0
-
-    if flag_cov_norm:
-        with np.errstate(divide='ignore', invalid='ignore'):
-            # 1st normalization
-            array_cov_norm = (all_coverage_per_bp - np.mean(all_coverage_per_bp, axis=1, keepdims=True)) / np.std(
-                all_coverage_per_bp, axis=1,
-                keepdims=True)  # ,keepdims=True maintains 2D array (second dim == 1), necessary for braodcasting
-            array_cov_norm[~np.isfinite(array_cov_norm)] = 0
-
-            # 2nd normalization
-            array_cov_norm = (array_cov_norm - np.mean(array_cov_norm, axis=0, keepdims=True)) / np.std(array_cov_norm,
-                                                                                                        axis=0,
-                                                                                                        keepdims=True)  # ,keepdims=True maintains 2D array (second dim == 1), necessary for braodcasting
-            array_cov_norm[~np.isfinite(array_cov_norm)] = 0
-
-            # Scale and convert to int to save space
-            array_cov_norm_scaled = (np.round(array_cov_norm, 3) * 1000).astype('int64')
-
+def calculate_coverage_distribution(all_coverage_per_bp, numSamples, max_coverage_to_consider=200):
     ## get coverage stats
-    ## NOTE: Indexes 0-10: sites with coverage 1, 2, 3,... 
-    ## NOTE: Index 11: median coverage across all sites
-    ## NOTE: Index 12: mean coverage across all sites
-    ## NOTE: Index 13: standard deviation of coverage across all sites
-    coverage_stats=np.zeros((numSamples,14),dtype='uint') 
-    for index in range(numSamples):
-        unique,counts_for_dict=np.unique(all_coverage_per_bp[:, index], return_counts=True)
-        counts_dict=dict(zip(unique,counts_for_dict))
-        ## find mean and median, create bins 0-10 four outputting
-        counts_for_output=[0]*11
-        total_covg=0
-        total_pos=0
-        for val in counts_dict:
-            if val <= 10:
-                counts_for_output[val]=counts_dict[val]
+    coverage_stats = np.zeros((numSamples,3),dtype='uint')
+    ## coverage_stats[0]: median coverage across all sites
+    ## coverage_stats[1]: mean coverage across all sites
+    ## coverage_stats[2]: standard deviation of coverage across all sites
+    
+    ## ensure dtype to be int
+    all_coverage_per_bp = all_coverage_per_bp.astype(int)
+    #initialize coverage_distribution
+    max_cov = np.max(all_coverage_per_bp)
+    # truncate coverage at a high threshold
+    if max_cov > max_coverage_to_consider:
+        max_cov = max_coverage_to_consider
+    coverage_distribution = np.zeros((numSamples,max_cov+1),dtype='uint')
+    ## coverage_stats[0]: number of sites with no coverage
+    ## coverage_stats[n]: number of sites with coverage n
+
+    for smpl_idx in range(numSamples):
+        unique,counts_for_dict=np.unique(all_coverage_per_bp[:, smpl_idx], return_counts=True)
+        counts_stack=np.column_stack((unique,counts_for_dict))
+
+        for n in range(counts_stack.shape[0]):
+            cov = counts_stack[n,0]
+            num = counts_stack[n,1]
+            if cov < max_coverage_to_consider:
+                coverage_distribution[smpl_idx,cov] = num
             else:
-                counts_for_output[10]+=counts_dict[val]
-            total_pos+=counts_dict[val]
-            total_covg+=val*counts_dict[val]
-        mean_covg=total_covg/total_pos
-        median_val=total_pos/2
-        count_to_median=0
-        index_for_median=0
-        while count_to_median < median_val:
-            count_to_median+=counts_for_dict[index_for_median]
-            index_for_median+=1
-        median=index_for_median-1
-        ## save into coverage_stats
-        coverage_stats[index,0:11]=counts_for_output
-        coverage_stats[index,11]=median
-        coverage_stats[index,12]=mean_covg
-        coverage_stats[index,13]=np.std(all_coverage_per_bp[index])
+                # combine coverage greater than high threshold
+                coverage_distribution[smpl_idx,max_coverage_to_consider] += num #add to final value               
+        median_coverage = np.median(all_coverage_per_bp[:, smpl_idx])
+        mean_coverage = np.mean(all_coverage_per_bp[:, smpl_idx])
+        std_coverage = np.std(all_coverage_per_bp[:, smpl_idx])
+        coverage_stats[smpl_idx,0] = median_coverage
+        coverage_stats[smpl_idx,1] = mean_coverage
+        coverage_stats[smpl_idx,2] = std_coverage
+
+    return coverage_stats, coverage_distribution
+
+def normalize_coverage_matrix(all_coverage_per_bp):
+    ## double Z-score normalization
+    # Normalize coverage by sample and then position; ignore /0 ; turn resulting inf to 0
+    with np.errstate(divide='ignore', invalid='ignore'):
+        # 1st normalization // first within sample (across all positions)
+        smpl_axis = 1 ## note before that it was 1!
+        pos_axis = 0 ## note before that it was 0!
+        array_cov_norm = (all_coverage_per_bp - np.mean(all_coverage_per_bp, axis=pos_axis, keepdims=True)) / np.std(
+            all_coverage_per_bp, axis=pos_axis,
+            keepdims=True)  # ,keepdims=True maintains 2D array (second dim == 1), necessary for braodcasting
+        array_cov_norm[~np.isfinite(array_cov_norm)] = 0
+
+        # 2nd normalization // second at positions (across all samples)
+        array_cov_norm = (array_cov_norm - np.mean(array_cov_norm, axis=smpl_axis, keepdims=True)) / np.std(array_cov_norm,
+                                                                                                    axis=smpl_axis,
+                                                                                                    keepdims=True)  # ,keepdims=True maintains 2D array (second dim == 1), necessary for braodcasting
+        array_cov_norm[~np.isfinite(array_cov_norm)] = 0
+
+        # Scale and convert to int to save space
+        array_cov_norm_scaled = (np.round(array_cov_norm, 3) * 1000).astype('int64')   
+    return array_cov_norm_scaled
+
+def build_CMT(path_to_pos_file,path_to_sample_names_file,path_to_outgroup_boolean_file,path_to_list_of_quals_files, path_to_list_of_diversity_files, path_to_candidate_mutation_table, path_to_cov_mat_raw, path_to_cov_mat_norm,flag_cov_raw, flag_cov_norm, counts_mat_size=8):
+
+    # Generate data
+    SampleNames, numSamples = process_sample_names(path_to_sample_names_file)
+    p = process_positions(path_to_pos_file)
+    in_outgroup = process_outgroup_boolean_file(path_to_outgroup_boolean_file)
+    Quals = process_quals(path_to_list_of_quals_files, numSamples, p)
+    counts, indel_counter, all_coverage_per_bp = process_counts(path_to_list_of_diversity_files, numSamples, p, counts_mat_size)     
+    coverage_stats, coverage_distribution = calculate_coverage_distribution(all_coverage_per_bp, numSamples)
 
     # Reshape & save matrices
-
     Quals = Quals.transpose() #quals: num_samples x num_pos
     p = p.transpose() #p: num_pos
     counts = counts.swapaxes(0,2) #counts: num_samples x num_pos x 8
@@ -236,16 +214,17 @@ def main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_fil
         os.makedirs(outdir)
 
     if flag_cov_raw:
-        print("Saving " + path_to_cov_mat_raw)
         all_coverage_per_bp = all_coverage_per_bp.transpose() #all_coverage_per_bp: num_samples x num_pos
+        print("Saving " + path_to_cov_mat_raw)
         with open(path_to_cov_mat_raw, 'wb') as f:
-            np.savez_compressed(path_to_cov_mat_raw, all_coverage_per_bp=all_coverage_per_bp)
+            np.savez_compressed(path_to_cov_mat_raw, cov_mat_raw=all_coverage_per_bp)
 
     if flag_cov_norm:
-        print("Saving " + path_to_cov_mat_norm)
+        array_cov_norm_scaled = normalize_coverage_matrix(all_coverage_per_bp)
         array_cov_norm_scaled = array_cov_norm_scaled.transpose() #array_cov_norm_scaled: num_samples x num_pos
+        print("Saving " + path_to_cov_mat_norm)
         with open(path_to_cov_mat_norm, 'wb') as f:
-            np.savez_compressed(path_to_cov_mat_norm, array_cov_norm_scaled=array_cov_norm_scaled)
+            np.savez_compressed(path_to_cov_mat_norm, cov_mat_norm_scaled=array_cov_norm_scaled)
 
     CMT = {'sample_names': SampleNames,
            'p': p,
@@ -253,7 +232,8 @@ def main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_fil
            'quals': Quals,
            'in_outgroup': in_outgroup,
            'indel_counter': indel_counter,
-           'coverage_stats': coverage_stats}
+           'coverage_stats': coverage_stats,
+           'coverage_dist': coverage_distribution}
 
     file_path = path_to_candidate_mutation_table
     print("Saving " + path_to_candidate_mutation_table)
@@ -264,6 +244,33 @@ def main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_fil
 
 # %%
 if __name__ == "__main__":
+    ''' positional and optional argument parser'''
+
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
+                                    description='''\
+                                Gathers everything together for candidate_mutation_table.
+                                Optional: Builds coverage matrix (optional w/ double-standardized matrix)
+                                ''',
+                                    epilog="Questions or comments? --> fkey@mit.edu")
+    parser.add_argument("-p", dest="allpositions", help="All positions p file (.npz)", required=True, action='store')
+    parser.add_argument("-s", dest="sampleNames", help="File with sample names", required=True, action='store')
+    parser.add_argument("-g", dest="outgroupBool", help="String outgroup bool", required=True, action='store')
+    parser.add_argument("-q", dest="qualfiles", help="String qual matrix paths", required=True, action='store')
+    parser.add_argument("-d", dest="divfiles", help="String diversity paths", required=True, action='store')
+    parser.add_argument("-o", dest="candidate_mutation_table",
+                        help="Output candidate mutation table. Py pickle structure (*.pickle.gz)", required=True,
+                        action='store')
+    # parser.add_argument("-c", dest="get_cov", help="Set flag to build raw coverage matrix as sparse csr gzip numpy object (dirname+cov_raw_sparsecsr_mat.npz)",action="store_true", default=False)
+    # parser.add_argument("-n", dest="get_dbl_norm_cov", help="Set flag to build double normalized coverage matrix as sparse csr gzip numpy object (dirname+cov_norm_sparsecsr_mat.npz)",action="store_true", default=False)
+    parser.add_argument("-c", dest="cov_mat_raw", help="Output raw coverage matrix as sparse csr gzip numpy object (*.npz)",
+                        action='store', default='')
+    parser.add_argument("-n", dest="cov_mat_norm",
+                        help="Output double normalized coverage matrix as sparse csr gzip numpy object (*.npz)",
+                        action='store', default='')
+    parser.add_argument("-t", dest="counts_mat_size", help="Specify the size of counts matrix (default 8)", type=int, default=8)
+    args = parser.parse_args()
+
+    
     path_to_p_file = args.allpositions
     path_to_sample_names_file = args.sampleNames
     path_to_outgroup_boolean_file = args.outgroupBool
@@ -272,7 +279,7 @@ if __name__ == "__main__":
     path_to_candidate_mutation_table = args.candidate_mutation_table
     path_to_cov_mat_raw = args.cov_mat_raw
     path_to_cov_mat_norm = args.cov_mat_norm
-    dim=args.dim
+    counts_mat_size=args.counts_mat_size
     if ('2-case/temp' in path_to_cov_mat_raw) or (path_to_cov_mat_raw == ''):
         # target output is a dummy file and will not be calculated
         Path(path_to_cov_mat_raw).touch()
@@ -285,6 +292,6 @@ if __name__ == "__main__":
         flag_cov_norm = False
     else:
         flag_cov_norm = True
-    main(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_file, path_to_list_of_quals_files,
+    build_CMT(path_to_p_file, path_to_sample_names_file, path_to_outgroup_boolean_file, path_to_list_of_quals_files,
          path_to_list_of_diversity_files, path_to_candidate_mutation_table, path_to_cov_mat_raw, path_to_cov_mat_norm,
-         flag_cov_raw, flag_cov_norm,dim)
+         flag_cov_raw, flag_cov_norm,counts_mat_size)

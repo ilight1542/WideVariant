@@ -70,7 +70,7 @@ def generate_mutated_fastas(experiment_name, variants_boolean_csv,refgenome,base
         sample_variants_bool = np.array(sample_variants)
         for variant_position in np.where(sample_variants_bool)[0]:
             c_name,c_seq_idx=contig_pos[variant_position]
-            c_seq_idx=int(c_seq_idx)-1 ## adjust for 0-indexing
+            c_seq_idx = int(c_seq_idx) - 1 ## -1 for 0-based correction
             ref = c_name_to_c_seqs[c_name][c_seq_idx]
             if basecalls == None:
                 alt = iter_variant(ref)
