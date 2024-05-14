@@ -83,6 +83,24 @@ script_basename='test_vcf2quals_snakemake'
 run_test ${script_basename} ${log_file_path} ${timestamp}
 echo -e "${script_basename} done\n"
 
+echo -e "\n\n\n######################"
+echo "Running pileup2diversity_helper_functions tests..."
+echo -e "######################\n"
+
+script_basename='test_pileup2diversity_helper_functions'
+
+run_test ${script_basename} ${log_file_path} ${timestamp}
+echo -e "${script_basename} done\n"
+
+echo -e "\n\n\n######################"
+echo "Running general_snakemake_helpers tests..."
+echo -e "######################\n"
+
+script_basename='test_general_snakemake_helpers'
+
+run_test ${script_basename} ${log_file_path} ${timestamp}
+echo -e "${script_basename} done\n"
+
 
 echo "Tests done"
 echo "If some errors have been reported, please check the log files ${log_file_path} and look for 'ERROR', 'FAILED' and 'Traceback'"
