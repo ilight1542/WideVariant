@@ -9,6 +9,6 @@ rule prokka:
         txt="results/assembly/prokka/{sampleID}/prokka_out.txt",
         faa="results/assembly/prokka/{sampleID}/prokka_out.faa",
     conda:
-        "../envs/prokka.yml"
+        "../envs/prokka.yaml"
     shell:
         "prokka --compliant --force --cpus {threads} --outdir {params.outdir} --prefix prokka_out {input}"

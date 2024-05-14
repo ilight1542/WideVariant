@@ -13,7 +13,6 @@ import gzip
 import gus_helper_functions as ghf
 
 #%%
-
 def generate_positions_snakemake(positions_files_list, REFGENOMEDIRECTORY):
     '''
     Args:

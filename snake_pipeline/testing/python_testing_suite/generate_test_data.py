@@ -119,6 +119,8 @@ def prepare_test_run_widevariant_call(experiment_name,sample_names,reference,out
     reference_name=reference.split('/')[-2]
     reference_upstream_path=reference_full_path.split(f'/{reference_name}')[0]
     # create new samples.csv for this experiment in tests
+    if not os.path.isdir(f"test_data/sample_csvs"):
+        os.makedirs(f"test_data/sample_csvs")
     with open(f'test_data/sample_csvs/{experiment_name}.csv','w') as f:
         f.write('Path,Sample,FileName,Reference,Group,Outgroup\n')
         for sample,outgroup in zip(sample_names,outgroups):

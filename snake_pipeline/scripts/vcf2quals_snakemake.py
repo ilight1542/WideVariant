@@ -13,10 +13,8 @@ import argparse
 from Bio.Data import IUPACData
 import gus_helper_functions as ghf
 from math import floor
+from gus_helper_functions import round_half_up, convert_chrpos_to_abspos
 
-def round_half_up(n, decimals=0):
-    multiplier = 10 ** decimals
-    return floor(n*multiplier + 0.5) / multiplier  
 
 def get_fq_score_of_simple_call(vcf_ref, vcf_alt, vcf_info, remove_ambigous_call = True):
     ## only consider simple calls from vcf (alt is present; no multiple calls in alt, ref&alt same length; ref=1nt)

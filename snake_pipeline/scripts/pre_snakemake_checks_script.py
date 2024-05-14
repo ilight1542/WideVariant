@@ -16,6 +16,20 @@ sys.path.append(f"{cwd}/scripts")
 from gus_helper_functions import *
 
 '''Define functions to be called for error checking'''
+def check_samples_csv_header(sample_config_file_path):
+    smpl_csv_dict = ['Path','Sample','FileName','Reference','Group','Outgroup']
+    correct_header=','.join(smpl_csv_dict)
+    with open(sample_config_file_path, 'r') as fid: 
+        for line_id, line in enumerate(fid):
+            # check if first line is header.
+            if line_id == 0:
+                if not line.strip('\n')==(correct_header):
+                    error_message = f"Header of csv {sample_config_file_path} file is malformed. \n \
+                                     Please ensure you use a comma separator and the header is as follows: {correct_header}"
+                    return error_message
+            else:
+                return 0
+
 def check_ref_genome_paths(parsed_config,list_refG):
     path_to_ref_genome_folder = parsed_config['ref_genome_directory']
     errors_list={'Missing file': [],
@@ -76,6 +90,11 @@ def main():
         except yaml.YAMLError as exc:
             print(exc)
     sample_config_file_path = parsed_config['sample_table']
+    # check formatting of samples csv file, fail if necessary:
+    if check_samples_csv_header(sample_config_file_path) != 0:
+        print(check_samples_csv_header(sample_config_file_path))
+        sys.exit(1)
+
     [list_path,list_splID,list_fileN,list_refG,list_group,list_outgroup] = read_samples_CSV(sample_config_file_path)
     
     # run error checks
