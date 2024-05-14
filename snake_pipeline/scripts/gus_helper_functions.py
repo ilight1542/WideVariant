@@ -374,7 +374,8 @@ def define_nt_order():
     """
     Define order of nucleotides for converstion of string to integers 
     """
-    return 'ATCGatcg'
+    full_nt_order=get_nt_order()+get_nt_order().lower()
+    return full_nt_order
 
 def generate_ref_to_int_converstion_dict(nts=define_nt_order()):
     """
