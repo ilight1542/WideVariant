@@ -12,36 +12,47 @@ import glob
 import subprocess
 import gzip
 import sys
+from math import floor
+
+
+def get_nt_order():
+    order='ATCG'
+    return order
 
 def read_samples_CSV(spls,quiet=False):
+    """
+    Read sample information from a CSV file.
+
+    Parameters:
+        spls (str): Path to the CSV file containing sample information.
+        quiet (bool, optional): If True, suppresses printing of certain messages. Defaults to False.
+
+    Returns:
+        list: A list containing the values from the 'Path', 'Sample', 'FileName', 'Reference', 'Group', and 'Outgroup' columns.
+
+    Raises:
+        None
+
+    Description:
+        This function reads sample information from a CSV file and returns the values from specific columns.
+        The function builds lists for each column using the provided header-to-column mapping.
+        Finally, the function returns a list containing the values from the specified columns.
+
+    Example:
+        sample_info = read_samples_CSV('sample_info.csv', quiet=True)
+    """
     smpl_csv_dict = {'Path': [],'Sample': [],'FileName': [],'Reference': [],'Group': [],'Outgroup': []}
 
     with open(spls, 'r') as fid: 
         for line_id, line in enumerate(fid):
-            # check if first line is header. Note: Even when header is not found code continues (w/ warning).
             if line_id == 0:
-                if line.startswith('Path,Sample,'):
-                    hdr_colnames = line.strip('\n').split(',')
-                    hdr_to_col_id = {hdr: id for id, hdr in enumerate(hdr_colnames)}
-                    if quiet:
-                        print("Passed CSV header check")
-                    continue
-                else:
-                    Warning("\n\nCSV did NOT pass header check!")
-                    if len(line.strip('\n').split(',')) == len(smpl_csv_dict.keys()):
-                        Warning('Assumes column order to be: Path,Sample,FileName,Reference,Group,Outgroup\n\n')
-                        hdr_to_col_id = {hdr: id for id, hdr in enumerate(smpl_csv_dict.keys())}
-                    else:
-                        print('\n\nSample csv is not formatted correctly.')
-                        print('Snakemake will not start!\n\n')
-                        sys.exit(1)
-            
+                hdr_colnames = line.strip('\n').split(',')
+                hdr_to_col_id = {hdr: id for id, hdr in enumerate(hdr_colnames)}            
             line = line.strip('\n').split(',')
             # build lists
             for key, id in hdr_to_col_id.items():
                 smpl_csv_dict[key].append(line[id])
-        
-    return [smpl_csv_dict['Path'], smpl_csv_dict['Sample'], smpl_csv_dict['FileName'], smpl_csv_dict['Reference'], smpl_csv_dict['Group'], smpl_csv_dict['Outgroup']]
+    return [smpl_csv_dict[key] for key in smpl_csv_dict.keys()]
 
 
 def split_samplesCSV(PATH_ls,SAMPLE_ls,FILENAME_ls,REF_Genome_ls,GROUP_ls,OUTGROUP_ls, outdir):
@@ -87,17 +98,50 @@ def split_samplesCSV(PATH_ls,SAMPLE_ls,FILENAME_ls,REF_Genome_ls,GROUP_ls,OUTGRO
                 for row in sample_info_csv:
                     writer.writerow(row)
 
-def read_sample_info_CSV(path_to_sample_info_csv):
-    with open(path_to_sample_info_csv,'r') as f:
-        this_sample_info = f.readline() # only one line to read
-    this_sample_info = this_sample_info.strip('#').split(',')
-    path = this_sample_info[0] # remember python indexing starts at 0
-    paths = path.split(' ')
-    sample = this_sample_info[1]
-    filename = this_sample_info[2]
-    reference = this_sample_info[3]
-    
-    return paths, sample, reference, filename
+
+########################################
+## Make data links functions
+########################################
+
+def makelink(path,sample,filename,output_dir):
+    """
+    Create symbolic links to FASTQ files for a given sample.
+
+    Parameters:
+        path (str): Path to the directory containing the FASTQ files or a file name in batch.
+        sample (str): Name of the sample.
+        filename (str): Name of the FASTQ file.
+        output_dir (str): Output directory where the symbolic links will be created.
+
+    Returns:
+        None
+
+    Raises:
+        None
+
+    Description:
+        This function creates symbolic links to the specified FASTQ files for a given sample in the specified output directory.
+        The function first calls the 'findfastqfile' function to locate the FASTQ files based on the provided path, sample, and filename.
+        If the FASTQ files are not located using an absolute path or a path relative to the user's home directory, the current working directory is used as the base path.
+        The function then prints and executes the commands to create symbolic links using the 'ln -s -T' command.
+
+    Example:
+        makelink('/path/to/files', 'sample1', 'file.fastq', '/output/directory')
+    """
+    [fwd_file, rev_file]=findfastqfile(path,sample, filename)
+    if not fwd_file.startswith('/') and not fwd_file.startswith('~/'):
+        fwd_file = os.getcwd() + '/' + fwd_file
+    if not rev_file.startswith('/') and not rev_file.startswith('~/'):
+        rev_file = os.getcwd() + '/' + rev_file
+    print(f"ln -s -T {fwd_file} {output_dir}/{sample}/R1.fq.gz")   
+    print(f"ln -s -T {rev_file} {output_dir}/{sample}/R2.fq.gz")
+    subprocess.run(f"ln -s -T {fwd_file} {output_dir}/{sample}/R1.fq.gz", shell=True)    
+    subprocess.run(f"ln -s -T {rev_file} {output_dir}/{sample}/R2.fq.gz", shell=True)  
+
+
+########################################
+## Fastq file functions
+########################################
 
 def findfastqfile(dr,ID,filename):
     fwd=[]
@@ -167,20 +211,7 @@ def findfastqfile(dr,ID,filename):
         rev=rev+'.gz'
     return [fwd, rev]
 
-def makelink(path,sample,filename,output_dir):
-    #When sample is run on a single lane
-    #File name can be either a COMPLETE directory name or a file name in batch(called path in this fx)
-    [fwd_file, rev_file]=findfastqfile(path,sample, filename)
-    if not fwd_file.startswith('/') and not fwd_file.startswith('~/'):
-        fwd_file = os.getcwd() + '/' + fwd_file
-    if not rev_file.startswith('/') and not rev_file.startswith('~/'):
-        rev_file = os.getcwd() + '/' + rev_file
-    print(f"ln -s -T {fwd_file} {output_dir}/{sample}/R1.fq.gz")   
-    print(f"ln -s -T {rev_file} {output_dir}/{sample}/R2.fq.gz")
-    subprocess.run(f"ln -s -T {fwd_file} {output_dir}/{sample}/R1.fq.gz", shell=True)    
-    subprocess.run(f"ln -s -T {rev_file} {output_dir}/{sample}/R2.fq.gz", shell=True)    
-
-
+  
 def cp_append_files(paths,sample,filename,output_dir):
     #When sample is run on multiple lanes with same barcode
     fwd_list=''
@@ -194,7 +225,11 @@ def cp_append_files(paths,sample,filename,output_dir):
         print(fwd_list)
     subprocess.run(f"zcat {fwd_list} | gzip > {output_dir}/{sample}/R1.fq.gz", shell=True)
     subprocess.run(f"zcat {rev_list} | gzip > {output_dir}/{sample}/R2.fq.gz", shell=True)
-    
+
+
+########################################
+## Chromosome functions
+########################################
 
 def read_fasta(REFGENOME_DIR): 
     '''Reads in fasta file. If directory is given, reads in dir/genome.fasta
@@ -229,7 +264,6 @@ def genomestats(REFGENOMEFOLDER):
     '''
 
     refgenome = read_fasta(REFGENOMEFOLDER)
-    
     Genomelength = 0
     ChrStarts = []
     ScafNames = []
@@ -237,36 +271,155 @@ def genomestats(REFGENOMEFOLDER):
         ChrStarts.append(Genomelength) # chr1 starts at 0 in analysis.m
         Genomelength = Genomelength + len(record)
         ScafNames.append(record.id)
-    # close file
-    #refgenome.close() # biopy update SeqIO has no close attribute anymore.
-    # turn to np.arrys!
     ChrStarts = np.asarray(ChrStarts,dtype=int)
     Genomelength = np.asarray(Genomelength,dtype=int)
     ScafNames = np.asarray(ScafNames,dtype=object)
     return ChrStarts,Genomelength,ScafNames
 
+def chrpos2index(chrpos,chr_starts):
+    '''
+    Args:
+        chrpos (arr): px2 array of chromsome idx and position on chromosome.
+        chr_starts (arr): Vector of chromosome starts (begins at 0).
+
+    Returns:
+        p (arr): Vector of position indexes.
+
+    '''
+    if (np.size(chrpos,1) != 2) & (np.size(chrpos,0) == 2):
+        chrpos=chrpos.T
+        print('Reversed orientation of chrpos')
+    elif (np.size(chrpos,1) != 2) & (np.size(chrpos,0) != 2):
+        print('Wrong input format given. Provide np.array with shape (p, 2)')
+        return 
+    
+    if len(chr_starts) == 1:
+        p=chrpos[:,1]
+    else:
+        p=chr_starts[chrpos[:,0]-1]+chrpos[:,1]
+
+    return p
+    
 def p2chrpos(p, ChrStarts):
     '''Convert 1col list of pos to 2col array with chromosome and pos on chromosome
 
     Args:
-        p (TYPE): DESCRIPTION.
-        ChrStarts (TYPE): DESCRIPTION.
+        p (array (1 x positions) ): 0-based index of candidate variant positions from Candidate Mutation Table (CMT).
+        ChrStarts (array (1 x scaffolds) ): start indices (0-based) of scaffolds in reference genome.
 
     Returns:
-        chrpos (TYPE): DESCRIPTION.
+        chrpos (array): DESCRIPTION.
 
     '''
         
     # get chr and pos-on-chr
-    chromo = np.ones(len(p),dtype=int)
+    chromo = np.zeros(len(p),dtype=int)
     if len(ChrStarts) > 1:
         for i in ChrStarts[1:]:
-            chromo = chromo + (p > i) # when (p > i) evaluates 'true' lead to plus 1 in summation. > bcs ChrStarts start with 0...genomestats()
-        positions = p - ChrStarts[chromo-1] # [chr-1] -1 due to 0based index
+            chromo = chromo + (p >= i) # when (p > i) evaluates 'true' lead to plus 1 in summation. > bcs ChrStarts start with 0...genomestats()
+        positions = p - ChrStarts[chromo] # [chr-1] -1 due to 0based index
         chrpos = np.column_stack((chromo,positions))
     else:
         chrpos = np.column_stack((chromo,p))
     return chrpos
+
+def convert_chrpos_to_abspos(chromosome_id, nt_pos, genome_chr_starts, scaf_names):  
+    """
+    convert position on chromosome to absolute position
+    Args:
+    - chromosome_id (str): Identifier of the chromosome or scaffold of the position which should be converted.
+    - nt_pos (int): Position on the chromosome (0-based) which should be converted to absolute position.
+    - genome_chr_starts (array): Array of starting positions of chromosomes/scaffolds in the genome.
+    - scaf_names (array): Array of scaffold names in the reference genome.
+
+    Returns:
+    - int: Absolute genomic position corresponding to the input chromosome and position (0-based).
+
+    Raises:
+    - ValueError: If the chromosome_id is not found in the provided scaffold names.
+    """
+    
+    if len(genome_chr_starts) == 1:
+        position=int(nt_pos)
+    else:
+        if chromosome_id not in scaf_names:
+            raise ValueError("Scaffold name in pileup file not found in reference")
+        index_of_chrom=np.where(scaf_names==chromosome_id)[0]
+        position=int(genome_chr_starts[index_of_chrom]) + int(nt_pos)
+        if index_of_chrom + 1 < len(scaf_names):
+            if position >= genome_chr_starts[index_of_chrom+1]:
+                raise ValueError(f"Position {nt_pos} given for chrom {chromosome_id} lies outside the end of the chromosome.")
+    return position
+
+########################################
+## Nucleotide str converstion 
+########################################
+
+def define_nt_order():
+    """
+    Define order of nucleotides for converstion of string to integers 
+    """
+    full_nt_order=get_nt_order()+get_nt_order().lower()
+    return full_nt_order
+
+def generate_ref_to_int_converstion_dict(nts=define_nt_order()):
+    """
+    Generate a dictionary for converting nucleotide symbols to integer.
+
+    Parameters:
+    - nts (list, optional): List of nucleotide symbols in the desired order. Default is the order defined by `define_nt_order()`.
+
+    Returns:
+    - dict: A dictionary where keys are nucleotide symbols, and values are their corresponding integer indices.
+    """
+    return {nt: i for i, nt in enumerate(nts)}
+
+def convert_ref_to_int(ref_str, nts_dict=generate_ref_to_int_converstion_dict()):
+    """
+    This function takes a reference allele symbol, e.g. 'A', 'T', 'C', 'G', 'a', 't', 'c', 'g',
+    and converts it to its corresponding integer using a provided nucleotide dictionary.
+
+    Parameters:
+    - ref_str (str): Reference allele symbol to be converted.
+    - nts_dict (dict, optional): Dictionary mapping nucleotide symbols to their integer indices.
+                                 Default is the order defined by `generate_ref_to_int_converstion_dict()`.
+
+    Returns:
+    - int or None: The integer index corresponding to the reference allele symbol.
+                  Returns None for cases where the reference base is ambiguous.
+    """
+    if ref_str in nts_dict.keys():
+        ref=nts_dict[ref_str] # convert to 0123
+        if ref >= 4:
+            ref = ref - 4
+    else:
+        ref=None # for cases where reference base is ambiguous
+    return ref
+
+
+########################################
+## Miscellaneous functions
+########################################
+
+def round_half_up(n, decimals=0):
+    """
+    Round a number to the nearest integer using half-up rounding.
+
+    This function rounds the input number `n` to the nearest integer using half-up rounding. 
+    Half-up rounding means that if the fraction part is exactly 0.5, it rounds up to the next integer.
+
+    Args:
+        n (float): The number to be rounded.
+        decimals (int, optional): The number of decimal places to round to (default is 0).
+
+    Returns:
+        float: The rounded number.
+
+    """
+    multiplier = 10 ** decimals
+    return floor(n*multiplier + 0.5) / multiplier   
+
+
 
 #TODO: remove if not necessary
 
@@ -303,3 +456,4 @@ def p2chrpos(p, ChrStarts):
 # def get_ref_genome(wildcards):
 #     sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
 #     return reference_clade
+

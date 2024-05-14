@@ -17,19 +17,7 @@ import numpy as np
 import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
-parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
-                                description='''\
-                            Generates QC stats on the bowtie2 rule
-                               ''',
-                               epilog="Questions or comments? --> aholton@mit.edu")
-parser.add_argument("-s", dest="samples", help="csv file with samples",required=True,action='store')
-parser.add_argument("-r", dest="refGenome", help="name of reference genome as string",required=True,action='store')
-parser.add_argument("-m", dest="mappingstats", help="log file with bowtie2 mapping statistics", required = True, action="store")
-parser.add_argument("-o", dest="outfileString", help="name of outfile without file extension", required=True, action="store")
-parser.add_argument("-d", dest="currentDirectory", help="current directory of Snakefile", action="store", default=os.getcwd())
-args = parser.parse_args()
-
-def main(path_to_samples, path_to_mappingsstats, reference_genome, current_directory, out_file_string):
+def plot_bowtieqc(path_to_samples, path_to_mappingsstats, reference_genome, current_directory, out_file_string):
 
     cwd = current_directory
     home_dir = cwd.split("/")[-1]
@@ -47,29 +35,29 @@ def main(path_to_samples, path_to_mappingsstats, reference_genome, current_direc
     alignment_stats["Percent Overall Alignment"] = ""
 
     # grab relevant info from log files 
-    os.system(f"grep exactly {path_to_mappingsstats}/bowtie2_*_ref_{reference_genome}.txt >> {cwd}/{out_file_string}.txt")
-    os.system(f"grep overall {path_to_mappingsstats}/bowtie2_*_ref_{reference_genome}.txt >> {cwd}/{out_file_string}.txt") 
+    os.system(f'grep -H "exactly" {path_to_mappingsstats}/bowtie2_*_ref_{reference_genome}.txt > {cwd}/{out_file_string}.txt')
+    os.system(f'grep -H "overall" {path_to_mappingsstats}/bowtie2_*_ref_{reference_genome}.txt >> {cwd}/{out_file_string}.txt') 
     sample_id_to_number_once  = {}        
     sample_id_to_percent_once = {}
     sample_id_to_overall      = {}
 
-    stats_file = open(cwd + "/" + out_file_string + ".txt")
-    for line in stats_file:
-        split_on_rule_name = line.split("bowtie2_")
-        split_on_ref = split_on_rule_name[1].split("_ref_")
-        sample_id = split_on_ref[0]
-        split_on_colon = split_on_ref[1].split(":")
-        stat_info = split_on_colon[1]
-        if "exactly" in stat_info:
-            info = stat_info.split()
-            number = info[0]
-            percent = info[1].replace("(", "").replace(")","").replace("%", "")
-            sample_id_to_number_once[sample_id] = number
-            sample_id_to_percent_once[sample_id] = percent
-        elif "overall" in stat_info:
-            info = stat_info.split()
-            percent = info[0].replace("%", "")  
-            sample_id_to_overall[sample_id] = percent
+    with open(cwd + "/" + out_file_string + ".txt") as stats_file:
+        for line in stats_file:
+            split_on_rule_name = line.split("bowtie2_")
+            split_on_ref = split_on_rule_name[1].split("_ref_")
+            sample_id = split_on_ref[0]
+            split_on_colon = split_on_ref[1].split(":")
+            stat_info = split_on_colon[1]
+            if "exactly" in stat_info:
+                info = stat_info.split()
+                number = info[0]
+                percent = info[1].replace("(", "").replace(")","").replace("%", "")
+                sample_id_to_number_once[sample_id] = number
+                sample_id_to_percent_once[sample_id] = percent
+            elif "overall" in stat_info:
+                info = stat_info.split()
+                percent = info[0].replace("%", "")  
+                sample_id_to_overall[sample_id] = percent
 
     for idx, row in alignment_stats.iterrows():
         sample_id_from_csv = row["Sample"]
@@ -90,6 +78,8 @@ def main(path_to_samples, path_to_mappingsstats, reference_genome, current_direc
     # for each stat, make a histogram across the samples
     number_samples = alignment_stats.shape[0]
     number_bins = math.ceil(math.sqrt(number_samples))
+    if number_bins < 1:
+        number_bins = 1
     # number aligned once histogram
     number_aligned_once = alignment_stats["Number Aligned Once"].tolist()
     number_aligned_once = [int(number) for number in number_aligned_once]
@@ -131,10 +121,23 @@ def main(path_to_samples, path_to_mappingsstats, reference_genome, current_direc
     print("Done with bowtie2 QC")
 
 if __name__ == "__main__":
+        
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
+                                    description='''\
+                                Generates QC stats on the bowtie2 rule
+                                ''',
+                                epilog="Questions or comments? --> aholton@mit.edu")
+    parser.add_argument("-s", dest="samples", help="csv file with samples",required=True,action='store')
+    parser.add_argument("-r", dest="refGenome", help="name of reference genome as string",required=True,action='store')
+    parser.add_argument("-m", dest="mappingstats", help="log file with bowtie2 mapping statistics", required = True, action="store")
+    parser.add_argument("-o", dest="outfileString", help="name of outfile without file extension", required=True, action="store")
+    parser.add_argument("-d", dest="currentDirectory", help="current directory of Snakefile", action="store", default=os.getcwd())
+    args = parser.parse_args()
+
     path_to_samples=args.samples
     reference_genome=args.refGenome
     current_directory=args.currentDirectory
     out_file_string=args.outfileString
     path_to_mappingsstats=args.mappingstats
-    main(path_to_samples, path_to_mappingsstats, reference_genome, current_directory, out_file_string)
+    plot_bowtieqc(path_to_samples, path_to_mappingsstats, reference_genome, current_directory, out_file_string)
 

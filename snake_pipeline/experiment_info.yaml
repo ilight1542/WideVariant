@@ -5,10 +5,10 @@
 experiment_name: test
 run_in_screen: True
 sample_table: 'samples.csv'
-ref_genome_directory: 'tests/tutorial_reference_genome'
+ref_genome_directory: 'testing/tutorial_reference_genome'
 
 # Specific pipeline execution options
-pipeline_specifications: ["all"]
+pipeline_specifications: ["gen_cmt"]
 generate_normalized_coverage_matrix: False
 generate_raw_coverage_matrix: True
 

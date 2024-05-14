@@ -12,10 +12,8 @@ import sys
 import argparse
 import gus_helper_functions as ghf
 from math import floor
+from gus_helper_functions import round_half_up, convert_chrpos_to_abspos
 
-def round_half_up(n, decimals=0):
-    multiplier = 10 ** decimals
-    return floor(n*multiplier + 0.5) / multiplier  
 
 def vcf_to_quals_snakemake(path_to_vcf_file,output_path_to_quals,REFGENOMEDIRECTORY):
     '''Python version of vcf_to_quals_snakemake.py
@@ -48,13 +46,7 @@ def vcf_to_quals_snakemake(path_to_vcf_file,output_path_to_quals,REFGENOMEDIRECT
                 chromo=lineinfo[0]
                 position_on_chr=int(lineinfo[1]) #1-indexed
                 
-                if len(chr_starts) == 1:
-                    position=position_on_chr
-                else:
-                    if chromo not in scaf_names:
-                        raise ValueError("Scaffold name in vcf file not found in reference")
-                    position=int(chr_starts[np.where(chromo==scaf_names)]) + position_on_chr
-                    #chr_starts begins at 0
+                position=convert_chrpos_to_abspos(chromo, position_on_chr, chr_starts, scaf_names)
                     
                 alt=lineinfo[4]
                 ref=lineinfo[3]
@@ -70,7 +62,7 @@ def vcf_to_quals_snakemake(path_to_vcf_file,output_path_to_quals,REFGENOMEDIRECT
                     #If already a position wiht a stronger FQ here, don;t include this
                     #More negative is stronger
                     if fq < quals[position-1]:
-                        quals[position-1]=int(round_half_up(fq))
+                        quals[position-1]=int(ghf.round_half_up(fq))
                             #python int(fq) will by default round down, round matches matlab behavior
                             #-1 important to convert position (1-indexed) to python index
         
