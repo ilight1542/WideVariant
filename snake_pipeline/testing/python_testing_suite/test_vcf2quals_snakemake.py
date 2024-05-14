@@ -13,7 +13,7 @@ import numpy as np
 
 sys.path.append('../scripts/')
 import gus_helper_functions as ghf
-from vcf2quals_snakemake import round_half_up, vcf_to_quals_snakemake
+from vcf2quals_snakemake import vcf_to_quals_snakemake
 
 class TestMyFunction(unittest.TestCase):
 
