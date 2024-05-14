@@ -1,21 +1,27 @@
 # Prepare filtered, clean FASTQ samples
 rule cutadapt:
+    params:
+        fq1 = "results/data/{sampleID}/R1.fq.gz",
+        fq2 = "results/data/{sampleID}/R2.fq.gz",
+        adapter_illumina_nextera="CTGTCTCTTAT",
+        adapter_illumina_universal="AGATCGGAAGAGC",
     output:
         fq1o = "results/preprocessing/{sampleID}/R1_trim.fq.gz",
         fq2o = "results/preprocessing/{sampleID}/R2_trim.fq.gz",
         log = "logs/preprocessing_{sampleID}.txt", # necessary for bowtie2qc
+    threads: 4,
     conda:
         "../envs/cutadapt.yaml",
     shell:
         # NEEDS TO BE OF FORMAT FILENAMER1, FILENAMER2, NOITHING ELSE
-        "cutadapt -a CTGTCTCTTAT --cores=4 "
-                "-o {output.fq1o} "
-                "results/data/{wildcards.sampleID}/R1.fq.gz "
-                "1> {output.log} ;"
-        "cutadapt -a CTGTCTCTTAT --cores=4 "
-                "-o {output.fq2o} "
-                "results/data/{wildcards.sampleID}/R2.fq.gz "
-                "1>> {output.log} ;"
+        "cutadapt -a {params.adapter_illumina_nextera} "
+                "-a {params.adapter_illumina_universal} "
+                "-A {params.adapter_illumina_nextera} "
+                "-A {params.adapter_illumina_universal} "
+                "-m 1 --cores={threads} "
+                "-o {output.fq1o} -p {output.fq2o} "
+                "{params.fq1} {params.fq2} "
+                "1> {output.log};"
 
 rule sickle:
     input:

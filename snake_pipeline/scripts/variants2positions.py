@@ -38,7 +38,7 @@ def generate_positions_single_sample(path_to_variant_vcf,path_to_output_position
     
     #For outgroup samples only
     if outgroup_bool:
-        Var_positions=ghf.p2chrpos(np.nonzero(include)[0]+1,chr_starts)
+        Var_positions=ghf.p2chrpos(np.nonzero(include)[0],chr_starts)
         np.savez_compressed(path_to_output_positions, Positions = Var_positions)
         print("Outgroup sample - no positions collected")
         return
@@ -74,8 +74,7 @@ def generate_positions_single_sample(path_to_variant_vcf,path_to_output_position
                         include[position-1]=1
                         #-1 converts position (1-indexed) to index
     
-    #+1 converts index back to position for p2chrpos
-    Var_positions=ghf.p2chrpos(np.nonzero(include)[0]+1,chr_starts)
+    Var_positions=ghf.p2chrpos(np.nonzero(include)[0],chr_starts)
     
     #save
     outpath = os.getcwd() + '/' + path_to_output_positions

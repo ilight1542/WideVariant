@@ -13,7 +13,8 @@ import argparse
 import gus_helper_functions as ghf
 import pickle
 from scipy.stats import ttest_ind, fisher_exact,ttest_1samp
-from math import log10, floor
+from math import log10
+from gus_helper_functions import round_half_up, define_nt_order, generate_ref_to_int_converstion_dict, convert_chrpos_to_abspos, convert_ref_to_int
 
 #%% Version history
 #2022.02.08: Evan: Direct translation from pileup_to_diversity_matrix_snakemake.m
@@ -48,6 +49,7 @@ from math import log10, floor
 # corresponding to the start of a new chromsome.
 
 #%%
+
 def round_half_up(n, decimals=0):
     """
     Round a number to the nearest integer using half-up rounding.
@@ -180,6 +182,7 @@ def parse_indels_into_data(calls,position,data,indel_region,genome_length):
 
 def parse_calls_into_simplecalls(calls,ref_idx,nts_ascii,line,line_id):
     """
+
     Parse the calls into simple calls and replace reference matches.
 
     Args:
@@ -394,6 +397,7 @@ def main(input_pileup, path_to_ref,phred_offset=33,num_fields_diversity_arr=40,m
     """
     
     data = mpileup_to_diversity(input_pileup,path_to_ref,min_reads_on_strand,indel_region,phred_offset,num_fields_diversity_arr)
+
     #calc coverage
     coverage=np.sum(data[:,0:8], axis = 1)
 

@@ -57,7 +57,7 @@ def generate_positions_snakemake(positions_files_list, REFGENOMEDIRECTORY):
         tmp=np.load(os.getcwd() + '/' + path.rstrip('\n'))
         positions=tmp['Positions']
         
-        if len(positions)>2:
+        if len(positions)>=1:
             x=chrpos2index(positions,chr_starts)
             
             timesvariant[x]=timesvariant[x]+1
