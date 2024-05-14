@@ -140,7 +140,7 @@ class TestMyFunction(unittest.TestCase):
         test_data=np.zeros((10,40),dtype=int) # 10bp genome length
         calls_out,data_out=p2dh.parse_indels_into_data(all_deletions.copy(),0,test_data.copy(),indel_region,test_data.shape[0])
 
-        self.assertFalse(np.all(calls_out==no_start_or_end)) # check calls: is updated at all
+        self.assertFalse(np.all(calls_out==all_deletions)) # check calls: is updated at all
         self.assertFalse(np.any((calls_out==43))) # check calls: all + chars are gone
         self.assertFalse(np.any((calls_out==45))) # check calls: all - chars are gone
         self.assertEqual(np.sum((calls_out==-1)),8*3) # check calls: correct number of -1 adjusted (3x8 (-1A) )
