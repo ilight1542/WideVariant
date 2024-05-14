@@ -35,6 +35,7 @@ class TestMyFunction(unittest.TestCase):
         #TODO: test error raising
         #TODO: test >2 contigs behaves correctly
         #TODO: test 1 contig behaves correctly
+        print('no tests currently implemented')
         pass
 
     def test_convert_chrpos_to_abspos(self):
@@ -42,13 +43,14 @@ class TestMyFunction(unittest.TestCase):
         #TODO: test error raising
         #TODO: test >2 contigs behaves correctly
         #TODO: test 1 contig behaves correctly
+        print('no tests currently implemented')
         pass
 
     def test_round_half_up(self):
         self.assertEqual(gus.round_half_up(1),1)
         self.assertEqual(gus.round_half_up(0),0)
         self.assertEqual(gus.round_half_up(-1),-1)
-        self.assertEqual(gus.round_half_up(-1.5),-2)
+        self.assertEqual(gus.round_half_up(-1.5),-1) # next highest integer (from 0.5 cutoff)
         self.assertEqual(gus.round_half_up(10.5),11)
         self.assertEqual(gus.round_half_up(11.5),12)
         self.assertEqual(gus.round_half_up(12.5),13)
