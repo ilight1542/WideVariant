@@ -14,7 +14,6 @@ import gus_helper_functions as ghf
 import pickle
 from scipy.stats import ttest_ind, fisher_exact,ttest_1samp
 from math import log10
-from gus_helper_functions import round_half_up, define_nt_order, generate_ref_to_int_converstion_dict, convert_chrpos_to_abspos, convert_ref_to_int
 
 #%% Version history
 #2022.02.08: Evan: Direct translation from pileup_to_diversity_matrix_snakemake.m
@@ -49,24 +48,6 @@ from gus_helper_functions import round_half_up, define_nt_order, generate_ref_to
 # corresponding to the start of a new chromsome.
 
 #%%
-
-def round_half_up(n, decimals=0):
-    """
-    Round a number to the nearest integer using half-up rounding.
-
-    This function rounds the input number `n` to the nearest integer using half-up rounding. 
-    Half-up rounding means that if the fraction part is exactly 0.5, it rounds up to the next integer.
-
-    Args:
-        n (float): The number to be rounded.
-        decimals (int, optional): The number of decimal places to round to (default is 0).
-
-    Returns:
-        float: The rounded number.
-
-    """
-    multiplier = 10 ** decimals
-    return floor(n*multiplier + 0.5) / multiplier   
 
 def generate_nts_ascii():
     """
@@ -187,7 +168,7 @@ def parse_calls_into_simplecalls(calls,ref_idx,nts_ascii,line,line_id):
 
     Args:
         calls (ndarray): Array of called bases.
-        ref_idx (int or None): Reference allele index (in nts order from gus.get_nt_order() ). None if the reference allele is ambiguous.
+        ref_idx (int or None): Reference allele index (in nts order from ghf.get_nt_order() ). None if the reference allele is ambiguous.
         nts_ascii (list): List of ASCII representations of nucleotides.
         line (str): line from mpileup file
         line_id (int): 0-based line number from mpileup file
@@ -257,25 +238,25 @@ def run_statistical_tests(simplecalls,temp,bq,mq,td,nts_ascii,Phred_offset=33):
     # coverting values of 0 and nan for output as -1 (test failed):
     if bq_pval == 0 or np.isnan(bq_pval):
         temp[33]=-1
-    else: temp[33]=round_half_up(-log10(bq_pval)) 
+    else: temp[33]=ghf.round_half_up(-log10(bq_pval)) 
 
     if mq_pval == 0 or np.isnan(mq_pval):
         temp[34]=-1
-    else: temp[34]=round_half_up(-log10(mq_pval))
+    else: temp[34]=ghf.round_half_up(-log10(mq_pval))
 
     if forward_pval == 0 or np.isnan(forward_pval):
         temp[35]=-1
-    else: temp[35]=round_half_up(-log10(forward_pval))
+    else: temp[35]=ghf.round_half_up(-log10(forward_pval))
     
     if reverse_pval == 0 or np.isnan(reverse_pval):
         temp[36]=-1
-    else: temp[36]=round_half_up(-log10(reverse_pval))
+    else: temp[36]=ghf.round_half_up(-log10(reverse_pval))
     
     ## currently not broken but testing against matlab script fails since matlab script *is* broken.
     p=fisher_exact(np.array([[temp[n1], temp[n2]],[temp[n1+4],temp[n2+4]]]), alternative='two-sided')[1] # fisher exact test for strand bias (contingency table = # of reads that are fwd/rev and support major/minor allele)
     if p == 0:
         temp[32]=-1
-    else: temp[32]=round_half_up(-log10(p))
+    else: temp[32]=ghf.round_half_up(-log10(p))
     return temp
 
 def parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,nts_ascii,min_reads_on_strand,Phred_offset):
@@ -302,9 +283,9 @@ def parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,nts_ascii,min_rea
         nt_count=len(current_nt_indices)
         if nt_count > 0:
             temp[nt]=nt_count
-            temp[nt+8]=round_half_up(np.sum(bq[(current_nt_indices)])/nt_count)-Phred_offset
-            temp[nt+16]=round_half_up(np.sum(mq[(current_nt_indices)])/nt_count)-Phred_offset
-            temp[nt+24]=round_half_up(np.sum(td[(current_nt_indices)])/nt_count)
+            temp[nt+8]=ghf.round_half_up(np.sum(bq[(current_nt_indices)])/nt_count)-Phred_offset
+            temp[nt+16]=ghf.round_half_up(np.sum(mq[(current_nt_indices)])/nt_count)-Phred_offset
+            temp[nt+24]=ghf.round_half_up(np.sum(td[(current_nt_indices)])/nt_count)
     if sum(temp[0:4]) > min_reads_on_strand and sum(temp[4:8])> min_reads_on_strand and sum(y)*200>sum(x): # only calcualte p values of there are greater than 20 reads on each strand and MAF < .995
         temp=run_statistical_tests(simplecalls,temp,bq,mq,td,min_reads_on_strand,Phred_offset)
     return temp

@@ -417,18 +417,22 @@ def convert_ref_to_int(ref_str, nts_dict=generate_ref_to_int_converstion_dict())
 
 def round_half_up(n, decimals=0):
     """
-    This function rounds a number to the specified number of decimals using the "round half up" method,
-    where .5 values are always rounded up (instead of to even, see 'bankers rounding')
+    Round a number to the nearest integer using half-up rounding.
 
-    Parameters:
-    - n (float): The number to be rounded.
-    - decimals (int, optional): The number of decimals to round to. Default is 0.
+    This function rounds the input number `n` to the nearest integer using half-up rounding. 
+    Half-up rounding means that if the fraction part is exactly 0.5, it rounds up to the next integer.
+
+    Args:
+        n (float): The number to be rounded.
+        decimals (int, optional): The number of decimal places to round to (default is 0).
 
     Returns:
-    - float: The rounded number.
+        float: The rounded number.
+
     """
     multiplier = 10 ** decimals
-    return floor(n*multiplier + 0.5) / multiplier  
+    return floor(n*multiplier + 0.5) / multiplier   
+
 
 
 
