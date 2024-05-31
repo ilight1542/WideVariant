@@ -75,7 +75,26 @@ check_for_errors_in_log() {
 
         echo "An Error occured during data generation. Please check the log file (${logfile}) for more information "; 
     fi
+}
 
+run_data_generation_with_logging() {
+    local experiment_name=$1
+    local variant_file=$2
+    local coverage_file=$3
+    local outgroup_ids=$4
+    local genome=$5
+    local read_length=$6
+    local log_file_path=$7
+    local timestamp=$8
+    
+    {
+        generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length}
+        run_snakemake 
+        move_and_link_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome}
+    } >> "${log_file_path}/${timestamp}_${experiment_name}.log" 2>&1
+
+    check_for_errors_in_log "${log_file_path}/${timestamp}_${experiment_name}.log"
+    echo -e "${experiment_name} done\n"
 }
 
 ####################
@@ -108,114 +127,144 @@ timestamp=$(date +"%Y_%m_%d_%H_%M")
 ## Test cases
 ####################
 
+# List of test cases
+# 1. Default: ground_truth (no outgroup sample) 
+# 2. Single sample input (CURRENTLY BREAKS SOME SNAKEMAKE RULES)
+# 3. Single outgroup sample (first in csv) 
+# 4. Single outgroup sample (last in csv) 
+# 5. Single ingroup sample & multiple outgroup samples
+# 6. 2 input samples, one outgroup sample one ingroup sample 
+# 7. Variants only on outgroup samples
+# 8. Not any variant on any sample
+# 9. One sample with no variant, one sample only with variants
+# 10. One position with only variant, one position with variant in ingroup samples only
+# 11. One sample with only one variant which is not shared with any other sample
+# 12. Variants on every first and last position of all contigs
+
+
 echo
 echo ${timestamp}
 echo "Start generating test data..."
 
 mkdir -p ${log_file_path}
 
+# 12. Variants on every first and last position of all contigs
+experiment_name='contig_edges_vars'
+variant_file='data_generation/variants_raw_contig_edges.csv'
+coverage_file='data_generation/coverage.csv'
+outgroup_ids='data_generation/outgroup_ids.csv'
+
+run_data_generation_with_logging ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length} ${log_file_path} ${timestamp}
+
+
+
 ####
-# Default: ground_truth (no outgroup sample) 
+# 1. Default: ground_truth (no outgroup sample) 
 experiment_name='ground_truth'
 variant_file='data_generation/variants_raw.csv'
 coverage_file='data_generation/coverage.csv'
 outgroup_ids='data_generation/outgroup_ids.csv'
 
-{
-    generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length}
-    run_snakemake 
-    move_and_link_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome}
-} >> "${log_file_path}/${timestamp}_${experiment_name}.log" 2>&1
-
-check_for_errors_in_log "${log_file_path}/${timestamp}_${experiment_name}.log"
-echo -e "${experiment_name} done\n"
+run_data_generation_with_logging ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length} ${log_file_path} ${timestamp}
 
 ####
-# Single sample input (CURRENTLY BREAKS SOME SNAKEMAKE RULES) 
+# 2. Single sample input (CURRENTLY BREAKS SOME SNAKEMAKE RULES) 
 experiment_name='single_sample'
 variant_file='data_generation/variants_raw_single_sample.csv'
 coverage_file='data_generation/coverage_single_sample.csv'
 outgroup_ids='data_generation/outgroup_ids_single_sample.csv'
 
-{
-    generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length}
-    run_snakemake 
-    move_and_link_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome}
-} >> "${log_file_path}/${timestamp}_${experiment_name}.log" 2>&1
-
-check_for_errors_in_log "${log_file_path}/${timestamp}_${experiment_name}.log"
-echo -e "${experiment_name} done\n"
+run_data_generation_with_logging ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length} ${log_file_path} ${timestamp}
 
 ####
-# Single outgroup sample (first in csv) 
+# 3. Single outgroup sample (first in csv) 
 experiment_name='single_outgroup_first'
 variant_file='data_generation/variants_raw.csv'
 coverage_file='data_generation/coverage.csv'
 outgroup_ids='data_generation/outgroup_ids_first_outgroup.csv'
 
-{
-    generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length}
-    run_snakemake 
-    move_and_link_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome}
-} >> "${log_file_path}/${timestamp}_${experiment_name}.log" 2>&1
-
-check_for_errors_in_log "${log_file_path}/${timestamp}_${experiment_name}.log"
-echo -e "${experiment_name} done\n"
-
+run_data_generation_with_logging ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length} ${log_file_path} ${timestamp}
 
 ####
-# Single outgroup sample (last in csv) 
+# 4. Single outgroup sample (last in csv) 
 experiment_name='single_outgroup_last'
 variant_file='data_generation/variants_raw.csv'
 coverage_file='data_generation/coverage.csv'
 outgroup_ids='data_generation/outgroup_ids_last_outgroup.csv'
 
-{
-    generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length}
-    run_snakemake 
-    move_and_link_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome}
-} >> "${log_file_path}/${timestamp}_${experiment_name}.log" 2>&1
-
-check_for_errors_in_log "${log_file_path}/${timestamp}_${experiment_name}.log"
-echo -e "${experiment_name} done\n"
-
+run_data_generation_with_logging ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length} ${log_file_path} ${timestamp}
 
 ####
-# Single ingroup sample 
+# 5. Single ingroup sample & multiple outgroup samples
 experiment_name='single_ingroup'
 variant_file='data_generation/variants_raw.csv'
 coverage_file='data_generation/coverage.csv'
 outgroup_ids='data_generation/outgroup_ids_one_ingroup.csv'
 
-{
-    generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length}
-    run_snakemake 
-    move_and_link_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome}
-} >> "${log_file_path}/${timestamp}_${experiment_name}.log" 2>&1
-
-check_for_errors_in_log "${log_file_path}/${timestamp}_${experiment_name}.log"
-echo -e "${experiment_name} done\n"
-
+run_data_generation_with_logging ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length} ${log_file_path} ${timestamp}
 
 ####
-# 2 input samples, one outgroup sample one ingroup sample 
+# 6. 2 input samples, one outgroup sample one ingroup sample 
 experiment_name='two_input_out_and_in'
 variant_file='data_generation/variants_raw_two_samples.csv'
 coverage_file='data_generation/coverage_two_samples.csv'
 outgroup_ids='data_generation/outgroup_ids_two_samples_one_outgroup_one_ingroup.csv'
 
-{
-    generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length}
-    run_snakemake 
-    move_and_link_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome}
-} >> "${log_file_path}/${timestamp}_${experiment_name}.log" 2>&1
-
-check_for_errors_in_log "${log_file_path}/${timestamp}_${experiment_name}.log"
-echo -e "${experiment_name} done\n"
-
+run_data_generation_with_logging ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length} ${log_file_path} ${timestamp}
 
 ####
-# Multiple outgroups samples
+# 7. Variants only on outgroup samples
+experiment_name='var_only_in_outgroup'
+variant_file='data_generation/variants_raw_only_outgroup_var.csv'
+coverage_file='data_generation/coverage.csv'
+outgroup_ids='data_generation/outgroup_ids_two_outgroups.csv'
+
+run_data_generation_with_logging ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length} ${log_file_path} ${timestamp}
+
+####
+# 8. Not any variant on any sample
+experiment_name='no_var_any_sample'
+variant_file='data_generation/variants_raw_not_any_var.csv'
+coverage_file='data_generation/coverage.csv'
+outgroup_ids='data_generation/outgroup_ids.csv'
+
+run_data_generation_with_logging ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length} ${log_file_path} ${timestamp}
+
+####
+# 9. One sample with no variant, one sample only with variants
+experiment_name='two_samples_all_var_no_var'
+variant_file='data_generation/variants_raw_no_var_all_var.csv'
+coverage_file='data_generation/coverage.csv'
+outgroup_ids='data_generation/outgroup_ids.csv'
+
+run_data_generation_with_logging ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length} ${log_file_path} ${timestamp}
+
+####
+# 10. One position with only variant, one position with variant in ingroup samples only
+experiment_name='two_pos_all_var_ingroup_var'
+variant_file='data_generation/variants_raw_invariant_position.csv'
+coverage_file='data_generation/coverage.csv'
+outgroup_ids='data_generation/outgroup_ids_last_outgroup.csv'
+
+run_data_generation_with_logging ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length} ${log_file_path} ${timestamp}
+
+####
+# 11. One sample with only one variant which is not shared with any other sample (sample B position contig1 1000)
+experiment_name='one_var_uniq_across_samples'
+variant_file='data_generation/variants_raw_one_sample_unique_var.csv'
+coverage_file='data_generation/coverage.csv'
+outgroup_ids='data_generation/outgroup_ids.csv'
+
+run_data_generation_with_logging ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length} ${log_file_path} ${timestamp}
+
+####
+# 12. Variants on every first and last position of all contigs
+experiment_name='contig_edges_vars'
+variant_file='data_generation/variants_raw_contig_edges.csv'
+coverage_file='data_generation/coverage.csv'
+outgroup_ids='data_generation/outgroup_ids.csv'
+
+run_data_generation_with_logging ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length} ${log_file_path} ${timestamp}
 
 
 
