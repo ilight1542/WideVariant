@@ -8,11 +8,9 @@ Created on Tue Jan  4 22:14:06 2022
 
 import numpy as np
 import sys
-import gzip
 import argparse
 import gus_helper_functions as ghf
-import pickle
-from scipy.stats import ttest_ind, fisher_exact,ttest_1samp
+from scipy.stats import ttest_ind, fisher_exact
 from math import log10
 
 #%% Version history

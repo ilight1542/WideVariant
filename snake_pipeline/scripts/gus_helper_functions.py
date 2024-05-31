@@ -7,6 +7,7 @@ from Bio import SeqIO
 from itertools import compress
 import os
 import numpy as np
+import pandas as pd
 import csv
 import glob
 import subprocess
@@ -16,57 +17,92 @@ from math import floor
 
 
 def get_nt_order():
+    """
+    This function returns a string representing the default order of nucleotides for the entire analysis: 
+    Adenine (A), Thymine (T), Cytosine (C), and Guanine (G).
+
+    Returns:
+        str: A string 'ATCG' representing the default order of nucleotides.
+    """
     order='ATCG'
     return order
 
-def read_samples_CSV(spls,quiet=False):
+def read_samples_CSV(samplescsv_path, expected_columnnames = ['Path','Sample','FileName','Reference','Group', 'Outgroup'],quiet=False):
     """
-    Read sample information from a CSV file.
+    Read a CSV file, validate its structure, and return its contents as a dictionary.
 
-    Parameters:
-        spls (str): Path to the CSV file containing sample information.
-        quiet (bool, optional): If True, suppresses printing of certain messages. Defaults to False.
+    This function performs the following steps:
+    1. Checks if the CSV file contains the expected column names (in any order).
+    2. Reads the CSV file, with or without headers as necessary.
+    3. Validates the CSV file by checking for missing values and duplicated lines.
+    4. Removes any rows with missing values or duplicated lines, if found.
+    5. Converts the DataFrame to a dictionary and returns it.
+
+    Args:
+        samplescsv_path (str): The path to the CSV file to be read.
+        expected_columnnames (list of str, optional): The list of expected column names. 
+            Defaults to ['Path', 'Sample', 'FileName', 'Reference', 'Group', 'Outgroup'].
+        quiet (bool, optional): If True, suppresses print statements for missing values and duplicates. Defaults to False.
 
     Returns:
-        list: A list containing the values from the 'Path', 'Sample', 'FileName', 'Reference', 'Group', and 'Outgroup' columns.
+        dict: A dictionary representation of the CSV file where keys are column names and values are lists of column data.
 
     Raises:
-        None
-
-    Description:
-        This function reads sample information from a CSV file and returns the values from specific columns.
-        The function builds lists for each column using the provided header-to-column mapping.
-        Finally, the function returns a list containing the values from the specified columns.
-
-    Example:
-        sample_info = read_samples_CSV('sample_info.csv', quiet=True)
+        SystemExit: If the CSV file does not contain the expected number of columns.
     """
-    smpl_csv_dict = {'Path': [],'Sample': [],'FileName': [],'Reference': [],'Group': [],'Outgroup': []}
+    # Check if the file contains all expected column names (in any order)
+    with open(samplescsv_path, 'r') as file:
+        first_line = file.readline().strip().split(',')
+    header_present = all([expected_col in first_line for expected_col in expected_columnnames])
+    
+    if header_present:
+        samplescsv = pd.read_csv(samplescsv_path)
+    else:
+        samplescsv = pd.read_csv(samplescsv_path, header=None)
+        if samplescsv.shape[1] != len(expected_columnnames):
+            print("samples.csv does not contain the expected number of columns.")
+            return sys.exit()
+        samplescsv.columns = expected_columnnames
+    # Check for missing values & duplicated lines 
+    if samplescsv.isna().any().any():
+        if not quiet:
+            print(f"samples.csv contains missing values. Removing the lines from file:\n{samplescsv[samplescsv.isna().any(axis = 1)].to_string(index=False)}")
+        samplescsv = samplescsv[~( samplescsv.isna().any(axis = 1) )]
+    if samplescsv.duplicated().any():
+        if not quiet:
+            print(f"samples.csv contains duplicated lines. Removing one of the duplicated lines from file:\n{samplescsv[samplescsv.duplicated()].to_string(index=False)}")
+        samplescsv = samplescsv[~( samplescsv.duplicated() )]
+    samplescsv[['Path','Sample','FileName','Reference','Group']] = samplescsv[['Path','Sample','FileName','Reference','Group']].astype(str)
+    samplescsv['Outgroup'] = samplescsv['Outgroup'].astype(int)
+    if not quiet:
+        print(f'{samplescsv.shape[0]} samples are stated in the samples.csv and will be processed.')
+    samplescsv_dict = samplescsv.to_dict(orient='list')
+    return samplescsv_dict
 
-    with open(spls, 'r') as fid: 
-        for line_id, line in enumerate(fid):
-            if line_id == 0:
-                hdr_colnames = line.strip('\n').split(',')
-                hdr_to_col_id = {hdr: id for id, hdr in enumerate(hdr_colnames)}            
-            line = line.strip('\n').split(',')
-            # build lists
-            for key, id in hdr_to_col_id.items():
-                smpl_csv_dict[key].append(line[id])
-    return [smpl_csv_dict[key] for key in smpl_csv_dict.keys()]
 
-
-def split_samplesCSV(PATH_ls,SAMPLE_ls,FILENAME_ls,REF_Genome_ls,GROUP_ls,OUTGROUP_ls, outdir):
+def split_samplesCSV(samplescsv_dict, outdir):
+    """
+    This function processes a dictionary containing sample information (read from samples.csv), 
+    groups the data by sample name, and saves each group's information into a separate CSV file 
+    located in a directory specific to that sample (data/{sampleID}).
+    
+    Args:
+        samplescsv_dict (dict): A dictionary where keys are column names and values are lists of column data.
+                                Expected keys are 'Path', 'Sample', 'FileName', 'Reference', 'Group', and 'Outgroup'.
+        outdir (str): The directory where the sample-specific subdirectories and CSV files will be saved.
+    """
+    
     '''Take info from samples.csv, concat by sample name & save each line as sample_info.csv in data/{sampleID}'''
     
     #Loop through unique samples
-    for sample in set(SAMPLE_ls):
+    for sample in set(samplescsv_dict['Sample']):
         # Concat info for this sample
-        sample_info_bool=[s==sample for s in SAMPLE_ls]
-        sample_paths=list(compress(PATH_ls,sample_info_bool))
-        sample_filenames=list(compress(FILENAME_ls,sample_info_bool))
-        sample_references=list(compress(REF_Genome_ls,sample_info_bool))
-        sample_groups=list(compress(GROUP_ls,sample_info_bool))
-        sample_outgroups=list(compress(OUTGROUP_ls,sample_info_bool))
+        sample_info_bool=[s==sample for s in samplescsv_dict['Sample']]
+        sample_paths=list(compress(samplescsv_dict['Path'],sample_info_bool))
+        sample_filenames=list(compress(samplescsv_dict['FileName'],sample_info_bool))
+        sample_references=list(compress(samplescsv_dict['Reference'],sample_info_bool))
+        sample_groups=list(compress(samplescsv_dict['Group'],sample_info_bool))
+        sample_outgroups=list(compress(samplescsv_dict['Outgroup'],sample_info_bool))
         
         sample_info_csv=list(zip(sample_paths,[sample]*sum(sample_info_bool),sample_filenames,sample_references,sample_groups,sample_outgroups))
         
@@ -313,11 +349,11 @@ def p2chrpos(p, ChrStarts):
     '''
         
     # get chr and pos-on-chr
-    chromo = np.zeros(len(p),dtype=int)
+    chromo = np.ones(np.shape(p),dtype=int)
     if len(ChrStarts) > 1:
         for i in ChrStarts[1:]:
             chromo = chromo + (p >= i) # when (p > i) evaluates 'true' lead to plus 1 in summation. > bcs ChrStarts start with 0...genomestats()
-        positions = p - ChrStarts[chromo] # [chr-1] -1 due to 0based index
+        positions = p - ChrStarts[chromo-1] # [chr-1] -1 due to 0based index
         chrpos = np.column_stack((chromo,positions))
     else:
         chrpos = np.column_stack((chromo,p))
@@ -424,10 +460,10 @@ def round_half_up(n, decimals=0):
 #TODO: remove if not necessary
 
 # def get_clade_wildcards(cladeID):
-#     is_clade = [int(i == cladeID) for i in GROUP_ls]
-#     sampleID_clade = list(compress(SAMPLE_ls,is_clade))
-#     reference_clade = list(compress(REF_Genome_ls,is_clade))
-#     outgroup_clade = list(compress(OUTGROUP_ls,is_clade))
+#     is_clade = [int(i == cladeID) for i in samplescsv_dict['Group']]
+#     sampleID_clade = list(compress(samplescsv_dict['Sample'],is_clade))
+#     reference_clade = list(compress(samplescsv_dict['Reference'],is_clade))
+#     outgroup_clade = list(compress(samplescsv_dict['Outgroup'],is_clade))
 #     return sampleID_clade,reference_clade,outgroup_clade
     
 # def get_sampleID_names(wildcards):  

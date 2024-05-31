@@ -5,11 +5,7 @@ Additional testing step in snakemake pipeline, that runs tests on all outputs
 
 import sys
 import unittest
-import os
-import glob
-import pandas as pd
 import numpy as np
-from Bio import SeqIO
 
 sys.path.append('../scripts/')
 import gus_helper_functions as ghf

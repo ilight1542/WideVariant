@@ -1,9 +1,9 @@
 # Get two-column (caldeID,path2faa) input file for ortholog_inference script
 rule build_annotation_orthologs_input:
     input:
-        prokka_faa=expand("results/assembly/prokka/{sampleID}/prokka_out.faa",sampleID=SAMPLE_ls),
+        prokka_faa=expand("results/assembly/prokka/{sampleID}/prokka_out.faa",sampleID=samplescsv_dict['Sample']),
     params:
-        clade_identifier=expand("{sampleID}",sampleID=SAMPLE_ls),
+        clade_identifier=expand("{sampleID}",sampleID=samplescsv_dict['Sample']),
     output:
         "results/assembly/orthologinfo_filtered/input_files.tsv",
     group:

@@ -136,7 +136,7 @@ class TestMyFunction(unittest.TestCase):
             for location, is_variable_pos in var_pos_ingroup_raw_dicts.items():
                 contig_var, pos = location.split('_')
                 contig_id = np.where(scafnames == contig_var)[0][0] + 1
-                var_pos_genome = ghf.chrpos2index(np.array( ([contig_id, int(pos)], ) ), chr_starts) ## get variant position within genome
+                var_pos_genome = ghf.chrpos2index(np.array( ([contig_id, int(pos)], ) ), chr_starts)[0] ## get variant position within genome
                 if is_variable_pos:
                     ## check if variable position in ingroup samples present in combined position
                     with self.subTest(msg=f'generate_positions_snakemake_{test_case}_{location}__expected_variable_pos_ingroup'):
@@ -172,7 +172,7 @@ class TestMyFunction(unittest.TestCase):
             for location, is_variable_pos in var_pos_ingroup_raw_dicts.items():
                 contig_var, pos = location.split('_')
                 contig_id = np.where(scafnames == contig_var)[0][0] + 1
-                var_pos_genome = ghf.chrpos2index(np.array( ([contig_id, int(pos)], ) ), chr_starts) ## get variant position within genome
+                var_pos_genome = ghf.chrpos2index(np.array( ([contig_id, int(pos)], ) ), chr_starts)[0] ## get variant position within genome
                 if is_variable_pos:
                     ## check if variable position in ingroup samples present in combined position
                     with self.subTest(msg=f'combine_positions_{test_case}_{location}__expected_variable_pos_ingroup'):

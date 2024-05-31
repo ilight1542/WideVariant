@@ -34,22 +34,22 @@ from itertools import compress
     # case: Path,Sample,Reference,Group,Outgroup
     # assembly: Path,Sample,FileName,Reference
     # bracken: Path,Sample,FileName,Reference
-[PATH_ls, SAMPLE_ls, FILENAME_ls, REF_Genome_ls, GROUP_ls, OUTGROUP_ls] = read_samples_CSV(spls)
-
+#[PATH_ls, SAMPLE_ls, FILENAME_ls, REF_Genome_ls, GROUP_ls, OUTGROUP_ls] = read_samples_CSV(spls)
+samplescsv_dict = read_samples_CSV(spls)
 # Write sample_info.csv for each sample
-split_samplesCSV(PATH_ls, SAMPLE_ls, FILENAME_ls, REF_Genome_ls, GROUP_ls, OUTGROUP_ls, 'results/data/')
+split_samplesCSV(samplescsv_dict, 'results/data/')
 
-UNIQ_GROUP_ls = set(GROUP_ls)
+UNIQ_GROUP_ls = set(samplescsv_dict['Group'])
 
 
 
 ''' FUNCTIONS '''
 
 def get_clade_wildcards(cladeID):
-    is_clade = [int(i == cladeID) for i in GROUP_ls]
-    sampleID_clade = list(compress(SAMPLE_ls,is_clade))
-    reference_clade = list(compress(REF_Genome_ls,is_clade))
-    outgroup_clade = list(compress(OUTGROUP_ls,is_clade))
+    is_clade = [int(str(group) == str(cladeID)) for group in samplescsv_dict['Group']]
+    sampleID_clade = list(compress(samplescsv_dict['Sample'],is_clade))
+    reference_clade = list(compress(samplescsv_dict['Reference'],is_clade))
+    outgroup_clade = list(compress(samplescsv_dict['Outgroup'],is_clade))
     return sampleID_clade,reference_clade,outgroup_clade
     
 def get_sampleID_names(wildcards):  
@@ -89,22 +89,22 @@ def get_bt2qc_input(wildcards):
 # Define a list of output files: snakemake will deterimine which pipeline steps need to be executed in order to generate the output files requested
 input_all=[]
 if ("gen_cmt" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
-    raw_input_paths=expand("results/preprocessing/{sampleID}/R1_trim.fq.gz",sampleID=SAMPLE_ls)
-    for path,sample,filename in zip(PATH_ls,SAMPLE_ls,FILENAME_ls):
+    raw_input_paths=expand("results/preprocessing/{sampleID}/R1_trim.fq.gz",sampleID=samplescsv_dict['Sample'])
+    for path,sample,filename in zip(samplescsv_dict['Path'],samplescsv_dict['Sample'],samplescsv_dict['FileName']):
         if isinstance(path, list) and len(path) > 1:
             cp_append_files(path,sample,filename,'results/data')
         else:
             makelink(path,sample,filename,'results/data')
-    input_all.append(expand("results/1-mapping/quals/{sampleID}_ref_{references}_outgroup{outgroup}.quals.npz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
-    input_all.append(expand("results/1-mapping/diversity/{sampleID}_ref_{references}_outgroup{outgroup}.diversity.npz",zip, sampleID=SAMPLE_ls, references=REF_Genome_ls,outgroup=OUTGROUP_ls))
-    input_all.append(expand("results/1-mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(REF_Genome_ls)))
+    input_all.append(expand("results/1-mapping/quals/{sampleID}_ref_{references}_outgroup{outgroup}.quals.npz",zip, sampleID=samplescsv_dict['Sample'], references=samplescsv_dict['Reference'],outgroup=samplescsv_dict['Outgroup']))
+    input_all.append(expand("results/1-mapping/diversity/{sampleID}_ref_{references}_outgroup{outgroup}.diversity.npz",zip, sampleID=samplescsv_dict['Sample'], references=samplescsv_dict['Reference'],outgroup=samplescsv_dict['Outgroup']))
+    input_all.append(expand("results/1-mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(samplescsv_dict['Reference'])))
     input_all.append(expand("results/2-case/candidate_mutation_table/group_{cladeID}_candidate_mutation_table.npz",cladeID=UNIQ_GROUP_ls))
     if GENERATE_NORMALIZED_COVERAGE_MATRIX:
         input_all.append(expand("results/2-case/candidate_mutation_table/group_{cladeID}_coverage_matrix_norm.npz",cladeID=UNIQ_GROUP_ls))
     if GENERATE_RAW_COVERAGE_MATRIX:
         input_all.append(expand("results/2-case/candidate_mutation_table/group_{cladeID}_coverage_matrix_raw.npz",cladeID=UNIQ_GROUP_ls))
 if ("bracken" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
-    input_all.append(expand("results/kraken/bracken/{sampleID}.bracken",sampleID=SAMPLE_ls))
+    input_all.append(expand("results/kraken/bracken/{sampleID}.bracken",sampleID=samplescsv_dict['Sample']))
 if ("assembly" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
     input_all.append("results/assembly/orthologinfo_filtered/annotation_orthologs.tsv")
 
