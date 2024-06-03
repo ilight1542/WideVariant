@@ -312,12 +312,13 @@ def genomestats(REFGENOMEFOLDER):
     ScafNames = np.asarray(ScafNames,dtype=object)
     return ChrStarts,Genomelength,ScafNames
 
-def chrpos2index(chrpos,chr_starts):
+def chrpos2index(chrpos,chr_starts,genomelength=np.nan):
     '''
     Args:
         chrpos (arr): px2 array of chromsome idx and position on chromosome.
         chr_starts (arr): Vector of chromosome starts (begins at 0).
-
+        genomelength (float, optional): Total genome length. If specified, checks if any positions exceed this length. Default is np.nan.
+        
     Returns:
         p (arr): Vector of position indexes.
 
@@ -333,6 +334,9 @@ def chrpos2index(chrpos,chr_starts):
         p=chrpos[:,1]
     else:
         p=chr_starts[chrpos[:,0]-1]+chrpos[:,1]
+    if not np.isnan(genomelength) and any(p>=genomelength):
+        print('Invalid genome positions given with positions larger than genome length')
+        return sys.exit()
 
     return p
 

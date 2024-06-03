@@ -12,6 +12,7 @@ generate_data() {
     local outgroup_ids=$4
     local genome=${5:-'testing/Smallgenome/genome.fasta'}
     local read_length=${6:-75}
+    local additional_flag_for_generate_test_data_script=$7
 
     rm -rf test_data/input_data/${experiment_name}
 
@@ -21,7 +22,7 @@ generate_data() {
         -c ${coverage_file} \
         -o ${outgroup_ids} \
         -r ${genome} \
-        -l ${read_length}
+        -l ${read_length} ${additional_flag_for_generate_test_data_script}
 }
 ## function to run snakemake
 run_snakemake() {
@@ -86,9 +87,10 @@ run_data_generation_with_logging() {
     local read_length=$6
     local log_file_path=$7
     local timestamp=$8
+    local additional_flag_for_generate_test_data_script=$9
     
     {
-        generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length}
+        generate_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length} ${additional_flag_for_generate_test_data_script}
         run_snakemake 
         move_and_link_data ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome}
     } >> "${log_file_path}/${timestamp}_${experiment_name}.log" 2>&1
@@ -153,8 +155,9 @@ experiment_name='contig_edges_vars'
 variant_file='data_generation/variants_raw_contig_edges.csv'
 coverage_file='data_generation/coverage.csv'
 outgroup_ids='data_generation/outgroup_ids.csv'
+set_contigs_to_be_covered='-e'
 
-run_data_generation_with_logging ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length} ${log_file_path} ${timestamp}
+run_data_generation_with_logging ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length} ${log_file_path} ${timestamp} ${set_contigs_to_be_covered}
 
 
 

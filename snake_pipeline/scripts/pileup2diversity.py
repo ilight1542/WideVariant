@@ -312,12 +312,12 @@ def parse_entry_in_mpileupup(line,line_id,data,chr_starts,genome_length,scaf_nam
         ref_idx=None # for cases where reference base is ambiguous
     
     #calls info
-    calls=np.fromstring(lineinfo[4], dtype=np.int8) #to ASCII
+    calls=np.frombuffer(lineinfo[4].encode('utf-8'), dtype=np.int8) #to ASCII
     
     #qual info
-    bq=np.fromstring(lineinfo[5], dtype=np.int8) # base quality, BAQ corrected, ASCII
-    mq=np.fromstring(lineinfo[6], dtype=np.int8) # mapping quality, ASCII
-    td=np.fromstring(lineinfo[7], dtype=int, sep=',') # distance from tail, comma sep
+    bq=np.frombuffer(lineinfo[5].encode('utf-8'), dtype=np.int8) # base quality, BAQ corrected, ASCII
+    mq=np.frombuffer(lineinfo[6].encode('utf-8'), dtype=np.int8) # mapping quality, ASCII
+    td=np.array([num for num in lineinfo[7].split(',') if num.isdigit()], dtype = np.int8)
     
     # find start and end reads supporting call, mask for downstream processing
     calls,temp[37] = clean_calls_from_start_and_end(calls)
