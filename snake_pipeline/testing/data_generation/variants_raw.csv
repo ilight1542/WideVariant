@@ -1,4 +1,4 @@
-samples,Contig1_500,Contig1_1000,Contig1_1500,Contig2_1000,Contig2_2000,Contig2_3000,Contig3_1000,Contig3_2000
+samples,Contig1_499,Contig1_999,Contig1_1499,Contig2_999,Contig2_1999,Contig2_2999,Contig3_999,Contig3_1999
 A,0,0,0,1,1,0,0,0
 B,0,1,0,0,1,0,0,0
 C,1,0,0,0,0,0,0,0

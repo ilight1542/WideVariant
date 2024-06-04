@@ -25,7 +25,7 @@ cmt_counts_mat_size = 8
 cmt_indelcounter_mat_size = 2
 cmt_coverage_stats_shape = 3
 cmt_max_cov_to_consider = 200
-counts_nt_order = 'ATCGatcg'
+counts_nt_order = f'{ghf.get_nt_order()}{ghf.get_nt_order().lower()}'
 
 class TestMyFunction(unittest.TestCase):
     
@@ -70,7 +70,7 @@ class TestMyFunction(unittest.TestCase):
         for location in var_pos_raw_dict[first_key].keys():
             contig, pos = location.split('_')
             if contig in genome_dict.keys():
-                variant_ref_dict[location] = genome_dict[contig][int(pos)-1]
+                variant_ref_dict[location] = genome_dict[contig][int(pos)]
             else:
                 print('ERROR: contig from variant raw file is not existent in reference genome!')
                 sys.exit(0)
@@ -162,8 +162,8 @@ class TestMyFunction(unittest.TestCase):
             with self.subTest(msg=f'build_CMT_process_positions_{test_case}__expected_positions_length'):
                 self.assertTrue(max(positions_obs)<=genome_length)
             ## check if no position is smaller than 1 (position are 1-based!)
-            with self.subTest(msg=f'build_CMT_process_positions_{test_case}__no_pos_smaller_than_1'):
-                self.assertTrue(all(positions_obs > 0))
+            with self.subTest(msg=f'build_CMT_process_positions_{test_case}__no_pos_smaller_than_0'):
+                self.assertTrue(all(positions_obs >= 0))
             ## check if any position is duplicated
             with self.subTest(msg=f'build_CMT_process_positions_{test_case}__no_duplicated_pos'):
                 self.assertEqual(len(np.unique(positions_obs)), len(positions_obs))
@@ -388,7 +388,7 @@ class TestMyFunction(unittest.TestCase):
                 maNT_array[i, j] = max_group
         return maNT_array
 
-    def check_CMT_counts(self, counts_obs, sample_names_obs, chr_pos_obs, shape, var_pos_raw_dict, variant_ref_dict, counts_nt_order, testmessage_prefix):
+    def check_CMT_counts(self, counts_obs, sample_names_obs, chr_pos_obs, shape, var_pos_raw_dict, variant_ref_dict, outgroup, counts_nt_order, testmessage_prefix):
         ## check if cmt_matrix has correct shape
         with self.subTest(msg=f'{testmessage_prefix}__expected_shape'):
             self.assertEqual(np.shape(counts_obs), shape)
@@ -404,18 +404,25 @@ class TestMyFunction(unittest.TestCase):
                 sample_idx = np.where(samplename == sample_names_obs)[0][0]
                 for location, is_variant in variants_on_sample.items():
                     ## get position idx of counts matrix
-                    pos_idx = np.where(location == chr_pos_obs)[0][0]
-                    ## get reference as expected
-                    ref_on_pos = variant_ref_dict[location]
-                    ## get major allele nt:
-                    if is_variant == 1:
-                        ## variant --> check if reference nt does not align with called allele 
-                        with self.subTest(msg=f'{testmessage_prefix}__var_pos_maNT_unequal_refNT'):
-                            self.assertTrue(maNT_array[sample_idx, pos_idx] != ref_on_pos)
+                    pos_idx = np.where(location == chr_pos_obs)
+                    ## check if all positions in ingroup are invariable --> position should not be called!
+                    if all([(var_pos_raw_dict[smplname][location] == 1) for smplname, outgrp in zip(var_pos_raw_dict.keys(), outgroup) if outgrp == 0]): 
+                        with self.subTest(msg=f'{testmessage_prefix}__invar_pos_not_called'):
+                            self.assertTrue(np.size(pos_idx) == 0)
                     else:
-                        ## no variant --> check if reference nt _does_ align with called allele 
-                        with self.subTest(msg=f'{testmessage_prefix}__unvar_pos_maNT_is_refNT'):
-                            self.assertEqual(maNT_array[sample_idx, pos_idx], ref_on_pos)
+                        with self.subTest(msg=f'{testmessage_prefix}__var_pos_called'):
+                            self.assertTrue(np.size(pos_idx) > 0)
+                        ## get reference as expected
+                        ref_on_pos = variant_ref_dict[location]
+                        ## get major allele nt:
+                        if is_variant == 1:
+                            ## variant --> check if reference nt does not align with called allele 
+                            with self.subTest(msg=f'{testmessage_prefix}__var_pos_maNT_unequal_refNT'):
+                                self.assertTrue(maNT_array[sample_idx, pos_idx[0][0]] != ref_on_pos)
+                        else:
+                            ## no variant --> check if reference nt _does_ align with called allele 
+                            with self.subTest(msg=f'{testmessage_prefix}__unvar_pos_maNT_is_refNT'):
+                                self.assertEqual(maNT_array[sample_idx, pos_idx[0][0]], ref_on_pos)
                 
 
     def check_CMT_quals(self, quals_obs, sample_names_obs, chr_pos_obs, shape, var_pos_raw_dict, maxFQ, testmessage_prefix):
@@ -521,7 +528,7 @@ class TestMyFunction(unittest.TestCase):
 
                 ## counts in CMT
                 counts_obs = cmt_file['counts']
-                self.check_CMT_counts(counts_obs, sample_names_obs, chr_pos_obs, (len(sampleID), num_obs_positions, cmt_counts_mat_size), var_pos_raw_dict, variant_ref_dict, counts_nt_order, f'build_CMT_build_CMT_{test_case}{message_string_comb}__counts_CMT')
+                self.check_CMT_counts(counts_obs, sample_names_obs, chr_pos_obs, (len(sampleID), num_obs_positions, cmt_counts_mat_size), var_pos_raw_dict, variant_ref_dict, outgroup, counts_nt_order, f'build_CMT_build_CMT_{test_case}{message_string_comb}__counts_CMT')
     
                 ## quals in CMT
                 quals_obs = cmt_file['quals']

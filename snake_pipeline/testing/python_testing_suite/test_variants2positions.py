@@ -66,15 +66,8 @@ class TestMyFunction(unittest.TestCase):
                 
                 arguments_for_testing[experiment_name].append([path_to_variant_vcf,path_to_output_positions,maxFQ,path_to_ref,outgroup_bool])
                 ## get genome length, num chromosomes and length of each chromosome
-                chr_dict = {}
-                genome_length_before_chr = 0
-                with open(f'{path_to_ref}/genome.fasta', 'r') as fasta: 
-                    for record in SeqIO.parse(fasta, 'fasta'):
-                        chr_length = len(record.seq)
-                        chr_dict[record.id] = [chr_length, genome_length_before_chr]
-                        genome_length_before_chr += chr_length
-                genome_length = genome_length_before_chr
-                expected_output_dict[experiment_name].append([sampleID, reference, outgroup, genome_length, chr_dict])
+                [chr_starts,genome_length,scafnames] = ghf.genomestats(path_to_ref)
+                expected_output_dict[experiment_name].append([sampleID, reference, outgroup, chr_starts, genome_length, scafnames])
 
         return arguments_for_testing, expected_output_dict, var_pos_raw_dicts
 
@@ -124,8 +117,8 @@ class TestMyFunction(unittest.TestCase):
     def execute_generate_positions_single_sample_tests(self,arguments_for_testing,expected_output_dict, var_pos_raw_dicts, test_case):
         ## variants2positions
         for single_arg_test, expected_sampleinfo in zip(arguments_for_testing, expected_output_dict):
-            path_to_variant_vcf, path_to_output_positions, maxFQ, path_to_ref, outgroup_bool = single_arg_test
-            [sampleID, reference, outgroup, genomelength, chr_dict] = expected_sampleinfo
+            path_to_output_positions = single_arg_test[1]
+            [sampleID, reference, outgroup, chr_starts, genome_length, scafnames] = expected_sampleinfo
             generate_positions_single_sample(*single_arg_test)
             
 
@@ -142,18 +135,22 @@ class TestMyFunction(unittest.TestCase):
             positions_obs = position_npzfile['Positions']
             ## check if not more posotions are in observed positions as reference has nt
             with self.subTest(msg=f'variants2positions_{sampleID}_{reference}__expected_positions_length'):
-                self.assertTrue(positions_obs.shape[0]<=genomelength)
+                self.assertTrue(positions_obs.shape[0]<=genome_length)
             ## check if not more chromosomes are stated in observed positions as reference has chromosomes
             with self.subTest(msg=f'variants2positions_{sampleID}_{reference}__expected_chromosome_number'):
-                self.assertTrue(np.unique(positions_obs[:,0]).shape[0] <= len(chr_dict.keys()))
+                self.assertTrue(np.unique(positions_obs[:,0]).shape[0] <= len(scafnames))
             ## check for each chromosome that position does not exceed chromosome length
-            for chr_id, chr_name in enumerate(chr_dict.keys()):
+            for chr_id, chr_name in enumerate(scafnames):
                 positions_on_chr_idx = (positions_obs[:, 0] == chr_id+1)
                 if len(positions_obs[ positions_on_chr_idx, 1 ]) == 0:
                     continue
                 positions_on_chromosome = positions_obs[ positions_on_chr_idx, 1 ]
+                if chr_id+1 < len(scafnames):
+                    chr_length = chr_starts[chr_id+1] - chr_starts[chr_id]
+                else:
+                    chr_length = genome_length - chr_starts[chr_id]
                 with self.subTest(msg=f'variants2positions_{sampleID}_{reference}_{chr_name}__pos_not_exceeding_chromosome_boundaries'):
-                    self.assertTrue(max(positions_on_chromosome) <= chr_dict[chr_name][0])
+                    self.assertTrue(max(positions_on_chromosome) <= chr_length)
             
             ## check if outgroup samples have empty position variable
             if outgroup == 1: 
@@ -163,10 +160,11 @@ class TestMyFunction(unittest.TestCase):
             ## check if number of positions and idx in matrix matches expectation
             for location, variant in var_pos_raw_dicts[sampleID].items():
                 if variant == 1:
-                    contig_var, pos = location.split('_')
-                    var_pos_genome = chr_dict[contig_var][1] + int(pos)
+                    chr_var, pos = location.split('_')
+                    chr_id = np.where(chr_var == scafnames)[0][0]+1 ## contigs are 1-based!
+                    position_exp = np.array([[chr_id, int(pos)]])
                     with self.subTest(msg=f'{test_case}_{sampleID}_{reference}_{location}__expected_variable_pos'):
-                        self.assertTrue(positions_obs[:,0] < 0)
+                        self.assertTrue((position_exp == positions_obs).all(axis = 1).any())
 
         
         

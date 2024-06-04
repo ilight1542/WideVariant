@@ -98,7 +98,7 @@ def process_quals(path_to_list_of_quals_files, numSamples, p):
         print('Filename: ' + paths_to_quals_files[i])
         infile=np.load(paths_to_quals_files[i]) # from previous step, should include variable called p
         quals=infile['quals'].flatten()
-        Quals[:, i] = quals[p - 1]  # -1 convert position to index
+        Quals[:, i] = quals[p] 
     return Quals
 
 def process_counts(path_to_list_of_diversity_files, numSamples, p, counts_mat_size=8):
@@ -123,9 +123,9 @@ def process_counts(path_to_list_of_diversity_files, numSamples, p, counts_mat_si
         print('Filename: ' + paths_to_diversity_files[i])
         infile=np.load(paths_to_diversity_files[i]) 
         data=infile['data']
-        counts[:, :, i] = data[p - 1, 0:counts_mat_size].T  # -1 convert position to index
-        indel_counter[:, :, i] = data[p - 1, 38:40].T  # Num reads supporting indels and reads supporting deletions
-        # -1 convert position to index
+        counts[:, :, i] = data[p, 0:counts_mat_size].T  
+        indel_counter[:, :, i] = data[p, 38:40].T  # Num reads supporting indels and reads supporting deletions
+
         np.sum(data[:, 0:counts_mat_size], axis=1, out=all_coverage_per_bp[:, i])
 
     return counts, indel_counter, all_coverage_per_bp

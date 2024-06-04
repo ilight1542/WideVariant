@@ -315,12 +315,12 @@ def genomestats(REFGENOMEFOLDER):
 def chrpos2index(chrpos,chr_starts,genomelength=np.nan):
     '''
     Args:
-        chrpos (arr): px2 array of chromsome idx and position on chromosome.
+        chrpos (arr): 2D array of chromsome ID (1-based) and position on chromosome (0-based).
         chr_starts (arr): Vector of chromosome starts (begins at 0).
         genomelength (float, optional): Total genome length. If specified, checks if any positions exceed this length. Default is np.nan.
-        
+
     Returns:
-        p (arr): Vector of position indexes.
+        p (arr): Vector of position indexes. (0-based)
 
     '''
     if (np.size(chrpos,1) != 2) & (np.size(chrpos,0) == 2):
@@ -348,7 +348,7 @@ def p2chrpos(p, ChrStarts):
         ChrStarts (array (1 x scaffolds) ): start indices (0-based) of scaffolds in reference genome.
 
     Returns:
-        chrpos (array): DESCRIPTION.
+        chrpos (array): 2D array of chromsome ID (1-based) and position on chromosome (0-based).
 
     '''
         

@@ -150,17 +150,6 @@ echo "Start generating test data..."
 
 mkdir -p ${log_file_path}
 
-# 12. Variants on every first and last position of all contigs
-experiment_name='contig_edges_vars'
-variant_file='data_generation/variants_raw_contig_edges.csv'
-coverage_file='data_generation/coverage.csv'
-outgroup_ids='data_generation/outgroup_ids.csv'
-set_contigs_to_be_covered='-e'
-
-run_data_generation_with_logging ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length} ${log_file_path} ${timestamp} ${set_contigs_to_be_covered}
-
-
-
 ####
 # 1. Default: ground_truth (no outgroup sample) 
 experiment_name='ground_truth'
@@ -266,9 +255,9 @@ experiment_name='contig_edges_vars'
 variant_file='data_generation/variants_raw_contig_edges.csv'
 coverage_file='data_generation/coverage.csv'
 outgroup_ids='data_generation/outgroup_ids.csv'
+set_contigs_to_be_covered='-e'
 
-run_data_generation_with_logging ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length} ${log_file_path} ${timestamp}
-
+run_data_generation_with_logging ${experiment_name} ${variant_file} ${coverage_file} ${outgroup_ids} ${genome} ${read_length} ${log_file_path} ${timestamp} ${set_contigs_to_be_covered}
 
 
 echo "Data generation done"

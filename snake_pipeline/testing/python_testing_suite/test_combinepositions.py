@@ -131,21 +131,21 @@ class TestMyFunction(unittest.TestCase):
                     self.assertTrue('Positions' in npz_file_attribute)
             combined_pos = generate_positions_snakemake(positions_files_list, path_to_ref)
             ## get length of genome
-            [chr_starts,genome_length,scafnames] = ghf.genomestats(path_to_ref)
+            [chrstarts,_,scafnames] = ghf.genomestats(path_to_ref)
             ## get set variable variants 
             for location, is_variable_pos in var_pos_ingroup_raw_dicts.items():
-                contig_var, pos = location.split('_')
-                contig_id = np.where(scafnames == contig_var)[0][0] + 1
-                var_pos_genome = ghf.chrpos2index(np.array( ([contig_id, int(pos)], ) ), chr_starts)[0] ## get variant position within genome
+                chr_var, pos = location.split('_')
+                chr_id = np.where(chr_var == scafnames)[0][0]+1 ## contigs are 1-based!
+                position_exp = ghf.chrpos2index(np.array([[chr_id, int(pos)]]), chrstarts)[0]
                 if is_variable_pos:
                     ## check if variable position in ingroup samples present in combined position
                     with self.subTest(msg=f'generate_positions_snakemake_{test_case}_{location}__expected_variable_pos_ingroup'):
-                        self.assertTrue(var_pos_genome in combined_pos)
+                        self.assertTrue(position_exp in combined_pos)
                 else:
                     ## check if invariable position in ingroup samples not in combined position
                     with self.subTest(msg=f'generate_positions_snakemake_{test_case}_{location}__unexpected_invariable_pos_ingroup'):
-                        self.assertTrue(var_pos_genome not in combined_pos)
-        print(f'generate_positions_snakemake checked on {test_case}\n\n\n')        
+                        self.assertTrue(position_exp not in combined_pos)
+        print(f'generate_positions_snakemake checked on {test_case}\n\n\n')
 
     def execute_combine_positions_tests(self,arguments_for_testing, var_pos_ingroup_raw_dicts, test_case):
         
@@ -165,22 +165,21 @@ class TestMyFunction(unittest.TestCase):
             
             ## load positions from npz file
             combined_positions = combined_positions_outfile['p']
-            
             ## get starts of genome
-            [chr_starts,_,scafnames] = ghf.genomestats(path_to_ref)
+            [chrstarts,_,scafnames] = ghf.genomestats(path_to_ref)
             ## get set variable variants 
             for location, is_variable_pos in var_pos_ingroup_raw_dicts.items():
-                contig_var, pos = location.split('_')
-                contig_id = np.where(scafnames == contig_var)[0][0] + 1
-                var_pos_genome = ghf.chrpos2index(np.array( ([contig_id, int(pos)], ) ), chr_starts)[0] ## get variant position within genome
+                chr_var, pos = location.split('_')
+                chr_id = np.where(chr_var == scafnames)[0][0]+1 ## contigs are 1-based!
+                position_exp = ghf.chrpos2index(np.array([[chr_id, int(pos)]]), chrstarts)[0]
                 if is_variable_pos:
                     ## check if variable position in ingroup samples present in combined position
                     with self.subTest(msg=f'combine_positions_{test_case}_{location}__expected_variable_pos_ingroup'):
-                        self.assertTrue(var_pos_genome in combined_positions)
+                        self.assertTrue(position_exp in combined_positions)
                 else:
                     ## check if invariable position in ingroup samples not in combined position
                     with self.subTest(msg=f'combine_positions_{test_case}_{location}__unexpected_invariable_pos_ingroup'):
-                        self.assertTrue(var_pos_genome not in combined_positions)
+                        self.assertTrue(position_exp not in combined_positions)
         print(f'combine_positions checked on {test_case}\n\n\n')       
 
     def test_outputs(self):
