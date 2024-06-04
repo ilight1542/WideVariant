@@ -19,13 +19,13 @@ class TestMyFunction(unittest.TestCase):
         self.assertEqual(p2dh.generate_nts_ascii()[4:], [ord_conversion[x] for x in ['a','t','c','g']])
     
     def test_clean_calls_from_start_and_end(self):
-        no_start_or_end=np.fromstring('....,,,,', dtype=np.int8)
+        no_start_or_end=np.frombuffer('....,,,,'.encode('utf-8'), dtype=np.int8).copy()
         start_fwd_rev_entries = '^X.^X,'
         end_fwd_rev_entries = '$.$,'
-        all_start=np.fromstring(start_fwd_rev_entries*4, dtype=np.int8)
-        all_end=np.fromstring(end_fwd_rev_entries*4, dtype=np.int8)
-        mixed_start_end=np.fromstring(f'{start_fwd_rev_entries}{end_fwd_rev_entries}'*2, dtype=np.int8)
-        mixed_start_end_mid=np.fromstring(f'{start_fwd_rev_entries}{end_fwd_rev_entries}..,,'*2, dtype=np.int8)
+        all_start=np.frombuffer((start_fwd_rev_entries*4).encode('utf-8'), dtype=np.int8).copy()
+        all_end=np.frombuffer((end_fwd_rev_entries*4).encode('utf-8'), dtype=np.int8).copy()
+        mixed_start_end=np.frombuffer((f'{start_fwd_rev_entries}{end_fwd_rev_entries}'*2).encode('utf-8'), dtype=np.int8).copy()
+        mixed_start_end_mid=np.frombuffer((f'{start_fwd_rev_entries}{end_fwd_rev_entries}..,,'*2).encode('utf-8'), dtype=np.int8).copy()
 
         all_start_exp_arr = np.tile(np.array([-1, -1, 46, -1, -1, 44], dtype=np.int8), 4)
         all_end_exp_arr = np.tile(np.array([-1, 46, -1, 44], dtype=np.int8), 4)
@@ -45,9 +45,9 @@ class TestMyFunction(unittest.TestCase):
         self.assertEqual( p2dh.clean_calls_from_start_and_end(mixed_start_end_mid.copy())[1], 8) ## all are either end or start reads
 
     def test_get_indel_size(self):
-        calls_1bp_indel=np.fromstring('.+1A',dtype=np.int8)
-        calls_2bp_indel=np.fromstring('.+2AA',dtype=np.int8)
-        calls_10bp_indel=np.fromstring('.+10AAAAAAAAAA',dtype=np.int8)
+        calls_1bp_indel=np.frombuffer('.+1A'.encode('utf-8'),dtype=np.int8).copy()
+        calls_2bp_indel=np.frombuffer('.+2AA'.encode('utf-8'),dtype=np.int8).copy()
+        calls_10bp_indel=np.frombuffer('.+10AAAAAAAAAA'.encode('utf-8'),dtype=np.int8).copy()
        
         # TEST CASE: single bp insertion 
         indelsize,indeld=p2dh.get_indel_size(calls_1bp_indel,1)
@@ -75,11 +75,11 @@ class TestMyFunction(unittest.TestCase):
         
         ## different types of indel entries for calls
         # all with 8 read support
-        no_start_or_end=np.fromstring('....,,,,', dtype=np.int8)
-        all_insertions=np.fromstring('.+1A.+1A.+1A.+1A.+1A.+1A.+1A.+1A', dtype=np.int8)
-        two_base_insertion=np.fromstring('.+2AA.+2AA.+2AA.+2AA.+2AA.+2AA.+2AA.+2AA', dtype=np.int8)
-        all_deletions=np.fromstring('.-1A.-1A.-1A.-1A.-1A.-1A.-1A.-1A', dtype=np.int8)
-        two_base_deletions=np.fromstring('.-2AA.-2AA.-2AA.-2AA.-2AA.-2AA.-2AA.-2AA', dtype=np.int8)
+        no_start_or_end=np.frombuffer('....,,,,'.encode('utf-8'), dtype=np.int8).copy()
+        all_insertions=np.frombuffer('.+1A.+1A.+1A.+1A.+1A.+1A.+1A.+1A'.encode('utf-8'), dtype=np.int8).copy()
+        two_base_insertion=np.frombuffer('.+2AA.+2AA.+2AA.+2AA.+2AA.+2AA.+2AA.+2AA'.encode('utf-8'), dtype=np.int8).copy()
+        all_deletions=np.frombuffer('.-1A.-1A.-1A.-1A.-1A.-1A.-1A.-1A'.encode('utf-8'), dtype=np.int8).copy()
+        two_base_deletions=np.frombuffer('.-2AA.-2AA.-2AA.-2AA.-2AA.-2AA.-2AA.-2AA'.encode('utf-8'), dtype=np.int8).copy()
 
         # TEST CASE: no indel case
         test_data=np.zeros((10,40),dtype=int) # 10bp genome length
@@ -176,9 +176,9 @@ class TestMyFunction(unittest.TestCase):
 
     def test_parse_calls_into_simplecalls(self):
         #TODO check if it works, possibly add more edge cases
-        all_ref=np.fromstring('....,,,,', dtype=np.int8)
-        no_ref=np.fromstring('TTTTtttt', dtype=np.int8)
-        all_ref_removed_bases=np.array(list(np.fromstring('....,,,,', dtype=np.int8))+[-1,-1,-1,-1])
+        all_ref=np.frombuffer('....,,,,'.encode('utf-8'), dtype=np.int8).copy()
+        no_ref=np.frombuffer('TTTTtttt'.encode('utf-8'), dtype=np.int8).copy()
+        all_ref_removed_bases=np.array(list( np.frombuffer('....,,,,'.encode('utf-8'), dtype=np.int8).copy() )+[-1,-1,-1,-1])
         ref_idx = [0, 1, 2, 3]
         nts_ascii=p2dh.generate_nts_ascii()
         pileup_line = 'pseudo-pileup line'

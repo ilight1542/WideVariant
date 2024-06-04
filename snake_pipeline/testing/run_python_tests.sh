@@ -22,7 +22,7 @@ run_test() {
     ####
     ## Error reporting
     ## echo last three lines of logfile (time and if test was ok!)
-    unittest_report=$(grep -A2 -E "Ran .* test in .*s" "${path_to_log}/${timestamp}_${test_script_basename}.log")
+    unittest_report=$(grep -A2 -E "^Ran .* test[s]? in .*s" "${path_to_log}/${timestamp}_${test_script_basename}.log")
     echo "$unittest_report"
 
     ## Check if error occured which was not spotted by unittest
