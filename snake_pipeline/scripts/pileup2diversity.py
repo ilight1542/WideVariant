@@ -184,8 +184,8 @@ def parse_calls_into_simplecalls(calls,ref_idx,nts_ascii,line,line_id):
     #replace reference matches (.,) with their actual calls
 
     if ref_idx != None: # when reference allele is not ambiguous
-        calls[np.where(calls==46)[0]]=nts_ascii[ref_idx] #'.'
-        calls[np.where(calls==44)[0]]=nts_ascii[ref_idx] #','
+        calls[np.where(calls==46)[0]]=nts_ascii[ref_idx] #'.' // fwd read 
+        calls[np.where(calls==44)[0]]=nts_ascii[ref_idx+4] #',' // rev read
     else: # added 2022.09.23 by Arolyn: for cases where reference allele is ambiguous, confirm there are no ,'s or .'s
         if np.any(calls==46) | np.any(calls==44):
             raise ValueError(f'Error! Calls at this position allegedly match reference allele even though reference allele was ambiguous. Line {str(line_id+1)} from mpileup: {line}')
