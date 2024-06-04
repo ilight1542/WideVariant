@@ -190,8 +190,8 @@ def modify_fastq(fastq_file, random_read_id_contig_start, random_read_id_contig_
                     record.seq = Seq.reverse_complement(contig_seq[-len_read:])
             mod_records.append(record)
     ## overwrite old fastq file with adjusted reads
-    with open(fastq_file, 'w') as fastaout: 
-        SeqIO.write(mod_records, fastaout, "fastq")
+    with open(fastq_file, 'w') as fastqout: 
+        SeqIO.write(mod_records, fastqout, "fastq")
 
 def generate_reads_on_contig_edges(R1_fastq_file, R2_fastq_file, fasta_file, reads_on_contig, num_reads_on_contig_edge):
     if num_reads_on_contig_edge < 2: ## enforce at least 2, if function is called
@@ -200,8 +200,6 @@ def generate_reads_on_contig_edges(R1_fastq_file, R2_fastq_file, fasta_file, rea
     ## get fasta sequence 
     contig_seq = get_contig_edge_sequence(fasta_file)
     ## modify the randomly selected reads to sit on contig edges
-    print(random_read_id_contig_start)
-    print(random_read_id_contig_end)
     modify_fastq(R1_fastq_file, random_read_id_contig_start, random_read_id_contig_end, contig_seq, rev_complement = True)
     modify_fastq(R2_fastq_file, random_read_id_contig_start, random_read_id_contig_end, contig_seq)
     #print(f'{int(num_reads_on_contig_edge)} reads have been modified to sit at contig edges')
@@ -217,7 +215,7 @@ def main(input_experiment_name,input_variants_csv,input_coverage_csv,input_basec
         num_reads=num_reads_for_sample_dict[sample_contig_to_output]
         fasta_file = f'tmp/{sample_contig_to_output}.fasta'
         fastq_r1 = f'tmp/{sample_contig_to_output}_R1.fq'
-        fastq_r2 = f'tmp/{sample_contig_to_output}_R1.fq'
+        fastq_r2 = f'tmp/{sample_contig_to_output}_R2.fq'
         generate_reads_from_fasta(fasta_file, fastq_r1, fastq_r2, input_length, num_reads)
         if cover_contig_edges:
             coverage=coverage_for_sample_dict[sample_contig_to_output]

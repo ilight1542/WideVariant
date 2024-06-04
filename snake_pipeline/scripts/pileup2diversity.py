@@ -312,11 +312,11 @@ def parse_entry_in_mpileupup(line,line_id,data,chr_starts,genome_length,scaf_nam
         ref_idx=None # for cases where reference base is ambiguous
     
     #calls info
-    calls=np.frombuffer(lineinfo[4].encode('utf-8'), dtype=np.int8) #to ASCII
+    calls=np.frombuffer(lineinfo[4].encode('utf-8'), dtype=np.int8).copy() #to ASCII // copy to make line permutable again 
     
     #qual info
-    bq=np.frombuffer(lineinfo[5].encode('utf-8'), dtype=np.int8) # base quality, BAQ corrected, ASCII
-    mq=np.frombuffer(lineinfo[6].encode('utf-8'), dtype=np.int8) # mapping quality, ASCII
+    bq=np.frombuffer(lineinfo[5].encode('utf-8'), dtype=np.int8).copy() # base quality, BAQ corrected, ASCII // copy to make line permutable again 
+    mq=np.frombuffer(lineinfo[6].encode('utf-8'), dtype=np.int8).copy() # mapping quality, ASCII // copy to make line permutable again 
     td=np.array([num for num in lineinfo[7].split(',') if num.isdigit()], dtype = np.int8)
     
     # find start and end reads supporting call, mask for downstream processing
