@@ -158,7 +158,8 @@ This was a dry-run (flag -n). The order of jobs does not reflect the order of ex
 
 Ensure you are in your snakemake_pipeline directory.
 1) Start an interactive session if running in screen!
-2) `./WideVariant` 
+2) conda activate snakemake
+3) `./WideVariant` 
 
 ### Track progress
 
