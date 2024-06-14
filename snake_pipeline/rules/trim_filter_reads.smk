@@ -1,5 +1,7 @@
 # Prepare filtered, clean FASTQ samples
 rule cutadapt:
+    input:
+        samplecsv = "results/data/{sampleID}/sample_info.csv",
     params:
         fq1 = "results/data/{sampleID}/R1.fq.gz",
         fq2 = "results/data/{sampleID}/R2.fq.gz",

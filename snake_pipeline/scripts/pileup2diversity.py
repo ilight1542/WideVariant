@@ -302,7 +302,7 @@ def parse_entry_in_mpileupup(line,line_id,data,chr_starts,genome_length,scaf_nam
     chr_idx = np.where(chromo == scaf_names)[0][0] +1 ## +1 as chrpos2index uses 1-indexed chromosomes
     position_on_chr = int(lineinfo[1]) #1-indexed
     chr_pos_array = np.array( ([chr_idx, position_on_chr], ) ) ## 2D-np array required!
-    position = ghf.chrpos2index(chr_pos_array, chr_starts)
+    position = int(ghf.chrpos2index(chr_pos_array, chr_starts))
 
     #ref allele
     ref_str = lineinfo[2]; # reference allele from pileup (usually A T C or G but sometimes a different symbol if nucleotide is ambiguous)

@@ -10,4 +10,4 @@ rule bowtie2qc:
     conda:
         "../envs/bowtie2qc.yaml",
     shell:
-        " python3 {SCRIPTS_DIRECTORY}/bowtie2qc.py -s {spls} -r {wildcards.reference} -m {params.mappingstats} -o {params.outfile_noextension} ;"
+        " python3 {SCRIPTS_DIRECTORY}/bowtie2qc.py -s {SAMPLECSV_FILE} -r {wildcards.reference} -m {params.mappingstats} -o {params.outfile_noextension} ;"
