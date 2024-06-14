@@ -100,8 +100,7 @@ def split_samplesCSV(samplescsv_dict, outdir):
         sample_filenames=list(compress(samplescsv_dict['FileName'],sample_info_bool))
         sample_references=list(compress(samplescsv_dict['Reference'],sample_info_bool))
         sample_groups=list(compress(samplescsv_dict['Group'],sample_info_bool))
-        sample_outgroups=list(compress(samplescsv_dict['Outgroup'],sample_info_bool))
-        
+        sample_outgroups=[str(x) for x in compress(samplescsv_dict['Outgroup'],sample_info_bool)]
         sample_info_csv=list(zip(sample_paths,[sample]*sum(sample_info_bool),sample_filenames,sample_references,sample_groups,sample_outgroups))
         
         path_to_sample_info_csv = f'{outdir}{sample}/sample_info.csv'
