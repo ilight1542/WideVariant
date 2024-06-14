@@ -2,9 +2,9 @@
 
 ''' GLOBAL '''
 import sys
+from itertools import compress
 
 # Global variables: In theory do not need to be changed
-CURRENT_DIRECTORY = os.getcwd()
 REF_GENOME_DIRECTORY = config["ref_genome_directory"]
 SCRIPTS_DIRECTORY = config["myscripts_directory"]
 
@@ -17,12 +17,11 @@ GENERATE_RAW_COVERAGE_MATRIX = config["generate_raw_coverage_matrix"]
 KRAKEN_BRACKEN_DB = config["krakenbracken_db"]
 KRAKEN_BRACKEN_DB_RL = config["krakenbracken_db_readlength"]
 
+SAMPLECSV_FILE = config["sample_table"]
+
+## Set path to load gus helper functions
 sys.path.insert(0, SCRIPTS_DIRECTORY)
-spls = config["sample_table"]
-
 from gus_helper_functions import *
-from itertools import compress
-
 
 ''' PRE-SNAKEMAKE '''
 
@@ -30,17 +29,20 @@ from itertools import compress
 # Format: Path,Sample,FileName,Reference,Group,Outgroup
 # Required fields for each mode:
     # all: Path,Sample,FileName,Reference,Group,Outgroup
-    # mapping: Path,Sample,FileName,Reference,Outgroup
-    # case: Path,Sample,Reference,Group,Outgroup
+    # gen_cmt: Path,Sample,FileName,Reference,Group,Outgroup
     # assembly: Path,Sample,FileName,Reference
     # bracken: Path,Sample,FileName,Reference
-#[PATH_ls, SAMPLE_ls, FILENAME_ls, REF_Genome_ls, GROUP_ls, OUTGROUP_ls] = read_samples_CSV(spls)
-samplescsv_dict = read_samples_CSV(spls)
+samplescsv_dict = read_samples_CSV(SAMPLECSV_FILE)
 # Write sample_info.csv for each sample
 split_samplesCSV(samplescsv_dict, 'results/data/')
+## Generate data links
+for path,sample,filename in zip(samplescsv_dict['Path'],samplescsv_dict['Sample'],samplescsv_dict['FileName']):
+    if isinstance(path, list) and len(path) > 1:
+        cp_append_files(path,sample,filename,'results/data')
+    else:
+        makelink(path,sample,filename,'results/data')
 
 UNIQ_GROUP_ls = set(samplescsv_dict['Group'])
-
 
 
 ''' FUNCTIONS '''
@@ -76,25 +78,16 @@ def get_quals(wildcards):
     return quals_mat 
 
 def get_ref_genome(wildcards):
-    sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.cladeID)
+    _,reference_clade,_ = get_clade_wildcards(wildcards.cladeID)
     ref = expand(REF_GENOME_DIRECTORY+"/{reference}/",reference=set(reference_clade))
     return ref
 
-def get_bt2qc_input(wildcards):
-    sampleID_clade,reference_clade,outgroup_clade = get_clade_wildcards(wildcards.reference)
-    bt2_logs = expand("results/1-mapping/bowtie2/bowtie2_{sampleID}_ref_{reference}.txt",zip,sampleID=sampleID_clade, reference=reference_clade )
-    return bt2_logs
 
-
+''' GENERATE EXPECTED FILE LIST '''
 # Define a list of output files: snakemake will deterimine which pipeline steps need to be executed in order to generate the output files requested
 input_all=[]
 if ("gen_cmt" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
     raw_input_paths=expand("results/preprocessing/{sampleID}/R1_trim.fq.gz",sampleID=samplescsv_dict['Sample'])
-    for path,sample,filename in zip(samplescsv_dict['Path'],samplescsv_dict['Sample'],samplescsv_dict['FileName']):
-        if isinstance(path, list) and len(path) > 1:
-            cp_append_files(path,sample,filename,'results/data')
-        else:
-            makelink(path,sample,filename,'results/data')
     input_all.append(expand("results/1-mapping/quals/{sampleID}_ref_{references}_outgroup{outgroup}.quals.npz",zip, sampleID=samplescsv_dict['Sample'], references=samplescsv_dict['Reference'],outgroup=samplescsv_dict['Outgroup']))
     input_all.append(expand("results/1-mapping/diversity/{sampleID}_ref_{references}_outgroup{outgroup}.diversity.npz",zip, sampleID=samplescsv_dict['Sample'], references=samplescsv_dict['Reference'],outgroup=samplescsv_dict['Outgroup']))
     input_all.append(expand("results/1-mapping/bowtie2_qc/alignment_stats_ref_{references}.csv",references=set(samplescsv_dict['Reference'])))
@@ -110,14 +103,17 @@ if ("assembly" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS)
 
 
 ''' INCLUDE RULES '''
-# gen_cmt  ####################################################################################################
+# GENERAL RULS  ####################################################################################################
+# trim and filter reads
+include: 'rules/trim_filter_reads.smk'
+
+
+# GENERATE CMT  ####################################################################################################
 # Processes raw reads, then aligns to a reference genome
 # Takes alignments of samples to reference genome, identifies candidate SNV positions, and summarizes stats at 
 # candidate SNV positions into a candidate mutation table
 # Option to collect information about read coverage over the whole genome and generate a coverage matrix
 if ("gen_cmt" in PIPELINE_SPECIFICATIONS) or ("all" in PIPELINE_SPECIFICATIONS):
-    # trim and filter reads
-    include: 'rules/trim_filter_reads.smk'
     # Index reference genome for bowtie2
     include: 'rules/index_ref.smk'
     # Align processed reads to reference genome with bowtie2

@@ -92,8 +92,6 @@ def split_samplesCSV(samplescsv_dict, outdir):
         outdir (str): The directory where the sample-specific subdirectories and CSV files will be saved.
     """
     
-    '''Take info from samples.csv, concat by sample name & save each line as sample_info.csv in data/{sampleID}'''
-    
     #Loop through unique samples
     for sample in set(samplescsv_dict['Sample']):
         # Concat info for this sample
@@ -113,16 +111,15 @@ def split_samplesCSV(samplescsv_dict, outdir):
         # check to see if this mini csv with sample info already exists
         if os.path.isfile(path_to_sample_info_csv):
             # if so, read file
-            old_file = open(path_to_sample_info_csv,'r')
-            old_info_read = csv.reader(old_file)
-            old_info = list(map(tuple, old_info_read))
-            old_file.close()
+            with open(path_to_sample_info_csv,'r') as old_file:
+                old_info_read = csv.reader(old_file)
+                old_info = list(map(tuple, old_info_read))
             
             # check to see if the existing file is consistent with samples.csv
-            if not(old_info == sample_info_csv):
+            if not (old_info == sample_info_csv):
                 # if not, remove the old file and save sample info in a new file
-                # print('Information file must be updated.')
-                os.remove(path_to_sample_info_csv)
+                print('Information file must be updated.')
+                subprocess.run(f'rm -rf {outdir}{sample}/ ; mkdir -p {outdir}{sample}', shell = True)
                 with open(path_to_sample_info_csv, "w") as f:
                     writer = csv.writer(f)
                     for row in sample_info_csv:
@@ -169,11 +166,27 @@ def makelink(path,sample,filename,output_dir):
         fwd_file = os.getcwd() + '/' + fwd_file
     if not rev_file.startswith('/') and not rev_file.startswith('~/'):
         rev_file = os.getcwd() + '/' + rev_file
-    print(f"ln -s -T {fwd_file} {output_dir}/{sample}/R1.fq.gz")   
-    print(f"ln -s -T {rev_file} {output_dir}/{sample}/R2.fq.gz")
-    subprocess.run(f"ln -s -T {fwd_file} {output_dir}/{sample}/R1.fq.gz", shell=True)    
-    subprocess.run(f"ln -s -T {rev_file} {output_dir}/{sample}/R2.fq.gz", shell=True)  
-
+    create_fwd_link_command = f"ln -s -T {fwd_file} {output_dir}/{sample}/R1.fq.gz"
+    create_rev_link_command = f"ln -s -T {rev_file} {output_dir}/{sample}/R2.fq.gz"
+    print(create_fwd_link_command)
+    print(create_rev_link_command)
+    subprocess.run(create_fwd_link_command, shell=True)    
+    subprocess.run(create_rev_link_command, shell=True)  
+  
+  
+def cp_append_files(paths,sample,filename,output_dir):
+    #When sample is run on multiple lanes with same barcode
+    fwd_list=''
+    rev_list=''
+    for path in paths:
+        #Provider name can be either a COMPLETE directory name or a file name in batch(called path in this fx)
+        [fwd_file, rev_file]=findfastqfile(path,sample, filename)
+        fwd_list=fwd_list+ ' ' + fwd_file
+        rev_list=rev_list+ ' ' + rev_file
+    print(f'Files will be merged to one fastq file: {rev_list}')
+    print(f'Files will be merged to one fastq file: {fwd_list}')
+    subprocess.run(f"zcat {fwd_list} | gzip > {output_dir}/{sample}/R1.fq.gz", shell=True)
+    subprocess.run(f"zcat {rev_list} | gzip > {output_dir}/{sample}/R2.fq.gz", shell=True)
 
 ########################################
 ## Fastq file functions
@@ -246,21 +259,6 @@ def findfastqfile(dr,ID,filename):
         subprocess.run("gzip " + rev, shell=True)
         rev=rev+'.gz'
     return [fwd, rev]
-
-  
-def cp_append_files(paths,sample,filename,output_dir):
-    #When sample is run on multiple lanes with same barcode
-    fwd_list=''
-    rev_list=''
-    for path in paths:
-        #Provider name can be either a COMPLETE directory name or a file name in batch(called path in this fx)
-        [fwd_file, rev_file]=findfastqfile(path,sample, filename)
-        fwd_list=fwd_list+ ' ' + fwd_file
-        rev_list=rev_list+ ' ' + rev_file
-        print(rev_list)
-        print(fwd_list)
-    subprocess.run(f"zcat {fwd_list} | gzip > {output_dir}/{sample}/R1.fq.gz", shell=True)
-    subprocess.run(f"zcat {rev_list} | gzip > {output_dir}/{sample}/R2.fq.gz", shell=True)
 
 
 ########################################

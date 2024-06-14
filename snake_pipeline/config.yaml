@@ -23,7 +23,6 @@ reason: True
 # unlock: True
 
 cluster:
-  mkdir -p ./logs/ &&
   sbatch
     --ntasks={resources.ntasks}
     --cpus-per-task={resources.cpus_per_task}
