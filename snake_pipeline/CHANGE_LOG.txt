@@ -54,7 +54,7 @@ Made sam2bam_cleanup rule higher priority than other rules (using snakemake's pr
 
 Fixed bug in pileup2diversity.py so that it correctly handles cases where the reference genome has lowercase bases. Also modified the script to handle ambiguous bases in the reference genome.
 
-Added a separate rule samtools_idx for samtools indexing of the reference genome. This was done to avoid re-indexing the reference genome, which wastes resources and likely causes a bug where pileup files have N's for all reference genome alleles.
+Added a separate rule refGenome_fasta_idx for samtools indexing of the reference genome. This was done to avoid re-indexing the reference genome, which wastes resources and likely causes a bug where pileup files have N's for all reference genome alleles.
 
 Implemented shadow directories for sam2bam and mpileup2vcf rules. This avoids leaving behind temp files and truncated files when a job is aborted or a node stalls.
 

@@ -68,6 +68,10 @@ set-resources:
    - sam2bam:mem=64G
    - sam2bam:cpus_per_task=1
    - sam2bam:time="12:00:00"
+   # sam2bam_cleanup
+   - sam2bam_cleanup:mem=4G
+   - sam2bam_cleanup:cpus_per_task=1
+   - sam2bam_cleanup:time="00:30:00"
    # mpileup2vcf
    - mpileup2vcf:mem=60G
    - mpileup2vcf:cpus_per_task=1

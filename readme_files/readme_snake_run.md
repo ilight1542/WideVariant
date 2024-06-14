@@ -142,10 +142,10 @@ combine_positions_prep               2              1              1
 cutadapt                             8              1              1
 mpileup2vcf                          8              1              1
 pileup2diversity_matrix              8              1              1
-refGenome_index                      2              1              1
+refGenome_bowtie_index               2              1              1
 sam2bam                              8              1              1
 sam2bam_cleanup                      8              1              1
-samtools_idx                         2              1              1
+refGenome_fasta_idx                  2              1              1
 sickle2050                           8              1              1
 variants2positions                   8              1              1
 vcf2quals                            8              1              1

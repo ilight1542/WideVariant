@@ -3,7 +3,7 @@ rule mpileup2vcf:
     input:
         bamA = rules.sam2bam.output.bamA,
         bamClean = rules.sam2bam_cleanup.output,
-        fasta_idx = ancient(rules.samtools_idx.output.fasta_idx),
+        fasta_idx = ancient(rules.refGenome_fasta_idx.output.fasta_idx),
     params:
         ref = REF_GENOME_DIRECTORY+"/{reference}/genome.fasta",
         vcf_raw = "results/1-mapping/vcf/{sampleID}_ref_{reference}_aligned.sorted.strain.gz",

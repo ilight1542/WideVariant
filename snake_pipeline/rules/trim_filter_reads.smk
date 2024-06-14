@@ -1,7 +1,8 @@
 # Prepare filtered, clean FASTQ samples
 rule cutadapt:
-    input:
-        samplecsv = "results/data/{sampleID}/sample_info.csv",
+    ## NOTE: for proper identification this must be turned on, but currently causes issues with service output // pipe links between rules and inappropriate resource usages
+    # input:
+    #     samplecsv = "results/data/{sampleID}/sample_info.csv",
     params:
         fq1 = "results/data/{sampleID}/R1.fq.gz",
         fq2 = "results/data/{sampleID}/R2.fq.gz",
