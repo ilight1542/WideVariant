@@ -130,6 +130,7 @@ from Bio.Seq import Seq
 from Bio import Phylo
 from Bio import AlignIO
 from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor #NJ tree
+import networkx
 
 
 # Plotting
@@ -2249,19 +2250,23 @@ def annotate_mutations( my_rg , p_gp , ancnti_gp , calls_gp , my_cmt_gp , fixedm
 
 
 
-#########################
-# TREEMAKING: FUNCTIONS #
-#########################
+###############################
+# ALL-TREE-RELATED: FUNCTIONS #
+###############################
 
 
-def generate_tree(calls_for_tree,treeSampleNamesLong,sampleNamesDnapars,refgenome,dir_output,filetag,buildTree=False,writeDnaparsAlignment=False):
+## 
+## Treemaking
+##
+
+def generate_tree(calls_for_tree,treeSampleNamesLong,sampleNamesDnapars,refgenome,dir_output,filetag,buildTree=False,writeDnaparsAlignment=False,additional_raxml_parameters='--threads 2'):
     '''
     Creates a parsimony tree (calling dnapars) with provided basecalls at SNV
     positions. 
     '''       
     
     # Write alignment file (as fasta)
-    # calc NJ or Parsimonous tree or None
+    # calc NJ, Parsimonous, or ML tree or None
     # writeDnaparsAlignment==True for writing dnapars input for usage on cluster
     ts = time.time()
     timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H-%M-%S')
@@ -2359,10 +2364,30 @@ def generate_tree(calls_for_tree,treeSampleNamesLong,sampleNamesDnapars,refgenom
         #constructor = ParsimonyTreeConstructor(searcher, treeNJ)
         #treePS = constructor.build_tree(aln)
         #Phylo.write(treePS,timestamp+"_PS.tree","nexus")
+    
+    elif buildTree == 'ML':
+        # raxml v1.2.2 to create maximum likelihood tree
+        # raxml-ng run. # set up: conda install -c bioconda raxml-ng 
+        # raxml_parameters='': Pass additional parameters to the raxml command.
+        subprocess.run(["raxml-ng --msa " + timestamp+".fa" + " --model GTR+G --prefix " + filetag+"_ML " + additional_raxml_parameters],shell=True)
+        
     return timestamp
 
+def generate_ancestral_state_reconstruction(msa,best_uncollapsed_tree,prefix,model='GRT+G'):
+    """
+    Creates ancestral reconstruction using RAxML-ng --ancestral, which uses the 'classical' empirical Bayesian method
 
-# Functions that support treemaking
+    To be run ideally with raxml-ng produced maximum likelihood tree (*.bestTree) with the same model (defaul GTR+G)
+    
+    Documentation can be found here: https://github.com/amkozlov/raxml-ng/wiki/Ancestral-state-reconstruction
+    """
+    # run check that prefix matches msa input
+    subprocess.run([f"mkdir -p ancestral_state_reconstruction/{prefix}"],shell=True)
+    subprocess.run([f"raxml-ng --ancestral --msa {msa} --tree {best_uncollapsed_tree} --model {model} --prefix {prefix}"],shell=True)
+    
+##
+## Functions that support treemaking
+##
 
 def annotate_sampleNames(samplenames,locations_long_names,patients_sbj,visits_sbj,locations_sbj):
     # extend sample name with patient/visit/location identifier
@@ -2394,6 +2419,82 @@ def build_table_for_tree_labeling(p_chr_table, treeSampleNamesLong, calls_for_tr
         for i in range(p_chr_table.shape[0]):
             csv_file.write(",".join(np.append( np.array([str(p_chr_table[i,0]),str(p_chr_table[i,1])]) ,calls_for_tree[i,]))+"\n")
 
+##
+## Tree parsing/interacting
+##
+
+def parse_tree(tree_path):
+    """
+    Parses trees using Phylo, and returns a tree object for manipulation
+    
+    Attempts to catch any errors and also reports the number of terminals (samples) included in the tree
+    Always returns the first tree in any file that has multiple trees inside (eg bootstrap tree files)
+    """
+    try:
+        parsed_tree=Phylo.read(tree_path,'newick')
+    except ValueError:
+        parsed_tree=None
+        print("Multiple trees in file, trying to parse first (filled) tree in file.")
+        trees= Phylo.parse(tree_path,'newick')
+        for tree in trees:
+            if tree.count_terminals() > 1:
+                parsed_tree=tree
+                print("Found filled tree, with length", tree.count_terminals())
+                break
+    return parsed_tree
+
+def count_number_mutational_events(ancestral_reconstruction_labelled_tree,ancestral_reconstruction_fasta, skip_preterminals=True,track_nodes=False):
+    """
+    Counts the number of mutational events at all positions.
+    raxml-ng --ancestral output ancestral state reconstruction tree (with labelled internal nodes) and calls for all the goodpos that went into building the tree and ancestral reconstruction. 
+    These outputs are from treetime ancestral, see function create_ancestral_reconstruction.
+    
+    Homoplasic locations are all cells with value >1
+
+    Options to count or skip terminal node transitions, (eg only count internal nodes homoplasies).
+
+    Default output names from treetime:
+    {prefix}.raxml.ancestralTree == ancestral_reconstruction_labelled_tree
+    {prefix}.raxml.ancestralStates == ancestral_reconstruction_fasta
+
+    Example call:
+    count_number_mutational_events(f'ancestral_state_reconstruction/{prefix}/{prefix}.raxml.ancestralTree',f'ancestral_state_reconstruction/{prefix}/{prefix}.raxml.ancestralStates'"""
+    # parse fasta
+    calls_pos={}
+    for record in SeqIO.parse(ancestral_reconstruction_fasta, 'fasta'):
+        calls_pos[record.id] = str(record.seq)
+    # parse tree structure into adjacency graph to traverse
+    parsed_tree = parse_tree(ancestral_reconstruction_labelled_tree) 
+    root=parsed_tree.common_ancestor(parsed_tree.get_terminals())
+    net = Phylo.to_networkx(parsed_tree)
+    tree_as_dict_of_lists=networkx.to_dict_of_lists(net)
+    # start tree traversal, checking if each internal node has same call as parent, if not iterate the val for that base +1
+    transitions_goodpos=np.zeros(len(str(record.seq)))
+    to_visit=[(x, root) for x in tree_as_dict_of_lists[root]]
+    visited=set()
+    visited.add(root)
+    nodes_output={i:[] for i in range(len(transitions_goodpos))}
+    while len(to_visit)>0:
+        currently_processing=to_visit[0]
+        parent=currently_processing[1]
+        current_node=currently_processing[0]
+        visited.add(current_node)
+        is_preterminal=len(tree_as_dict_of_lists[current_node])==1
+        if skip_preterminals and is_preterminal:
+            pass
+        else:
+            for index in range(len(transitions_goodpos)):
+                if calls_pos[parent.name][index] != calls_pos[current_node.name][index] and calls_pos[current_node.name][index]!= 'N' and calls_pos[parent.name][index]!= 'N':
+                    transitions_goodpos[index]+=1
+                    if track_nodes:
+                        nodes_output[index].append((current_node.name,calls_pos[current_node.name][index]))
+            for children in tree_as_dict_of_lists[current_node]:
+                if children not in visited:
+                    to_visit.append((children,current_node))
+        to_visit=to_visit[1:]
+    if track_nodes:
+        return transitions_goodpos,nodes_output
+    return transitions_goodpos
 
 
 ############################
