@@ -95,17 +95,17 @@ def main():
         print(check_samples_csv_header(sample_config_file_path))
         sys.exit(1)
 
-    [list_path,list_splID,list_fileN,list_refG,list_group,list_outgroup] = read_samples_CSV(sample_config_file_path)
+    samples_csv_dict = read_samples_CSV(sample_config_file_path)
     
     # run error checks
     errors = []
-    ref_genome_errors = check_ref_genome_main(parsed_config,list_refG)
+    ref_genome_errors = check_ref_genome_main(parsed_config,samples_csv_dict['Reference'])
     if ref_genome_errors:
         errors.append('')
         errors += [f'ERROR - pre_snakemake_checks: Reference genome path parsing failed! Reference genomes referenced in {sample_config_file_path} have the following errors:']
         errors += ['    ' + str(x) for x in ref_genome_errors]
 
-    sample_path_errors = check_sample_paths(list_path,list_splID,list_fileN)
+    sample_path_errors = check_sample_paths(samples_csv_dict['Path'],samples_csv_dict['Sample'],samples_csv_dict['FileName'])
     if len(sample_path_errors) > 0:
         errors.append('')
         errors += [f'ERROR - pre_snakemake_checks: File path parsing failed! File paths referenced in {sample_config_file_path} have the following errors:']

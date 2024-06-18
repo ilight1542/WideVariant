@@ -67,7 +67,7 @@ External documentation: [sickle](https://github.com/najoshi/sickle)
 
 ## Mapping step
 
-### `refGenome_index`
+### `refGenome_bowtie_index`
 
 Purpose: Indexes reference genome for bowtie2
 
@@ -115,7 +115,7 @@ Notes:
 External documentation: none
 
 
-### `samtools_idx`
+### `refGenome_fasta_idx`
 
 Purpose: Indexes reference genome for samtools
 

@@ -22,7 +22,7 @@ run_test() {
     ####
     ## Error reporting
     ## echo last three lines of logfile (time and if test was ok!)
-    unittest_report=$(grep -A2 -E "Ran .* test in .*s" "${path_to_log}/${timestamp}_${test_script_basename}.log")
+    unittest_report=$(grep -A2 -E "^Ran .* test[s]? in .*s" "${path_to_log}/${timestamp}_${test_script_basename}.log")
     echo "$unittest_report"
 
     ## Check if error occured which was not spotted by unittest
@@ -66,41 +66,53 @@ echo "Start testing..."
 mkdir -p ${log_file_path}
 
 echo -e "\n\n\n######################"
+echo "Running general_snakemake_helpers tests..."
+echo -e "######################\n"
+script_basename='test_general_snakemake_helpers'
+run_test ${script_basename} ${log_file_path} ${timestamp}
+echo -e "${script_basename} done\n"
+
+echo -e "\n\n\n######################"
 echo "Running bowtie2 QC tests..."
 echo -e "######################\n"
-
 script_basename='test_bowtie2qc'
+run_test ${script_basename} ${log_file_path} ${timestamp}
+echo -e "${script_basename} done\n"
 
+echo -e "\n\n\n######################"
+echo "Running combinepositions tests..."
+echo -e "######################\n"
+script_basename='test_combinepositions'
+run_test ${script_basename} ${log_file_path} ${timestamp}
+echo -e "${script_basename} done\n"
+
+echo -e "\n\n\n######################"
+echo "Running variants2positions tests..."
+echo -e "######################\n"
+script_basename='test_variants2positions'
 run_test ${script_basename} ${log_file_path} ${timestamp}
 echo -e "${script_basename} done\n"
 
 echo -e "\n\n\n######################"
 echo "Running vcf2quals tests..."
 echo -e "######################\n"
-
 script_basename='test_vcf2quals_snakemake'
-
 run_test ${script_basename} ${log_file_path} ${timestamp}
 echo -e "${script_basename} done\n"
 
 echo -e "\n\n\n######################"
 echo "Running pileup2diversity_helper_functions tests..."
 echo -e "######################\n"
-
 script_basename='test_pileup2diversity_helper_functions'
-
 run_test ${script_basename} ${log_file_path} ${timestamp}
 echo -e "${script_basename} done\n"
 
 echo -e "\n\n\n######################"
-echo "Running general_snakemake_helpers tests..."
+echo "Running build_candidate_mutation_table tests..."
 echo -e "######################\n"
-
-script_basename='test_general_snakemake_helpers'
-
+script_basename='test_build_candidate_mutation_table'
 run_test ${script_basename} ${log_file_path} ${timestamp}
 echo -e "${script_basename} done\n"
-
 
 echo "Tests done"
 echo "If some errors have been reported, please check the log files ${log_file_path} and look for 'ERROR', 'FAILED' and 'Traceback'"

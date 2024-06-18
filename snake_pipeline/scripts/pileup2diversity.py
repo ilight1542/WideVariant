@@ -8,11 +8,9 @@ Created on Tue Jan  4 22:14:06 2022
 
 import numpy as np
 import sys
-import gzip
 import argparse
 import gus_helper_functions as ghf
-import pickle
-from scipy.stats import ttest_ind, fisher_exact,ttest_1samp
+from scipy.stats import ttest_ind, fisher_exact
 from math import log10
 
 #%% Version history
@@ -186,8 +184,8 @@ def parse_calls_into_simplecalls(calls,ref_idx,nts_ascii,line,line_id):
     #replace reference matches (.,) with their actual calls
 
     if ref_idx != None: # when reference allele is not ambiguous
-        calls[np.where(calls==46)[0]]=nts_ascii[ref_idx] #'.'
-        calls[np.where(calls==44)[0]]=nts_ascii[ref_idx] #','
+        calls[np.where(calls==46)[0]]=nts_ascii[ref_idx] #'.' // fwd read 
+        calls[np.where(calls==44)[0]]=nts_ascii[ref_idx+4] #',' // rev read
     else: # added 2022.09.23 by Arolyn: for cases where reference allele is ambiguous, confirm there are no ,'s or .'s
         if np.any(calls==46) | np.any(calls==44):
             raise ValueError(f'Error! Calls at this position allegedly match reference allele even though reference allele was ambiguous. Line {str(line_id+1)} from mpileup: {line}')
@@ -196,7 +194,7 @@ def parse_calls_into_simplecalls(calls,ref_idx,nts_ascii,line,line_id):
     simplecalls=calls[np.where(calls>0)]
     return simplecalls
 
-def run_statistical_tests(simplecalls,temp,bq,mq,td,nts_ascii,Phred_offset=33):
+def run_statistical_tests(simplecalls,temp,bq,mq,td,nts_ascii,major_nt_idx,read_w_major_nt_bool,minor_nt_idx,read_w_minor_nt_bool,Phred_offset=33):
     """
     Run statistical tests on sequencing data for metagenomic samples. (only if MAF <0.995 and each strand has > min_reads_on_strand)
 
@@ -216,24 +214,16 @@ def run_statistical_tests(simplecalls,temp,bq,mq,td,nts_ascii,Phred_offset=33):
     ## The following section is critical for metagenomic samples 
     # find major and nextmajor allele
 
-    allele_index_summed_calls=[(x,temp[x]+temp[x+4]) for x in range(4)] # add T and t calls, C and c calls, etc. keep index of major allele as first index in tuple
-    allele_index_summed_calls.sort(key=lambda x: x[1]) ## sort by number of calls for a given base
-    n1 = allele_index_summed_calls[-1][0] # major allele (most calls) (returns actual index of base in nts)
-    n2 = allele_index_summed_calls[-2][0] # next most abundant allele (returns actual index of base in nts)
-    
-    x=np.logical_or(simplecalls==nts_ascii[n1], simplecalls==nts_ascii[n1+4]) # boolean array of reads with major alelle
-    y=np.logical_or(simplecalls==nts_ascii[n2], simplecalls==nts_ascii[n2+4]) # boolean array of reads with minor alelle
-    
-    bttests_x,bttests_y = bq[x]-Phred_offset, bq[y]-Phred_offset # gets base qualities for major/minor alleles
-    mttests_x,mttests_y = mq[x]-Phred_offset, mq[y]-Phred_offset # gets mapping qualities for major/minor alleles
-    fttests_x,fttests_y = td[(np.where(simplecalls==nts_ascii[n1])[0])], td[(np.where(simplecalls==nts_ascii[n2])[0])] # gets tail distances from fwd reads for major/minor alleles
-    rttests_x,rttests_y = td[(np.where(simplecalls==nts_ascii[n1+4])[0])], td[(np.where(simplecalls==nts_ascii[n2+4])[0])] # gets tail distances from rev reads for major/minor alleles
+    bttests_major_nt,bttests_minor_nt = bq[read_w_major_nt_bool]-Phred_offset, bq[read_w_minor_nt_bool]-Phred_offset # gets base qualities for major/minor alleles
+    mttests_major_nt,mttests_minor_nt = mq[read_w_major_nt_bool]-Phred_offset, mq[read_w_minor_nt_bool]-Phred_offset # gets mapping qualities for major/minor alleles
+    fttests_major_nt,fttests_minor_nt = td[(np.where(simplecalls==nts_ascii[major_nt_idx])[0])], td[(np.where(simplecalls==nts_ascii[minor_nt_idx])[0])] # gets tail distances from fwd reads for major/minor alleles
+    rttests_major_nt,rttests_minor_nt = td[(np.where(simplecalls==nts_ascii[major_nt_idx+4])[0])], td[(np.where(simplecalls==nts_ascii[minor_nt_idx+4])[0])] # gets tail distances from rev reads for major/minor alleles
     
     ## NOTE: matlab ttest will output result if len(y) == 1, treating it as the hypothesized mean of the normal distribution compared to x 
-    bq_pval=ttest_ind(bttests_x,bttests_y)[1]
-    mq_pval=ttest_ind(mttests_x,mttests_y)[1]
-    forward_pval=ttest_ind(fttests_x,fttests_y)[1]
-    reverse_pval=ttest_ind(rttests_x,rttests_y)[1]
+    bq_pval=ttest_ind(bttests_major_nt,bttests_minor_nt)[1]
+    mq_pval=ttest_ind(mttests_major_nt,mttests_minor_nt)[1]
+    forward_pval=ttest_ind(fttests_major_nt,fttests_minor_nt)[1]
+    reverse_pval=ttest_ind(rttests_major_nt,rttests_minor_nt)[1]
     # record pval of above t-tests as -log10
     # coverting values of 0 and nan for output as -1 (test failed):
     if bq_pval == 0 or np.isnan(bq_pval):
@@ -253,13 +243,13 @@ def run_statistical_tests(simplecalls,temp,bq,mq,td,nts_ascii,Phred_offset=33):
     else: temp[36]=ghf.round_half_up(-log10(reverse_pval))
     
     ## currently not broken but testing against matlab script fails since matlab script *is* broken.
-    p=fisher_exact(np.array([[temp[n1], temp[n2]],[temp[n1+4],temp[n2+4]]]), alternative='two-sided')[1] # fisher exact test for strand bias (contingency table = # of reads that are fwd/rev and support major/minor allele)
+    p=fisher_exact(np.array([[temp[major_nt_idx], temp[minor_nt_idx]],[temp[major_nt_idx+4],temp[minor_nt_idx+4]]]), alternative='two-sided')[1] # fisher exact test for strand bias (contingency table = # of reads that are fwd/rev and support major/minor allele)
     if p == 0:
         temp[32]=-1
     else: temp[32]=ghf.round_half_up(-log10(p))
     return temp
 
-def parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,nts_ascii,min_reads_on_strand,Phred_offset):
+def parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,nts_ascii,min_reads_on_strand,max_MAF,Phred_offset):
     """
     Parse simplecalls into temp data structure for recording read support, basequality values, mapping quality values, and tail distance values for this position for each read possible (ATCG and atcg)
 
@@ -286,11 +276,23 @@ def parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,nts_ascii,min_rea
             temp[nt+8]=ghf.round_half_up(np.sum(bq[(current_nt_indices)])/nt_count)-Phred_offset
             temp[nt+16]=ghf.round_half_up(np.sum(mq[(current_nt_indices)])/nt_count)-Phred_offset
             temp[nt+24]=ghf.round_half_up(np.sum(td[(current_nt_indices)])/nt_count)
-    if sum(temp[0:4]) > min_reads_on_strand and sum(temp[4:8])> min_reads_on_strand and sum(y)*200>sum(x): # only calcualte p values of there are greater than 20 reads on each strand and MAF < .995
-        temp=run_statistical_tests(simplecalls,temp,bq,mq,td,min_reads_on_strand,Phred_offset)
+    
+    allele_index_summed_calls=[(x,temp[x]+temp[x+4]) for x in range(4)] # add T and t calls, C and c calls, etc. keep index of major allele as first index in tuple
+    allele_index_summed_calls.sort(key=lambda x: x[1]) ## sort by number of calls for a given base
+    major_nt_idx = allele_index_summed_calls[-1][0] # major allele (most calls) (returns actual index of base in nts)
+    minor_nt_idx = allele_index_summed_calls[-2][0] # next most abundant allele (returns actual index of base in nts)
+    
+    read_w_major_nt_bool=np.logical_or(simplecalls==nts_ascii[major_nt_idx], simplecalls==nts_ascii[major_nt_idx+4]) # boolean array of reads with major allele
+    read_w_minor_nt_bool=np.logical_or(simplecalls==nts_ascii[minor_nt_idx], simplecalls==nts_ascii[minor_nt_idx+4]) # boolean array of reads with minor allele
+    
+    num_reads_major_nt = sum(read_w_major_nt_bool)
+    num_reads_minor_nt = sum(read_w_minor_nt_bool)
+
+    if (sum(temp[0:4]) > min_reads_on_strand) and ( sum(temp[4:8]) > min_reads_on_strand ) and (num_reads_minor_nt > (num_reads_major_nt*(1-max_MAF))): # only calcualte p values of there are greater than min reads on each strand and MAF < max_MAF
+        temp=run_statistical_tests(simplecalls,temp,bq,mq,td,min_reads_on_strand,major_nt_idx,read_w_major_nt_bool,minor_nt_idx,read_w_minor_nt_bool,Phred_offset)
     return temp
 
-def parse_entry_in_mpileupup(line,line_id,data,chr_starts,genome_length,scaf_names,nts_ascii,indel_region,min_reads_on_strand,Phred_offset,num_fields_diversity_arr):
+def parse_entry_in_mpileupup(line,line_id,data,chr_starts,genome_length,scaf_names,nts_ascii,indel_region,min_reads_on_strand,maxMAF,Phred_offset,num_fields_diversity_arr):
     lineinfo = line.strip().split('\t')
     
     #holds info for each position before storing in data
@@ -300,7 +302,7 @@ def parse_entry_in_mpileupup(line,line_id,data,chr_starts,genome_length,scaf_nam
     chr_idx = np.where(chromo == scaf_names)[0][0] +1 ## +1 as chrpos2index uses 1-indexed chromosomes
     position_on_chr = int(lineinfo[1]) #1-indexed
     chr_pos_array = np.array( ([chr_idx, position_on_chr], ) ) ## 2D-np array required!
-    position = ghf.chrpos2index(chr_pos_array, chr_starts)
+    position = int(ghf.chrpos2index(chr_pos_array, chr_starts))
 
     #ref allele
     ref_str = lineinfo[2]; # reference allele from pileup (usually A T C or G but sometimes a different symbol if nucleotide is ambiguous)
@@ -314,12 +316,12 @@ def parse_entry_in_mpileupup(line,line_id,data,chr_starts,genome_length,scaf_nam
         ref_idx=None # for cases where reference base is ambiguous
     
     #calls info
-    calls=np.fromstring(lineinfo[4], dtype=np.int8) #to ASCII
-    
+    calls=np.frombuffer(lineinfo[4].encode('utf-8'), dtype=np.int8).copy() #to ASCII // copy to make line permutable again 
+
     #qual info
-    bq=np.fromstring(lineinfo[5], dtype=np.int8) # base quality, BAQ corrected, ASCII
-    mq=np.fromstring(lineinfo[6], dtype=np.int8) # mapping quality, ASCII
-    td=np.fromstring(lineinfo[7], dtype=int, sep=',') # distance from tail, comma sep
+    bq=np.frombuffer(lineinfo[5].encode('utf-8'), dtype=np.int8).copy() # base quality, BAQ corrected, ASCII // copy to make line permutable again 
+    mq=np.frombuffer(lineinfo[6].encode('utf-8'), dtype=np.int8).copy() # mapping quality, ASCII // copy to make line permutable again 
+    td=np.array([num for num in lineinfo[7].split(',') if num.isdigit()], dtype = np.int8)
     
     # find start and end reads supporting call, mask for downstream processing
     calls,temp[37] = clean_calls_from_start_and_end(calls)
@@ -328,14 +330,14 @@ def parse_entry_in_mpileupup(line,line_id,data,chr_starts,genome_length,scaf_nam
     calls,data = parse_indels_into_data(calls,position,data,indel_region,genome_length)
 
     simplecalls = parse_calls_into_simplecalls(calls,ref_idx,nts_ascii,line,line_id)
-    temp = parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,nts_ascii,min_reads_on_strand,Phred_offset)
+    temp = parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,nts_ascii,min_reads_on_strand,maxMAF,Phred_offset)
     
     ## store the data
     #-1 is needed to turn 1-indexed positions to python 0-indexed
     data[position-1,:38]=temp[:38]
     return data
 
-def mpileup_to_diversity(input_pileup,path_to_ref,min_reads_on_strand,indel_region,Phred_offset,num_fields_diversity_arr):
+def mpileup_to_diversity(input_pileup,path_to_ref,min_reads_on_strand,indel_region,maxMAF,Phred_offset,num_fields_diversity_arr):
     """
     Convert an mpileup file to a diversity data structure.
 
@@ -363,10 +365,10 @@ def mpileup_to_diversity(input_pileup,path_to_ref,min_reads_on_strand,indel_regi
     print(f"Reading input file: {input_pileup}")
     with open(input_pileup) as mpileup:
         for line_id, line in enumerate(mpileup):
-            data = parse_entry_in_mpileupup(line,line_id,data,chr_starts,genome_length,scaf_names,nts_ascii,indel_region,min_reads_on_strand,Phred_offset,num_fields_diversity_arr)
+            data = parse_entry_in_mpileupup(line,line_id,data,chr_starts,genome_length,scaf_names,nts_ascii,indel_region,min_reads_on_strand,maxMAF,Phred_offset,num_fields_diversity_arr)
     return data
 
-def main(input_pileup, path_to_ref,phred_offset=33,num_fields_diversity_arr=40,min_reads_on_strand=20,indel_region=3):
+def main(input_pileup, path_to_ref,phred_offset=33,num_fields_diversity_arr=40,min_reads_on_strand=20,maxMAF=0.995,indel_region=3):
     """Grabs relevant allele info from mpileupfile and stores as an array 
 
     Args:
@@ -377,7 +379,7 @@ def main(input_pileup, path_to_ref,phred_offset=33,num_fields_diversity_arr=40,m
         indel_region: default=3: Number of bases upstream/downstream of an indel to mark as having an indel-supporting read nearby
     """
     
-    data = mpileup_to_diversity(input_pileup,path_to_ref,min_reads_on_strand,indel_region,phred_offset,num_fields_diversity_arr)
+    data = mpileup_to_diversity(input_pileup,path_to_ref,min_reads_on_strand,indel_region,maxMAF,phred_offset,num_fields_diversity_arr)
 
     #calc coverage
     coverage=np.sum(data[:,0:8], axis = 1)
