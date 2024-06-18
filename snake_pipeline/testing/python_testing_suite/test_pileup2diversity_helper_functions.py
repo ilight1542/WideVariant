@@ -186,17 +186,17 @@ class TestMyFunction(unittest.TestCase):
         
         # test that lengths are correct for clean calls
         self.assertTrue( np.array_equal(p2dh.parse_calls_into_simplecalls(all_ref.copy(), ref_idx[0], nts_ascii, pileup_line, pileup_lineid), 
-                                        np.full(8, nts_ascii[0], dtype=np.int8) )) ## ref is 'A' & called ref --> 8xASCII char '65'
+                                        np.append( np.full(4, nts_ascii[0], dtype=np.int8), np.full(4, nts_ascii[0+4], dtype=np.int8) )  )) ## ref is 'A' & called ref --> 4xASCII char '65' + 4xASCII char '97'
         self.assertTrue( np.array_equal(p2dh.parse_calls_into_simplecalls(all_ref.copy(), ref_idx[1], nts_ascii, pileup_line, pileup_lineid), 
-                                        np.full(8, nts_ascii[1], dtype=np.int8) )) ## ref is 'T' & called ref --> 8xASCII char '84'
+                                        np.append( np.full(4, nts_ascii[1], dtype=np.int8), np.full(4, nts_ascii[1+4], dtype=np.int8) ) ) ) ## ref is 'T' & called ref --> 4xASCII char '84' + 4xASCII char '116'
         self.assertTrue( np.array_equal(p2dh.parse_calls_into_simplecalls(all_ref.copy(), ref_idx[2], nts_ascii, pileup_line, pileup_lineid), 
-                                        np.full(8, nts_ascii[2], dtype=np.int8) )) ## ref is 'C' & called ref --> 8xASCII char '67'
+                                        np.append( np.full(4, nts_ascii[2], dtype=np.int8), np.full(4, nts_ascii[2+4], dtype=np.int8) )  )) ## ref is 'C' & called ref --> 4xASCII char '67' + 4xASCII char '99'
         self.assertTrue( np.array_equal(p2dh.parse_calls_into_simplecalls(all_ref.copy(), ref_idx[3], nts_ascii, pileup_line, pileup_lineid), 
-                                        np.full(8, nts_ascii[3], dtype=np.int8) )) ## ref is 'G' & called ref --> 8xASCII char '71'
+                                        np.append( np.full(4, nts_ascii[3], dtype=np.int8), np.full(4, nts_ascii[3+4], dtype=np.int8) )  )) ## ref is 'G' & called ref --> 4xASCII char '71' + 4xASCII char '103'
         self.assertTrue( np.array_equal(p2dh.parse_calls_into_simplecalls(no_ref.copy(), ref_idx[0], nts_ascii, pileup_line, pileup_lineid),  
-                                        np.array([ 84,  84,  84,  84, 116, 116, 116, 116], dtype=np.int8) )) ## ref 'T' and 'A' called  --> 8xASCII char '65' (= 'A')
+                                        np.array([ 84,  84,  84,  84, 116, 116, 116, 116], dtype=np.int8) )) ## ref 'T' and 'A' called 
         self.assertTrue( np.array_equal(p2dh.parse_calls_into_simplecalls(all_ref_removed_bases.copy(), ref_idx[0], nts_ascii, pileup_line, pileup_lineid), 
-                                        np.full(8, nts_ascii[0], dtype=np.int8) )) ## ref 'A' and 'A' called & 4x removed call --> 8xASCII char '65' (= 'A')
+                                        np.append( np.full(4, nts_ascii[0], dtype=np.int8), np.full(4, nts_ascii[0+4], dtype=np.int8) ) )) ## ref 'A' and 'A' called & 4x removed call
         with self.assertRaises(ValueError): ## ref is none --> raise value error
             p2dh.parse_calls_into_simplecalls(all_ref.copy(), None, nts_ascii, pileup_line, pileup_lineid)
     

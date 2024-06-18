@@ -289,7 +289,7 @@ def parse_simplecalls_into_temp_data(simplecalls,temp,bq,mq,td,nts_ascii,min_rea
     num_reads_minor_nt = sum(read_w_minor_nt_bool)
 
     if (sum(temp[0:4]) > min_reads_on_strand) and ( sum(temp[4:8]) > min_reads_on_strand ) and (num_reads_minor_nt > (num_reads_major_nt*(1-max_MAF))): # only calcualte p values of there are greater than min reads on each strand and MAF < max_MAF
-        temp=run_statistical_tests(simplecalls,temp,bq,mq,td,min_reads_on_strand,major_nt_idx,read_w_major_nt_bool,minor_nt_idx,read_w_minor_nt_bool,Phred_offset)
+        temp=run_statistical_tests(simplecalls,temp,bq,mq,td,nts_ascii,major_nt_idx,read_w_major_nt_bool,minor_nt_idx,read_w_minor_nt_bool,Phred_offset)
     return temp
 
 def parse_entry_in_mpileupup(line,line_id,data,chr_starts,genome_length,scaf_names,nts_ascii,indel_region,min_reads_on_strand,maxMAF,Phred_offset,num_fields_diversity_arr):
